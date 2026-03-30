@@ -1,0 +1,34 @@
+name: helper_app
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  dio: ^5.4.3
+  go_router: ^14.0.0
+  shared_preferences: ^2.2.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  mobile_scanner: ^7.2.0
+  collection: ^1.18.0
+  device_info_plus: ^12.3.0
+  flutter_zxing: ^2.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.9
+  freezed: ^2.5.2
+  json_serializable: ^6.9.0
+
+flutter:
+  uses-material-design: true
