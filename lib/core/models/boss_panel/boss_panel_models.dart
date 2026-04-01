@@ -104,3 +104,28 @@ class PositionCellDto with _$PositionCellDto {
 
   factory PositionCellDto.fromJson(Map<String, dynamic> json) => _$PositionCellDtoFromJson(json);
 }
+
+@freezed
+class AvailableOrderDto with _$AvailableOrderDto {
+  const factory AvailableOrderDto({
+    required int orderId,
+    @Default('') String customerName,
+    DateTime? deliveryDate,
+    @Default('') String type,
+    @Default(0) int itemsCount,
+  }) = _AvailableOrderDto;
+
+  factory AvailableOrderDto.fromJson(Map<String, dynamic> json) => _$AvailableOrderDtoFromJson(json);
+}
+
+@freezed
+class CreateOrderAssemblyTaskDto with _$CreateOrderAssemblyTaskDto {
+  const factory CreateOrderAssemblyTaskDto({
+    required int orderId,
+    required int assignedUserId,
+    @Default(7) int priority,
+    String? description,
+  }) = _CreateOrderAssemblyTaskDto;
+
+  factory CreateOrderAssemblyTaskDto.fromJson(Map<String, dynamic> json) => _$CreateOrderAssemblyTaskDtoFromJson(json);
+}

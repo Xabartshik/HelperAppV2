@@ -2001,3 +2001,508 @@ abstract class _PositionCellDto implements PositionCellDto {
   _$$PositionCellDtoImplCopyWith<_$PositionCellDtoImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
+
+AvailableOrderDto _$AvailableOrderDtoFromJson(Map<String, dynamic> json) {
+  return _AvailableOrderDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$AvailableOrderDto {
+  int get orderId => throw _privateConstructorUsedError;
+  String get customerName => throw _privateConstructorUsedError;
+  DateTime? get deliveryDate => throw _privateConstructorUsedError;
+  String get type => throw _privateConstructorUsedError;
+  int get itemsCount => throw _privateConstructorUsedError;
+
+  /// Serializes this AvailableOrderDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of AvailableOrderDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $AvailableOrderDtoCopyWith<AvailableOrderDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $AvailableOrderDtoCopyWith<$Res> {
+  factory $AvailableOrderDtoCopyWith(
+    AvailableOrderDto value,
+    $Res Function(AvailableOrderDto) then,
+  ) = _$AvailableOrderDtoCopyWithImpl<$Res, AvailableOrderDto>;
+  @useResult
+  $Res call({
+    int orderId,
+    String customerName,
+    DateTime? deliveryDate,
+    String type,
+    int itemsCount,
+  });
+}
+
+/// @nodoc
+class _$AvailableOrderDtoCopyWithImpl<$Res, $Val extends AvailableOrderDto>
+    implements $AvailableOrderDtoCopyWith<$Res> {
+  _$AvailableOrderDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of AvailableOrderDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? orderId = null,
+    Object? customerName = null,
+    Object? deliveryDate = freezed,
+    Object? type = null,
+    Object? itemsCount = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            orderId: null == orderId
+                ? _value.orderId
+                : orderId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            customerName: null == customerName
+                ? _value.customerName
+                : customerName // ignore: cast_nullable_to_non_nullable
+                      as String,
+            deliveryDate: freezed == deliveryDate
+                ? _value.deliveryDate
+                : deliveryDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            type: null == type
+                ? _value.type
+                : type // ignore: cast_nullable_to_non_nullable
+                      as String,
+            itemsCount: null == itemsCount
+                ? _value.itemsCount
+                : itemsCount // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$AvailableOrderDtoImplCopyWith<$Res>
+    implements $AvailableOrderDtoCopyWith<$Res> {
+  factory _$$AvailableOrderDtoImplCopyWith(
+    _$AvailableOrderDtoImpl value,
+    $Res Function(_$AvailableOrderDtoImpl) then,
+  ) = __$$AvailableOrderDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    int orderId,
+    String customerName,
+    DateTime? deliveryDate,
+    String type,
+    int itemsCount,
+  });
+}
+
+/// @nodoc
+class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
+    extends _$AvailableOrderDtoCopyWithImpl<$Res, _$AvailableOrderDtoImpl>
+    implements _$$AvailableOrderDtoImplCopyWith<$Res> {
+  __$$AvailableOrderDtoImplCopyWithImpl(
+    _$AvailableOrderDtoImpl _value,
+    $Res Function(_$AvailableOrderDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of AvailableOrderDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? orderId = null,
+    Object? customerName = null,
+    Object? deliveryDate = freezed,
+    Object? type = null,
+    Object? itemsCount = null,
+  }) {
+    return _then(
+      _$AvailableOrderDtoImpl(
+        orderId: null == orderId
+            ? _value.orderId
+            : orderId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        customerName: null == customerName
+            ? _value.customerName
+            : customerName // ignore: cast_nullable_to_non_nullable
+                  as String,
+        deliveryDate: freezed == deliveryDate
+            ? _value.deliveryDate
+            : deliveryDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        type: null == type
+            ? _value.type
+            : type // ignore: cast_nullable_to_non_nullable
+                  as String,
+        itemsCount: null == itemsCount
+            ? _value.itemsCount
+            : itemsCount // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
+  const _$AvailableOrderDtoImpl({
+    required this.orderId,
+    this.customerName = '',
+    this.deliveryDate,
+    this.type = '',
+    this.itemsCount = 0,
+  });
+
+  factory _$AvailableOrderDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$AvailableOrderDtoImplFromJson(json);
+
+  @override
+  final int orderId;
+  @override
+  @JsonKey()
+  final String customerName;
+  @override
+  final DateTime? deliveryDate;
+  @override
+  @JsonKey()
+  final String type;
+  @override
+  @JsonKey()
+  final int itemsCount;
+
+  @override
+  String toString() {
+    return 'AvailableOrderDto(orderId: $orderId, customerName: $customerName, deliveryDate: $deliveryDate, type: $type, itemsCount: $itemsCount)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AvailableOrderDtoImpl &&
+            (identical(other.orderId, orderId) || other.orderId == orderId) &&
+            (identical(other.customerName, customerName) ||
+                other.customerName == customerName) &&
+            (identical(other.deliveryDate, deliveryDate) ||
+                other.deliveryDate == deliveryDate) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.itemsCount, itemsCount) ||
+                other.itemsCount == itemsCount));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    orderId,
+    customerName,
+    deliveryDate,
+    type,
+    itemsCount,
+  );
+
+  /// Create a copy of AvailableOrderDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AvailableOrderDtoImplCopyWith<_$AvailableOrderDtoImpl> get copyWith =>
+      __$$AvailableOrderDtoImplCopyWithImpl<_$AvailableOrderDtoImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$AvailableOrderDtoImplToJson(this);
+  }
+}
+
+abstract class _AvailableOrderDto implements AvailableOrderDto {
+  const factory _AvailableOrderDto({
+    required final int orderId,
+    final String customerName,
+    final DateTime? deliveryDate,
+    final String type,
+    final int itemsCount,
+  }) = _$AvailableOrderDtoImpl;
+
+  factory _AvailableOrderDto.fromJson(Map<String, dynamic> json) =
+      _$AvailableOrderDtoImpl.fromJson;
+
+  @override
+  int get orderId;
+  @override
+  String get customerName;
+  @override
+  DateTime? get deliveryDate;
+  @override
+  String get type;
+  @override
+  int get itemsCount;
+
+  /// Create a copy of AvailableOrderDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$AvailableOrderDtoImplCopyWith<_$AvailableOrderDtoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+CreateOrderAssemblyTaskDto _$CreateOrderAssemblyTaskDtoFromJson(
+  Map<String, dynamic> json,
+) {
+  return _CreateOrderAssemblyTaskDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$CreateOrderAssemblyTaskDto {
+  int get orderId => throw _privateConstructorUsedError;
+  int get assignedUserId => throw _privateConstructorUsedError;
+  int get priority => throw _privateConstructorUsedError;
+  String? get description => throw _privateConstructorUsedError;
+
+  /// Serializes this CreateOrderAssemblyTaskDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of CreateOrderAssemblyTaskDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $CreateOrderAssemblyTaskDtoCopyWith<CreateOrderAssemblyTaskDto>
+  get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $CreateOrderAssemblyTaskDtoCopyWith<$Res> {
+  factory $CreateOrderAssemblyTaskDtoCopyWith(
+    CreateOrderAssemblyTaskDto value,
+    $Res Function(CreateOrderAssemblyTaskDto) then,
+  ) =
+      _$CreateOrderAssemblyTaskDtoCopyWithImpl<
+        $Res,
+        CreateOrderAssemblyTaskDto
+      >;
+  @useResult
+  $Res call({
+    int orderId,
+    int assignedUserId,
+    int priority,
+    String? description,
+  });
+}
+
+/// @nodoc
+class _$CreateOrderAssemblyTaskDtoCopyWithImpl<
+  $Res,
+  $Val extends CreateOrderAssemblyTaskDto
+>
+    implements $CreateOrderAssemblyTaskDtoCopyWith<$Res> {
+  _$CreateOrderAssemblyTaskDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of CreateOrderAssemblyTaskDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? orderId = null,
+    Object? assignedUserId = null,
+    Object? priority = null,
+    Object? description = freezed,
+  }) {
+    return _then(
+      _value.copyWith(
+            orderId: null == orderId
+                ? _value.orderId
+                : orderId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            assignedUserId: null == assignedUserId
+                ? _value.assignedUserId
+                : assignedUserId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            priority: null == priority
+                ? _value.priority
+                : priority // ignore: cast_nullable_to_non_nullable
+                      as int,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$CreateOrderAssemblyTaskDtoImplCopyWith<$Res>
+    implements $CreateOrderAssemblyTaskDtoCopyWith<$Res> {
+  factory _$$CreateOrderAssemblyTaskDtoImplCopyWith(
+    _$CreateOrderAssemblyTaskDtoImpl value,
+    $Res Function(_$CreateOrderAssemblyTaskDtoImpl) then,
+  ) = __$$CreateOrderAssemblyTaskDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    int orderId,
+    int assignedUserId,
+    int priority,
+    String? description,
+  });
+}
+
+/// @nodoc
+class __$$CreateOrderAssemblyTaskDtoImplCopyWithImpl<$Res>
+    extends
+        _$CreateOrderAssemblyTaskDtoCopyWithImpl<
+          $Res,
+          _$CreateOrderAssemblyTaskDtoImpl
+        >
+    implements _$$CreateOrderAssemblyTaskDtoImplCopyWith<$Res> {
+  __$$CreateOrderAssemblyTaskDtoImplCopyWithImpl(
+    _$CreateOrderAssemblyTaskDtoImpl _value,
+    $Res Function(_$CreateOrderAssemblyTaskDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of CreateOrderAssemblyTaskDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? orderId = null,
+    Object? assignedUserId = null,
+    Object? priority = null,
+    Object? description = freezed,
+  }) {
+    return _then(
+      _$CreateOrderAssemblyTaskDtoImpl(
+        orderId: null == orderId
+            ? _value.orderId
+            : orderId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        assignedUserId: null == assignedUserId
+            ? _value.assignedUserId
+            : assignedUserId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        priority: null == priority
+            ? _value.priority
+            : priority // ignore: cast_nullable_to_non_nullable
+                  as int,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$CreateOrderAssemblyTaskDtoImpl implements _CreateOrderAssemblyTaskDto {
+  const _$CreateOrderAssemblyTaskDtoImpl({
+    required this.orderId,
+    required this.assignedUserId,
+    this.priority = 7,
+    this.description,
+  });
+
+  factory _$CreateOrderAssemblyTaskDtoImpl.fromJson(
+    Map<String, dynamic> json,
+  ) => _$$CreateOrderAssemblyTaskDtoImplFromJson(json);
+
+  @override
+  final int orderId;
+  @override
+  final int assignedUserId;
+  @override
+  @JsonKey()
+  final int priority;
+  @override
+  final String? description;
+
+  @override
+  String toString() {
+    return 'CreateOrderAssemblyTaskDto(orderId: $orderId, assignedUserId: $assignedUserId, priority: $priority, description: $description)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$CreateOrderAssemblyTaskDtoImpl &&
+            (identical(other.orderId, orderId) || other.orderId == orderId) &&
+            (identical(other.assignedUserId, assignedUserId) ||
+                other.assignedUserId == assignedUserId) &&
+            (identical(other.priority, priority) ||
+                other.priority == priority) &&
+            (identical(other.description, description) ||
+                other.description == description));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, orderId, assignedUserId, priority, description);
+
+  /// Create a copy of CreateOrderAssemblyTaskDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$CreateOrderAssemblyTaskDtoImplCopyWith<_$CreateOrderAssemblyTaskDtoImpl>
+  get copyWith =>
+      __$$CreateOrderAssemblyTaskDtoImplCopyWithImpl<
+        _$CreateOrderAssemblyTaskDtoImpl
+      >(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$CreateOrderAssemblyTaskDtoImplToJson(this);
+  }
+}
+
+abstract class _CreateOrderAssemblyTaskDto
+    implements CreateOrderAssemblyTaskDto {
+  const factory _CreateOrderAssemblyTaskDto({
+    required final int orderId,
+    required final int assignedUserId,
+    final int priority,
+    final String? description,
+  }) = _$CreateOrderAssemblyTaskDtoImpl;
+
+  factory _CreateOrderAssemblyTaskDto.fromJson(Map<String, dynamic> json) =
+      _$CreateOrderAssemblyTaskDtoImpl.fromJson;
+
+  @override
+  int get orderId;
+  @override
+  int get assignedUserId;
+  @override
+  int get priority;
+  @override
+  String? get description;
+
+  /// Create a copy of CreateOrderAssemblyTaskDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$CreateOrderAssemblyTaskDtoImplCopyWith<_$CreateOrderAssemblyTaskDtoImpl>
+  get copyWith => throw _privateConstructorUsedError;
+}

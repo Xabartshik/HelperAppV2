@@ -47,7 +47,7 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
     vm.updateParameters(
       description: _descriptionController.text,
       workerCount: int.tryParse(_workerCountController.text) ?? 1,
-      priority: int.tryParse(_priorityController.text) ?? 5,
+      priority: int.tryParse(_priorityController.text) ?? (ref.read(bossPanelViewModelProvider).selectedTaskType == 'OrderAssembly' ? 7 : 5),
       autoWorkerCount: int.tryParse(_autoSelectWorkerController.text) ?? 1,
     );
   }
@@ -177,7 +177,7 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Создание инвентаризации', style: TextStyle(color: _textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('Создание новой задачи', style: TextStyle(color: _textColor, fontSize: 18, fontWeight: FontWeight.bold)),
                       Icon(
                         state.isCreateFormExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                         color: _textColor,
@@ -186,6 +186,42 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
                   ),
                 ),
                 if (state.isCreateFormExpanded) ...[
+                  const SizedBox(height: 15),
+                  
+                  // Переключатель типа задачи
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => vm.updateParameters(selectedTaskType: 'Inventory'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: state.selectedTaskType == 'Inventory' ? _primaryColor : _bgOffBlack,
+                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)),
+                              border: Border.all(color: _bgGray950),
+                            ),
+                            child: const Text('Инвентаризация', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => vm.updateParameters(selectedTaskType: 'OrderAssembly'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: state.selectedTaskType == 'OrderAssembly' ? _primaryColor : _bgOffBlack,
+                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
+                              border: Border.all(color: _bgGray950),
+                            ),
+                            child: const Text('Сборка заказа', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 15),
                   Text('Описание задачи:', style: TextStyle(color: _textColor)),
                   const SizedBox(height: 5),
@@ -249,34 +285,68 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
                     ],
                   ),
 
-                  // Дерево позиций
-                  const SizedBox(height: 15),
-                  Text('Выбор зон (оставьте пустым для всех):', style: TextStyle(color: _textColor)),
-                  const SizedBox(height: 5),
-                  TextField(
-                    onChanged: (val) => vm.updateSearchText(val),
-                    style: TextStyle(color: _textColor),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _bgOffBlack,
-                      hintText: 'Поиск по зонам/стеллажам...',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                  // Специфичные поля для Инвентаризации
+                  if (state.selectedTaskType == 'Inventory') ...[
+                    const SizedBox(height: 15),
+                    Text('Выбор зон (оставьте пустым для всех):', style: TextStyle(color: _textColor)),
+                    const SizedBox(height: 5),
+                    TextField(
+                      onChanged: (val) => vm.updateSearchText(val),
+                      style: TextStyle(color: _textColor),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: _bgOffBlack,
+                        hintText: 'Поиск по зонам/стеллажам...',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(height: 10),
-                  Container(
-                    height: 280,
-                    decoration: BoxDecoration(color: _bgGray950, borderRadius: BorderRadius.circular(8)),
-                    child: ListView.builder(
-                      itemCount: state.flatPositionTree.length,
-                      itemBuilder: (context, index) {
-                        final node = state.flatPositionTree[index];
-                        return _buildTreeNodeRow(node, vm);
-                      },
+                    const SizedBox(height: 10),
+                    Container(
+                      height: 280,
+                      decoration: BoxDecoration(color: _bgGray950, borderRadius: BorderRadius.circular(8)),
+                      child: ListView.builder(
+                        itemCount: state.flatPositionTree.length,
+                        itemBuilder: (context, index) {
+                          final node = state.flatPositionTree[index];
+                          return _buildTreeNodeRow(node, vm);
+                        },
+                      ),
                     ),
-                  ),
+                  ],
+
+                  // Специфичные поля для Сборки Заказа
+                  if (state.selectedTaskType == 'OrderAssembly') ...[
+                    const SizedBox(height: 15),
+                    Text('Выберите заказ:', style: TextStyle(color: _textColor)),
+                    const SizedBox(height: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(color: _bgOffBlack, borderRadius: BorderRadius.circular(4)),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<AvailableOrderDto>(
+                          value: state.selectedOrder,
+                          hint: const Text('Список доступных заказов', style: TextStyle(color: Colors.white54)),
+                          dropdownColor: _bgGray900,
+                          isExpanded: true,
+                          style: TextStyle(color: _textColor),
+                          items: state.availableOrders.map((o) {
+                            return DropdownMenuItem(
+                              value: o,
+                              child: Text('Заказ #${o.orderId} (${o.itemsCount} поз.) - ${o.type}'),
+                            );
+                          }).toList(),
+                          onChanged: (val) => vm.updateParameters(selectedOrder: val),
+                        ),
+                      ),
+                    ),
+                    if (state.availableOrders.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 5),
+                        child: Text('Нет доступных новых заказов', style: TextStyle(color: Colors.amber, fontSize: 12)),
+                      ),
+                  ],
 
                   // Выбор сотрудников
                   const SizedBox(height: 15),
@@ -351,21 +421,30 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
                   const SizedBox(height: 15),
                   ElevatedButton(
                     onPressed: () async {
-                      final success = await vm.createInventoryAsync();
+                      bool success = false;
+                      if (state.selectedTaskType == 'Inventory') {
+                        success = await vm.createInventoryAsync();
+                      } else {
+                        success = await vm.createOrderAssemblyTaskAsync();
+                      }
+                      
                       if (success && mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Задача успешно создана')),
                         );
                         _descriptionController.clear();
                         _workerCountController.text = '1';
-                        _priorityController.text = '5';
+                        _priorityController.text = (state.selectedTaskType == 'OrderAssembly' ? '7' : '5');
                       }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 15),
                     ),
-                    child: const Text('Отправить задачу', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      state.selectedTaskType == 'Inventory' ? 'Создать инвентаризацию' : 'Создать задачу на сборку',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   if (state.errorMessage.isNotEmpty)
                     Padding(

@@ -50,6 +50,10 @@ class BossPanelState {
   final String newInventoryDescription;
   final int newInventoryPriority;
   final int autoSelectWorkerCount;
+  
+  final List<AvailableOrderDto> availableOrders;
+  final AvailableOrderDto? selectedOrder;
+  final String selectedTaskType; // 'Inventory' or 'OrderAssembly'
 
   const BossPanelState({
     this.isLoading = false,
@@ -66,6 +70,9 @@ class BossPanelState {
     this.newInventoryDescription = '',
     this.newInventoryPriority = 5,
     this.autoSelectWorkerCount = 1,
+    this.availableOrders = const [],
+    this.selectedOrder,
+    this.selectedTaskType = 'Inventory',
   });
 
   BossPanelState copyWith({
@@ -83,6 +90,9 @@ class BossPanelState {
     String? newInventoryDescription,
     int? newInventoryPriority,
     int? autoSelectWorkerCount,
+    List<AvailableOrderDto>? availableOrders,
+    AvailableOrderDto? selectedOrder,
+    String? selectedTaskType,
   }) {
     return BossPanelState(
       isLoading: isLoading ?? this.isLoading,
@@ -99,6 +109,9 @@ class BossPanelState {
       newInventoryDescription: newInventoryDescription ?? this.newInventoryDescription,
       newInventoryPriority: newInventoryPriority ?? this.newInventoryPriority,
       autoSelectWorkerCount: autoSelectWorkerCount ?? this.autoSelectWorkerCount,
+      availableOrders: availableOrders ?? this.availableOrders,
+      selectedOrder: selectedOrder ?? this.selectedOrder,
+      selectedTaskType: selectedTaskType ?? this.selectedTaskType,
     );
   }
 }
@@ -134,12 +147,16 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
     String? description,
     int? priority,
     int? autoWorkerCount,
+    String? selectedTaskType,
+    AvailableOrderDto? selectedOrder,
   }) {
     state = state.copyWith(
       newInventoryWorkerCount: workerCount ?? state.newInventoryWorkerCount,
       newInventoryDescription: description ?? state.newInventoryDescription,
       newInventoryPriority: priority ?? state.newInventoryPriority,
       autoSelectWorkerCount: autoWorkerCount ?? state.autoSelectWorkerCount,
+      selectedTaskType: selectedTaskType ?? state.selectedTaskType,
+      selectedOrder: selectedOrder ?? state.selectedOrder,
     );
   }
 
@@ -151,6 +168,7 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
         _loadEmployeeWorkloadAsync(),
         _loadAvailableEmployeesAsync(),
         _loadAvailablePositionsAsync(),
+        _loadAvailableOrdersAsync(),
       ]);
     } catch (e) {
       state = state.copyWith(errorMessage: 'Ошибка загрузки данных: $e');
@@ -196,6 +214,12 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
     final client = ref.read(apiClientProvider);
     _allPositions = await client.getBossPanelPositionsAsync();
     _buildPositionTree();
+  }
+
+  Future<void> _loadAvailableOrdersAsync() async {
+    final client = ref.read(apiClientProvider);
+    final orders = await client.getBossPanelAvailableOrdersAsync();
+    state = state.copyWith(availableOrders: orders);
   }
 
   void _buildPositionTree() {
@@ -477,6 +501,61 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
       return false;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Ошибка создания задачи: $e', isLoading: false);
+      return false;
+    }
+  }
+
+  Future<bool> createOrderAssemblyTaskAsync() async {
+    if (state.selectedOrder == null) {
+      state = state.copyWith(errorMessage: 'Выберите заказ для сборки');
+      return false;
+    }
+
+    final selectedEmployees = state.selectableEmployees
+        .where((e) => e.isSelected)
+        .map((e) => e.item.employeeId)
+        .toList();
+
+    if (selectedEmployees.isEmpty) {
+      state = state.copyWith(errorMessage: 'Выберите сотрудника для назначения задачи');
+      return false;
+    }
+
+    if (selectedEmployees.length > 1) {
+      state = state.copyWith(errorMessage: 'Для сборки заказа можно выбрать только одного сотрудника');
+      return false;
+    }
+
+    state = state.copyWith(isLoading: true, errorMessage: '');
+
+    try {
+      final client = ref.read(apiClientProvider);
+      
+      final dto = CreateOrderAssemblyTaskDto(
+        orderId: state.selectedOrder!.orderId,
+        assignedUserId: selectedEmployees.first,
+        priority: state.newInventoryPriority,
+        description: state.newInventoryDescription.trim().isEmpty ? null : state.newInventoryDescription.trim(),
+      );
+      
+      final taskId = await client.createBossPanelOrderAssemblyTaskAsync(dto);
+      
+      if (taskId > 0) {
+        await loadDataAsync();
+        
+        state = state.copyWith(
+          newInventoryDescription: '',
+          newInventoryPriority: 7, // дефолт для сборки
+          isCreateFormExpanded: false,
+          selectedOrder: null,
+        );
+        for (var e in state.selectableEmployees) { e.isSelected = false; }
+        
+        return true;
+      }
+      return false;
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Ошибка создания задачи сборки: $e', isLoading: false);
       return false;
     }
   }

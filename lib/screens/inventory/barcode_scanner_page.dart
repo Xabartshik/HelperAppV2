@@ -159,7 +159,7 @@ class _BarcodeScannerPageState extends ConsumerState<BarcodeScannerPage> {
                       });
                     },
                     child: Container(
-                      color: Colors.black.withOpacity(0.8),
+                      color: Colors.black.withValues(alpha: 0.8),
                       alignment: Alignment.center,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

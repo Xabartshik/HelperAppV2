@@ -159,8 +159,8 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: isPick
-                ? _pickColor.withOpacity(0.12)
-                : _placeColor.withOpacity(0.12),
+                ? _pickColor.withValues(alpha: 0.12)
+                : _placeColor.withValues(alpha: 0.12),
             border: Border(
               bottom: BorderSide(
                 color: isPick ? _pickColor : _placeColor,
@@ -351,9 +351,9 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: cell.isPlaced
-              ? Colors.green.withOpacity(0.5)
+              ? Colors.green.withValues(alpha: 0.5)
               : (cell.allDone
-                  ? cellColor.withOpacity(0.6)
+                  ? cellColor.withValues(alpha: 0.6)
                   : _bgGray900),
           width: 1.5,
         ),
@@ -373,7 +373,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: cellColor.withOpacity(0.15),
+                      color: cellColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -509,7 +509,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.check_circle, color: Colors.green, size: 52),
@@ -573,7 +573,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: activeColor.withOpacity(0.12),
+              color: activeColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

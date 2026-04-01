@@ -183,7 +183,7 @@ class TaskSelectionScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: _bgGray900,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _primaryColor.withOpacity(0.3), width: 1),
+        border: Border.all(color: _primaryColor.withValues(alpha: 0.3), width: 1),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -204,7 +204,7 @@ class TaskSelectionScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _primaryColor.withOpacity(0.15),
+                      color: _primaryColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(

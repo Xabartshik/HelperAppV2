@@ -84,7 +84,7 @@ class ApiClient {
       _cachedBaseUrl = 'http://localhost:5000/api/';
     } else if (Platform.isAndroid) {
       try {
-        final deviceInfo = await ref.read(deviceInfoProvider);
+        final deviceInfo = ref.read(deviceInfoProvider);
         final androidInfo = await deviceInfo.androidInfo;
         
         // В device_info_plus признак эмулятора проверяется через свойство isPhysicalDevice
@@ -177,6 +177,15 @@ class ApiClient {
 
   Future<dynamic> createBossPanelInventoryTaskByZoneAsync(CreateInventoryByZoneDto dto) async {
     return await postAsync('v1/bosspanel/inventory/create-by-zone', data: dto.toJson());
+  }
+
+  Future<List<AvailableOrderDto>> getBossPanelAvailableOrdersAsync() async {
+    final response = await getAsync('v1/bosspanel/orders/available');
+    return (response as List).map((x) => AvailableOrderDto.fromJson(x)).toList();
+  }
+
+  Future<int> createBossPanelOrderAssemblyTaskAsync(CreateOrderAssemblyTaskDto dto) async {
+    return await postAsync('v1/bosspanel/tasks/order-assembly/create', data: dto.toJson());
   }
 
   // Inventory API Endpoints

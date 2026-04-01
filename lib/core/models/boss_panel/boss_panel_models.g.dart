@@ -176,3 +176,43 @@ Map<String, dynamic> _$$PositionCellDtoImplToJson(
   'secondLevelStorage': instance.secondLevelStorage,
   'thirdLevelStorage': instance.thirdLevelStorage,
 };
+
+_$AvailableOrderDtoImpl _$$AvailableOrderDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$AvailableOrderDtoImpl(
+  orderId: (json['orderId'] as num).toInt(),
+  customerName: json['customerName'] as String? ?? '',
+  deliveryDate: json['deliveryDate'] == null
+      ? null
+      : DateTime.parse(json['deliveryDate'] as String),
+  type: json['type'] as String? ?? '',
+  itemsCount: (json['itemsCount'] as num?)?.toInt() ?? 0,
+);
+
+Map<String, dynamic> _$$AvailableOrderDtoImplToJson(
+  _$AvailableOrderDtoImpl instance,
+) => <String, dynamic>{
+  'orderId': instance.orderId,
+  'customerName': instance.customerName,
+  'deliveryDate': instance.deliveryDate?.toIso8601String(),
+  'type': instance.type,
+  'itemsCount': instance.itemsCount,
+};
+
+_$CreateOrderAssemblyTaskDtoImpl _$$CreateOrderAssemblyTaskDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$CreateOrderAssemblyTaskDtoImpl(
+  orderId: (json['orderId'] as num).toInt(),
+  assignedUserId: (json['assignedUserId'] as num).toInt(),
+  priority: (json['priority'] as num?)?.toInt() ?? 7,
+  description: json['description'] as String?,
+);
+
+Map<String, dynamic> _$$CreateOrderAssemblyTaskDtoImplToJson(
+  _$CreateOrderAssemblyTaskDtoImpl instance,
+) => <String, dynamic>{
+  'orderId': instance.orderId,
+  'assignedUserId': instance.assignedUserId,
+  'priority': instance.priority,
+  'description': instance.description,
+};
