@@ -7,6 +7,7 @@ import '../utils/logger.dart';
 import 'api_exceptions.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
+import '../models/order_assembly/order_assembly_dtos.dart';
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
@@ -195,5 +196,37 @@ class ApiClient {
     final response = await getAsync('v1/Item/$itemId');
     if (response == null) return null;
     return ItemInfoDto.fromJson(response);
+  }
+
+  // Order Assembly API Endpoints
+
+  /// Получает список задач сборки для сотрудника
+  Future<List<WorkerAssemblyTaskDto>> getOrderAssemblyTasksAsync(String userId) async {
+    final response = await getAsync('OrderAssembly/tasks/$userId');
+    if (response == null || response is! List) return [];
+    return (response).map((x) => WorkerAssemblyTaskDto.fromJson(x)).toList();
+  }
+
+  /// Сканирует штрихкод товара в режиме Сбора
+  Future<void> orderAssemblyScanPickAsync(String lineId, String barcode) async {
+    final request = ScanPickRequest(lineId: lineId, barcode: barcode);
+    await postAsync('OrderAssembly/scan-pick', data: request.toJson());
+  }
+
+  /// Массово переводит товары ячейки в статус «Размещено»
+  Future<void> orderAssemblyScanPlaceBulkAsync(String assignmentId, String cellCode) async {
+    final request = ScanPlaceBulkRequest(assignmentId: assignmentId, cellCode: cellCode);
+    await postAsync('OrderAssembly/scan-place-bulk', data: request.toJson());
+  }
+
+  /// Фиксирует отсутствие товара
+  Future<void> orderAssemblyReportMissingAsync(String lineId, String reason) async {
+    final request = ReportMissingRequest(lineId: lineId, reason: reason);
+    await postAsync('OrderAssembly/report-missing', data: request.toJson());
+  }
+
+  /// Завершает задачу сборки
+  Future<void> orderAssemblyCompleteAsync(String assignmentId) async {
+    await postAsync('OrderAssembly/complete/$assignmentId', data: null);
   }
 }

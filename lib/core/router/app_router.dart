@@ -2,12 +2,14 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 
-// Здесь будут импорты экранов, пока заглушки
+// Импорты экранов
 import '../../screens/login/login_page.dart';
 import '../../screens/home/main_page.dart';
 import '../../screens/boss_panel/boss_panel_page.dart';
 import '../../screens/inventory/inventory_details_page.dart';
 import '../../screens/inventory/barcode_scanner_page.dart';
+import '../../screens/order_assembly/task_selection_screen.dart';
+import '../../screens/order_assembly/active_assembly_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Следим за состоянием текущего пользователя
@@ -50,6 +52,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>? ?? {};
           return BarcodeScannerPage(args: args);
+        },
+      ),
+      GoRoute(
+        path: '/order-assembly',
+        name: 'order_assembly',
+        builder: (context, state) => const TaskSelectionScreen(),
+      ),
+      GoRoute(
+        path: '/order-assembly/active',
+        name: 'order_assembly_active',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return ActiveAssemblyScreen(
+            assignmentId: args['assignmentId'] as String? ?? '',
+          );
         },
       ),
     ],
