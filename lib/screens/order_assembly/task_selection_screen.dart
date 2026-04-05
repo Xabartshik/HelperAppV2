@@ -36,7 +36,7 @@ class TaskSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Получаем текущего пользователя
     final currentUser = ref.watch(currentUserProvider);
-    final userId = currentUser?.id ?? 0;
+    final userId = currentUser?.employeeId ?? 0;
 
     // Загружаем список задач
     final tasksAsync = ref.watch(orderAssemblyTasksProvider(userId));

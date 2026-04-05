@@ -41,7 +41,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     final currentUser = ref.read(currentUserProvider);
     return (
       assignmentId: widget.assignmentId,
-      userId: currentUser?.id ?? 0,
+      userId: currentUser?.employeeId ?? 0,
     );
   }
 
