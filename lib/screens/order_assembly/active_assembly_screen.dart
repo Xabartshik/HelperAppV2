@@ -8,7 +8,7 @@ import 'order_assembly_viewmodel.dart';
 /// Основной рабочий экран сборки заказа.
 /// Визуально разделяет режимы «Сбор» (Pick) и «Размещение» (Place).
 class ActiveAssemblyScreen extends ConsumerStatefulWidget {
-  final String assignmentId;
+  final int assignmentId;
 
   const ActiveAssemblyScreen({
     super.key,
@@ -41,7 +41,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     final currentUser = ref.read(currentUserProvider);
     return (
       assignmentId: widget.assignmentId,
-      userId: currentUser?.id.toString() ?? '',
+      userId: currentUser?.id ?? 0,
     );
   }
 
@@ -118,8 +118,8 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            state.task?.taskNumber.isNotEmpty == true
-                ? state.task!.taskNumber
+            (state.task?.taskNumber != null && state.task!.taskNumber!.isNotEmpty)
+                ? state.task!.taskNumber!
                 : 'Задача ${widget.assignmentId}',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),

@@ -4,6 +4,7 @@ import '../utils/logger.dart';
 import '../network/api_client.dart';
 import '../models/tasks/task_models.dart';
 import '../models/inventory/inventory_dtos.dart';
+import '../models/order_assembly/order_assembly_dtos.dart';
 
 final taskServiceProvider = Provider<TaskService>((ref) {
   final apiClient = ref.watch(apiClientProvider);
@@ -13,12 +14,14 @@ final taskServiceProvider = Provider<TaskService>((ref) {
 class TaskService {
   final ApiClient _apiClient;
   Timer? _periodicSyncTimer;
-  Function(List<InventoryTaskItem>)? _onTasksUpdated;
+  // Коллбэк периодической синхронизации работает с базовым типом для поддержки обоих видов задач
+  Function(List<TaskItemBase>)? _onTasksUpdated;
   int _lastSyncEmployeeId = 0;
 
   TaskService(this._apiClient);
 
-  Future<List<InventoryTaskItem>> getTasksForCurrentUserAsync(int employeeId) async {
+  /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
+  Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
       Logger.i('Получение задач для сотрудника $employeeId');
 
@@ -27,25 +30,54 @@ class TaskService {
         return [];
       }
 
-      final response = await _apiClient.getAsync('v1/Inventory/worker/$employeeId/new-tasks');
-      
-      if (response == null || (response is List && response.isEmpty)) {
-        Logger.i('Задачи не найдены для сотрудника $employeeId');
-        return [];
-      }
+      // Параллельный запрос обоих API
+      final results = await Future.wait([
+        _fetchInventoryTasks(employeeId),
+        _fetchOrderAssemblyTasks(employeeId),
+      ]);
 
+      final allTasks = [...results[0], ...results[1]];
+      Logger.i('Итого получено ${allTasks.length} задач (инвентаризация: ${results[0].length}, сборка: ${results[1].length})');
+      return allTasks;
+    } catch (e, stack) {
+      Logger.e('Ошибка при получении задач для сотрудника $employeeId', e, stack);
+      rethrow;
+    }
+  }
+
+  /// Задачи инвентаризации
+  Future<List<TaskItemBase>> _fetchInventoryTasks(int employeeId) async {
+    try {
+      final response = await _apiClient.getAsync('v1/Inventory/worker/$employeeId/new-tasks');
+      if (response == null || (response is List && response.isEmpty)) return [];
       final List<dynamic> dataList = response;
       final assignments = dataList
           .map((json) => InventoryAssignmentDetailedWithItemDto.fromJson(json))
           .toList();
+      return assignments
+          .map((a) => _mapToInventoryTaskItem(a, employeeId))
+          .whereType<InventoryTaskItem>()
+          .toList();
+    } catch (e) {
+      Logger.e('Ошибка получения задач инвентаризации', e);
+      return []; // Не пробрасываем: если один модуль недоступен, показываем другой
+    }
+  }
 
-      final tasks = assignments.map((a) => _mapToInventoryTaskItem(a, employeeId)).whereType<InventoryTaskItem>().toList();
-
-      Logger.i('Успешно смаплено ${tasks.length} задач для сотрудника $employeeId');
-      return tasks;
-    } catch (e, stack) {
-      Logger.e('Ошибка при получении задач для сотрудника $employeeId', e, stack);
-      rethrow;
+  /// Задачи сборки заказов
+  Future<List<TaskItemBase>> _fetchOrderAssemblyTasks(int employeeId) async {
+    try {
+      final response = await _apiClient.getAsync('OrderAssembly/tasks/$employeeId');
+      if (response == null || (response is List && response.isEmpty)) return [];
+      final List<dynamic> dataList = response;
+      return dataList
+          .map((json) => WorkerAssemblyTaskDto.fromJson(json))
+          .map((dto) => _mapToOrderAssemblyTaskItem(dto, employeeId))
+          .whereType<OrderAssemblyTaskItem>()
+          .toList();
+    } catch (e) {
+      Logger.e('Ошибка получения задач сборки', e);
+      return [];
     }
   }
 
@@ -76,7 +108,7 @@ class TaskService {
     }
   }
 
-  void startPeriodicSync(Function(List<InventoryTaskItem>) onTasksUpdated, {int intervalSeconds = 30}) {
+  void startPeriodicSync(Function(List<TaskItemBase>) onTasksUpdated, {int intervalSeconds = 30}) {
     try {
       if (intervalSeconds < 5) {
         Logger.w('Слишком малый интервал ($intervalSeconds). Используем 5 секунд');
@@ -161,6 +193,50 @@ class TaskService {
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи ${assignment.id}', e, stack);
+      return null;
+    }
+  }
+
+  OrderAssemblyTaskItem? _mapToOrderAssemblyTaskItem(WorkerAssemblyTaskDto dto, int employeeId) {
+    try {
+      final now = DateTime.now().toUtc();
+
+      // Преобразуем статус назначения в статус задачи
+      final taskStatus = switch (dto.status) {
+        OrderAssemblyAssignmentStatus.inProgress => TaskStatus.inProgress,
+        OrderAssemblyAssignmentStatus.completed  => TaskStatus.completed,
+        OrderAssemblyAssignmentStatus.cancelled  => TaskStatus.cancelled,
+        _                                         => TaskStatus.assigned,
+      };
+
+      final cellPlacements = dto.cellPlacements.map((c) => CellPlacementInfo(
+        targetPositionId: c.targetPositionId,
+        items: c.items.map((i) => PlacementLineInfo(
+          lineId: i.lineId,
+          itemPositionId: i.itemPositionId,
+          quantity: i.quantity,
+          status: i.status.name, // Используем name от enum OrderAssemblyLineStatus
+        )).toList(),
+      )).toList();
+
+      return OrderAssemblyTaskItem(
+        taskId: dto.taskId,
+        type: TaskType.orderAssembly,
+        branchId: 0,
+        title: 'Сборка заказа #${dto.orderId}',
+        description: null,
+        status: taskStatus,
+        priority: 7,
+        createdAt: now,
+        assignedToEmployeeId: employeeId,
+        assignedAt: now,
+        assignmentId: dto.assignmentId,
+        orderId: dto.orderId,
+        totalLines: dto.totalLines,
+        cellPlacements: cellPlacements,
+      );
+    } catch (e, stack) {
+      Logger.e('Ошибка маппинга задачи сборки ${dto.assignmentId}', e, stack);
       return null;
     }
   }

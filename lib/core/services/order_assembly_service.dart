@@ -20,12 +20,12 @@ class OrderAssemblyService {
   // ---------------------------------------------------------------------------
 
   /// Возвращает список задач сборки для указанного сотрудника
-  Future<List<WorkerAssemblyTaskDto>> getTasks(String userId) async {
+  Future<List<WorkerAssemblyTaskDto>> getTasks(int userId) async {
     try {
       Logger.i('OrderAssembly: запрос задач для userId=$userId');
 
-      if (userId.isEmpty) {
-        Logger.w('OrderAssembly: userId пустой, возвращаем пустой список');
+      if (userId <= 0) {
+        Logger.w('OrderAssembly: userId <= 0, возвращаем пустой список');
         return [];
       }
 
@@ -53,7 +53,7 @@ class OrderAssemblyService {
   // ---------------------------------------------------------------------------
 
   /// Сканирует штрихкод товара и обновляет статус строки на «Собран»
-  Future<void> scanPick(String lineId, String barcode) async {
+  Future<void> scanPick(int lineId, String barcode) async {
     try {
       Logger.i('OrderAssembly: scanPick lineId=$lineId, barcode=$barcode');
 
@@ -75,7 +75,7 @@ class OrderAssemblyService {
   // ---------------------------------------------------------------------------
 
   /// Переводит все товары ячейки assignmentId в статус «Размещено»
-  Future<void> scanPlaceBulk(String assignmentId, String cellCode) async {
+  Future<void> scanPlaceBulk(int assignmentId, String cellCode) async {
     try {
       Logger.i('OrderAssembly: scanPlaceBulk assignmentId=$assignmentId, cellCode=$cellCode');
 
@@ -100,7 +100,7 @@ class OrderAssemblyService {
   // ---------------------------------------------------------------------------
 
   /// Фиксирует отсутствие товара с указанием причины
-  Future<void> reportMissing(String lineId, String reason) async {
+  Future<void> reportMissing(int lineId, String reason) async {
     try {
       Logger.i('OrderAssembly: reportMissing lineId=$lineId, reason=$reason');
 
@@ -122,7 +122,7 @@ class OrderAssemblyService {
   // ---------------------------------------------------------------------------
 
   /// Закрывает задачу сборки (все ячейки заполнены)
-  Future<void> completeAssembly(String assignmentId) async {
+  Future<void> completeAssembly(int assignmentId) async {
     try {
       Logger.i('OrderAssembly: completeAssembly assignmentId=$assignmentId');
 

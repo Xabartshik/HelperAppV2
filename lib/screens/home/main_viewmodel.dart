@@ -90,7 +90,6 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
           );
         });
       }
-
     } on NoNetworkException {
       state = state.copyWith(
         errorMessage: 'Нет подключения к сети',

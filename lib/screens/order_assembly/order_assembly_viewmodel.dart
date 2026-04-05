@@ -23,13 +23,13 @@ enum AssemblyMode {
 
 /// VM для отображения одного товара на экране
 class AssemblyItemVm {
-  final String lineId;
+  final int lineId;
   final int itemId;
   final String itemName;
   final String barcode;
   final int quantity;
   int collectedQuantity;
-  AssemblyStatus status;
+  OrderAssemblyLineStatus status;
 
   AssemblyItemVm({
     required this.lineId,
@@ -41,21 +41,21 @@ class AssemblyItemVm {
     required this.status,
   });
 
-  bool get isPicked => status == AssemblyStatus.picked || status == AssemblyStatus.placed;
-  bool get isPlaced => status == AssemblyStatus.placed;
-  bool get isMissing => status == AssemblyStatus.missing;
+  bool get isPicked => status == OrderAssemblyLineStatus.picked || status == OrderAssemblyLineStatus.placed;
+  bool get isPlaced => status == OrderAssemblyLineStatus.placed;
+  bool get isMissing => status == OrderAssemblyLineStatus.discrepancy;
   bool get isDone => isPicked || isMissing;
 
   /// Текстовое отображение статуса
   String get statusText {
     switch (status) {
-      case AssemblyStatus.pending:
+      case OrderAssemblyLineStatus.pending:
         return '⏳ Ожидает';
-      case AssemblyStatus.picked:
+      case OrderAssemblyLineStatus.picked:
         return '✓ Собран';
-      case AssemblyStatus.placed:
+      case OrderAssemblyLineStatus.placed:
         return '📦 Размещён';
-      case AssemblyStatus.missing:
+      case OrderAssemblyLineStatus.discrepancy:
         return '✗ Отсутствует';
     }
   }
@@ -63,7 +63,7 @@ class AssemblyItemVm {
 
 /// VM для отображения одной ячейки выдачи с её товарами
 class CellPlacementVm {
-  final String assignmentId;
+  final int assignmentId;
   final String cellCode;
   final String cellDisplayName;
   final List<AssemblyItemVm> items;
@@ -150,7 +150,7 @@ class OrderAssemblyState {
 // Провайдер ViewModel
 // ---------------------------------------------------------------------------
 
-typedef OrderAssemblyArgs = ({String assignmentId, String userId});
+typedef OrderAssemblyArgs = ({int assignmentId, int userId});
 
 final orderAssemblyViewModelProvider =
     AutoDisposeNotifierProviderFamily<OrderAssemblyViewModel, OrderAssemblyState, OrderAssemblyArgs>(
@@ -187,15 +187,16 @@ class OrderAssemblyViewModel
       final task = tasks.firstWhereOrNull((t) => t.assignmentId == arg.assignmentId);
 
       if (task == null) {
-        Logger.w('OrderAssembly: задача ${arg.assignmentId} не найдена для userId=${arg.userId}');
+        final availableIds = tasks.map((t) => t.assignmentId).join(', ');
+        Logger.w('OrderAssembly: задача ${arg.assignmentId} не найдена для userId=${arg.userId}. Доступные ID: [$availableIds]');
         state = state.copyWith(
-          errorMessage: 'Задача не найдена',
+          errorMessage: 'Задача не найдена или уже завершена. Доступные задачи: $availableIds',
           isLoading: false,
         );
         return;
       }
 
-      final cells = task.cellPlacements.map(_mapToCellVm).toList();
+      final cells = task.cellPlacements.map((c) => _mapToCellVm(c, task.assignmentId)).toList();
 
       state = state.copyWith(
         task: task,
@@ -248,7 +249,7 @@ class OrderAssemblyViewModel
 
       foundItem.collectedQuantity++;
       if (foundItem.collectedQuantity >= foundItem.quantity) {
-        foundItem.status = AssemblyStatus.picked;
+        foundItem.status = OrderAssemblyLineStatus.picked;
         Logger.i('OrderAssembly: товар ${foundItem.itemName} полностью собран');
       }
 
@@ -293,7 +294,7 @@ class OrderAssemblyViewModel
       // Обновляем статусы товаров ячейки локально
       for (final item in cell.items) {
         if (item.isPicked) {
-          item.status = AssemblyStatus.placed;
+          item.status = OrderAssemblyLineStatus.placed;
         }
       }
       cell.isPlaced = true;
@@ -315,8 +316,8 @@ class OrderAssemblyViewModel
   // -----------------------------------------------------------------------
 
   /// Отмечает товар как отсутствующий и отправляет отчёт на сервер
-  Future<(bool, String)> reportMissingItem(String lineId, String reason) async {
-    if (lineId.isEmpty) return (false, 'Не указан lineId');
+  Future<(bool, String)> reportMissingItem(int lineId, String reason) async {
+    if (lineId <= 0) return (false, 'Некорректный lineId');
     if (reason.trim().isEmpty) return (false, 'Укажите причину отсутствия');
 
     try {
@@ -327,7 +328,7 @@ class OrderAssemblyViewModel
       for (final cell in state.cells) {
         final item = cell.items.firstWhereOrNull((i) => i.lineId == lineId);
         if (item != null) {
-          item.status = AssemblyStatus.missing;
+          item.status = OrderAssemblyLineStatus.discrepancy;
           Logger.i('OrderAssembly: товар lineId=$lineId отмечен как отсутствующий');
           break;
         }
@@ -411,7 +412,7 @@ class OrderAssemblyViewModel
   }
 
   /// Маппит DTO ячейки в VM
-  CellPlacementVm _mapToCellVm(CellPlacement dto) {
+  CellPlacementVm _mapToCellVm(CellPlacementInfoDto dto, int assignmentId) {
     final items = dto.items
         .map((item) => AssemblyItemVm(
               lineId: item.lineId,
@@ -419,15 +420,17 @@ class OrderAssemblyViewModel
               itemName: item.itemName,
               barcode: item.barcode,
               quantity: item.quantity,
-              collectedQuantity: item.collectedQuantity,
+              collectedQuantity: (item.status == OrderAssemblyLineStatus.picked || 
+                                  item.status == OrderAssemblyLineStatus.placed) 
+                                  ? item.quantity : 0, 
               status: item.status,
             ))
         .toList();
 
     return CellPlacementVm(
-      assignmentId: dto.assignmentId,
-      cellCode: dto.cellCode,
-      cellDisplayName: dto.cellDisplayName,
+      assignmentId: assignmentId,
+      cellCode: dto.cellCode ?? '',
+      cellDisplayName: dto.cellDisplayName ?? dto.cellCode ?? '',
       items: items,
     );
   }

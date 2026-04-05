@@ -1,5 +1,6 @@
 enum TaskType {
   inventory,
+  orderAssembly,
   receipt,
   movement,
   shipping,
@@ -112,5 +113,57 @@ class InventoryTaskItem extends TaskItemBase {
     required super.assignedAt,
     required this.assignmentId,
     required this.lines,
+  });
+}
+
+/// Информация об одной строке сборки (товар → ячейка PICKUP)
+class PlacementLineInfo {
+  final int lineId;
+  final int itemPositionId;
+  final int quantity;
+  final String status;
+
+  PlacementLineInfo({
+    required this.lineId,
+    required this.itemPositionId,
+    required this.quantity,
+    required this.status,
+  });
+}
+
+/// Группа товаров, которые нужно разместить в одну ячейку PICKUP
+class CellPlacementInfo {
+  final int targetPositionId;
+  final List<PlacementLineInfo> items;
+
+  CellPlacementInfo({
+    required this.targetPositionId,
+    required this.items,
+  });
+}
+
+/// Задача сборки заказа — отображается рядом с задачами инвентаризации
+class OrderAssemblyTaskItem extends TaskItemBase {
+  final int assignmentId;
+  final int orderId;
+  final int totalLines;
+  final List<CellPlacementInfo> cellPlacements;
+
+  OrderAssemblyTaskItem({
+    required super.taskId,
+    required super.type,
+    required super.branchId,
+    required super.title,
+    super.description,
+    required super.status,
+    required super.priority,
+    required super.createdAt,
+    super.completedAt,
+    required super.assignedToEmployeeId,
+    required super.assignedAt,
+    required this.assignmentId,
+    required this.orderId,
+    required this.totalLines,
+    required this.cellPlacements,
   });
 }

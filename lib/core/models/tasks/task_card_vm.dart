@@ -27,6 +27,9 @@ class TaskCardVm {
     if (task is InventoryTaskItem) {
       return _mapInventoryTaskToCard(task);
     }
+    if (task is OrderAssemblyTaskItem) {
+      return _mapOrderAssemblyTaskToCard(task);
+    }
     return _mapGenericTaskToCard(task);
   }
 
@@ -73,6 +76,32 @@ class TaskCardVm {
       badges: {
         'Тип': task.type.name,
         'Статус': task.status.name,
+      },
+      rawTask: task,
+    );
+  }
+
+  static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
+    // Подсчитываем количество уже размещённых товаров
+    final placedCount = task.cellPlacements
+        .expand((c) => c.items)
+        .where((i) => i.status.toLowerCase() == 'placed')
+        .length;
+    final totalItems = task.totalLines;
+
+    return TaskCardVm(
+      kind: task.type.name,          // 'orderAssembly'
+      navigationId: task.assignmentId,
+      title: task.title,
+      subtitle: task.description ?? 'Сборка заказа #${task.orderId}',
+      statusText: task.status.name,
+      primaryMetric: totalItems > 0 ? '$placedCount/$totalItems позиций' : 'Нет позиций',
+      createdAt: task.createdAt,
+      badges: {
+        'Тип': 'Сборка',
+        'Заказ': '#${task.orderId}',
+        'Статус': task.status.name,
+        'Ячеек': '${task.cellPlacements.length}',
       },
       rawTask: task,
     );

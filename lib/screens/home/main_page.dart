@@ -176,6 +176,11 @@ class MainPage extends ConsumerWidget {
             'workerId': currentUser?.employeeId ?? 0,
             'assignmentId': task.navigationId,
           });
+        } else if (task.kind.toLowerCase() == 'orderassembly') {
+          // Переходим на экран сборки заказа
+          context.push('/order-assembly/active', extra: {
+            'assignmentId': task.navigationId,
+          });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Не реализована навигация для типа задачи: ${task.kind}')),

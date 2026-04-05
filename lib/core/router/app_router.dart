@@ -65,7 +65,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>? ?? {};
           return ActiveAssemblyScreen(
-            assignmentId: args['assignmentId'] as String? ?? '',
+            assignmentId: args['assignmentId'] as int? ?? 0,
           );
         },
       ),

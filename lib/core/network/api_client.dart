@@ -210,32 +210,32 @@ class ApiClient {
   // Order Assembly API Endpoints
 
   /// Получает список задач сборки для сотрудника
-  Future<List<WorkerAssemblyTaskDto>> getOrderAssemblyTasksAsync(String userId) async {
+  Future<List<WorkerAssemblyTaskDto>> getOrderAssemblyTasksAsync(int userId) async {
     final response = await getAsync('OrderAssembly/tasks/$userId');
     if (response == null || response is! List) return [];
     return (response).map((x) => WorkerAssemblyTaskDto.fromJson(x)).toList();
   }
 
   /// Сканирует штрихкод товара в режиме Сбора
-  Future<void> orderAssemblyScanPickAsync(String lineId, String barcode) async {
+  Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
     final request = ScanPickRequest(lineId: lineId, barcode: barcode);
     await postAsync('OrderAssembly/scan-pick', data: request.toJson());
   }
 
   /// Массово переводит товары ячейки в статус «Размещено»
-  Future<void> orderAssemblyScanPlaceBulkAsync(String assignmentId, String cellCode) async {
+  Future<void> orderAssemblyScanPlaceBulkAsync(int assignmentId, String cellCode) async {
     final request = ScanPlaceBulkRequest(assignmentId: assignmentId, cellCode: cellCode);
     await postAsync('OrderAssembly/scan-place-bulk', data: request.toJson());
   }
 
   /// Фиксирует отсутствие товара
-  Future<void> orderAssemblyReportMissingAsync(String lineId, String reason) async {
+  Future<void> orderAssemblyReportMissingAsync(int lineId, String reason) async {
     final request = ReportMissingRequest(lineId: lineId, reason: reason);
     await postAsync('OrderAssembly/report-missing', data: request.toJson());
   }
 
   /// Завершает задачу сборки
-  Future<void> orderAssemblyCompleteAsync(String assignmentId) async {
+  Future<void> orderAssemblyCompleteAsync(int assignmentId) async {
     await postAsync('OrderAssembly/complete/$assignmentId', data: null);
   }
 }

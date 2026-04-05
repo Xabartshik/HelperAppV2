@@ -12,7 +12,7 @@ import '../../core/utils/logger.dart';
 
 /// Провайдер для получения задач сборки по userId
 final orderAssemblyTasksProvider =
-    FutureProvider.autoDispose.family<List<WorkerAssemblyTaskDto>, String>((ref, userId) async {
+    FutureProvider.autoDispose.family<List<WorkerAssemblyTaskDto>, int>((ref, userId) async {
   final client = ref.watch(apiClientProvider);
   Logger.i('TaskSelectionScreen: загрузка задач для userId=$userId');
   return await client.getOrderAssemblyTasksAsync(userId);
@@ -36,7 +36,7 @@ class TaskSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Получаем текущего пользователя
     final currentUser = ref.watch(currentUserProvider);
-    final userId = currentUser?.id.toString() ?? '';
+    final userId = currentUser?.id ?? 0;
 
     // Загружаем список задач
     final tasksAsync = ref.watch(orderAssemblyTasksProvider(userId));
@@ -76,7 +76,7 @@ class TaskSelectionScreen extends ConsumerWidget {
   // Состояние ошибки
   // ---------------------------------------------------------------------------
 
-  Widget _buildErrorState(BuildContext context, WidgetRef ref, String userId, Object error) {
+  Widget _buildErrorState(BuildContext context, WidgetRef ref, int userId, Object error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -115,7 +115,7 @@ class TaskSelectionScreen extends ConsumerWidget {
   // Пустой список задач
   // ---------------------------------------------------------------------------
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, String userId) {
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref, int userId) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -208,7 +208,9 @@ class TaskSelectionScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      task.taskNumber.isNotEmpty ? task.taskNumber : '# ${task.assignmentId}',
+                      (task.taskNumber != null && task.taskNumber!.isNotEmpty) 
+                          ? task.taskNumber! 
+                          : '# ${task.assignmentId}',
                       style: const TextStyle(
                         color: _primaryColor,
                         fontSize: 13,
@@ -259,11 +261,9 @@ class TaskSelectionScreen extends ConsumerWidget {
     );
   }
 
-  String _formatDate(String? dateString) {
-    if (dateString == null || dateString.isEmpty) return '—';
-    final parsed = DateTime.tryParse(dateString);
-    if (parsed == null) return dateString;
-    final local = parsed.toLocal();
+  String _formatDate(DateTime? date) {
+    if (date == null) return '—';
+    final local = date.toLocal();
     return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year} '
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
   }

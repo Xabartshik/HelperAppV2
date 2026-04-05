@@ -1,0 +1,36 @@
+﻿Analyzing HelperAppV2...                                        
+
+  error - The argument type 'String' can't be assigned to the parameter type 'int'.  - lib\core\network\api_client.dart:221:45 - argument_type_not_assignable
+  error - The argument type 'String' can't be assigned to the parameter type 'int'.  - lib\core\network\api_client.dart:227:56 - argument_type_not_assignable
+  error - The argument type 'String' can't be assigned to the parameter type 'int'.  - lib\core\network\api_client.dart:233:50 - argument_type_not_assignable
+  error - The getter 'taskNumber' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\active_assembly_screen.dart:121:25 - undefined_getter
+  error - The getter 'taskNumber' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\active_assembly_screen.dart:122:31 - undefined_getter
+  error - Undefined class 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:32:3 - undefined_class
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:44:34 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:44:69 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:45:34 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:46:35 - undefined_identifier
+  error - The body might complete normally, causing 'null' to be returned, but the return type, 'String', is a potentially non-nullable type - lib\screens\order_assembly\order_assembly_viewmodel.dart:50:14 - body_might_complete_normally
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:52:12 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:54:12 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:56:12 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:58:12 - undefined_identifier
+   info - The type of the right operand ('String') isn't a subtype or a supertype of the left operand ('int') - lib\screens\order_assembly\order_assembly_viewmodel.dart:187:65 - unrelated_type_equality_checks
+  error - The argument type 'List<dynamic>' can't be assigned to the parameter type 'List<CellPlacementVm>?'.  - lib\screens\order_assembly\order_assembly_viewmodel.dart:202:16 - argument_type_not_assignable
+  error - The getter 'taskNumber' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\order_assembly_viewmodel.dart:207:46 - undefined_getter
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:251:28 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:296:25 - undefined_identifier
+  error - Undefined name 'AssemblyStatus' - lib\screens\order_assembly\order_assembly_viewmodel.dart:330:25 - undefined_identifier
+  error - The argument type 'int' can't be assigned to the parameter type 'String'.  - lib\screens\order_assembly\order_assembly_viewmodel.dart:357:47 - argument_type_not_assignable
+  error - Undefined class 'CellPlacement' - lib\screens\order_assembly\order_assembly_viewmodel.dart:414:32 - undefined_class
+  error - The getter 'createdDate' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\task_selection_screen.dart:179:42 - undefined_getter
+  error - The getter 'taskNumber' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\task_selection_screen.dart:211:28 - undefined_getter
+  error - The getter 'taskNumber' isn't defined for the type 'WorkerAssemblyTaskDto' - lib\screens\order_assembly\task_selection_screen.dart:211:57 - undefined_getter
+
+flutter : 26 issues found. (ran in 2.6s)
+At line:1 char:1
++ flutter analyze --no-pub > analysis_full.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (26 issues found. (ran in 2.6s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

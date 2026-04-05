@@ -1,160 +1,241 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'order_assembly_dtos.freezed.dart';
-part 'order_assembly_dtos.g.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 // ---------------------------------------------------------------------------
-// Статус отдельной строки сборки
+// Статусы
 // ---------------------------------------------------------------------------
 
-/// Статус позиции в задаче сборки
-enum AssemblyStatus {
-  /// Ожидает сбора
-  @JsonValue('Pending')
+enum OrderAssemblyAssignmentStatus {
+  @JsonValue(0)
+  assigned,
+  @JsonValue(1)
+  inProgress,
+  @JsonValue(2)
+  completed,
+  @JsonValue(3)
+  cancelled,
+}
+
+enum OrderAssemblyLineStatus {
+  @JsonValue(0)
   pending,
-
-  /// Собран в тележку
-  @JsonValue('Picked')
+  @JsonValue(1)
   picked,
-
-  /// Размещён в ячейку выдачи
-  @JsonValue('Placed')
+  @JsonValue(2)
   placed,
-
-  /// Отмечен как отсутствующий
-  @JsonValue('Missing')
-  missing,
+  @JsonValue(3)
+  discrepancy,
 }
 
 // ---------------------------------------------------------------------------
-// DTO: конкретный товар внутри ячейки
+// DTOs
 // ---------------------------------------------------------------------------
 
-/// Описывает один товар внутри ячейки сборки
-@freezed
-class AssemblyItemDto with _$AssemblyItemDto {
-  const factory AssemblyItemDto({
-    /// Идентификатор строки задания
-    required String lineId,
+class PlacementLineDto {
+  final int lineId;
+  final int itemPositionId;
+  final int itemId;
+  final String itemName;
+  final String barcode;
+  final int quantity;
+  final OrderAssemblyLineStatus status;
 
-    /// Идентификатор товара
-    required int itemId,
+  PlacementLineDto({
+    required this.lineId,
+    required this.itemPositionId,
+    required this.itemId,
+    required this.itemName,
+    required this.barcode,
+    required this.quantity,
+    required this.status,
+  });
 
-    /// Наименование товара
-    @Default('') String itemName,
+  factory PlacementLineDto.fromJson(Map<String, dynamic> json) {
+    final lineId = (json['lineId'] ?? json['LineId']) as int;
+    final itemPositionId = (json['itemPositionId'] ?? json['ItemPositionId']) as int;
+    final itemId = (json['itemId'] ?? json['ItemId']) as int? ?? 0;
+    final itemName = (json['itemName'] ?? json['ItemName']) as String? ?? 'Неизвестный товар';
+    final barcode = (json['barcode'] ?? json['Barcode']) as String? ?? '';
+    final quantity = (json['quantity'] ?? json['Quantity']) as int;
+    final status = $enumDecode(_$OrderAssemblyLineStatusEnumMap, json['status'] ?? json['Status']);
 
-    /// Штрихкод товара
-    @Default('') String barcode,
+    return PlacementLineDto(
+      lineId: lineId,
+      itemPositionId: itemPositionId,
+      itemId: itemId,
+      itemName: itemName,
+      barcode: barcode,
+      quantity: quantity,
+      status: status,
+    );
+  }
 
-    /// Требуемое количество
-    required int quantity,
-
-    /// Фактически собранное количество
-    @Default(0) int collectedQuantity,
-
-    /// Текущий статус позиции
-    @Default(AssemblyStatus.pending) AssemblyStatus status,
-  }) = _AssemblyItemDto;
-
-  factory AssemblyItemDto.fromJson(Map<String, dynamic> json) =>
-      _$AssemblyItemDtoFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'lineId': lineId,
+        'itemPositionId': itemPositionId,
+        'itemId': itemId,
+        'itemName': itemName,
+        'barcode': barcode,
+        'quantity': quantity,
+        'status': _$OrderAssemblyLineStatusEnumMap[status],
+      };
 }
 
-// ---------------------------------------------------------------------------
-// DTO: ячейка назначения (PICKUP) с привязанными товарами
-// ---------------------------------------------------------------------------
+const _$OrderAssemblyLineStatusEnumMap = {
+  OrderAssemblyLineStatus.pending: 0,
+  OrderAssemblyLineStatus.picked: 1,
+  OrderAssemblyLineStatus.placed: 2,
+  OrderAssemblyLineStatus.discrepancy: 3,
+};
 
-/// Описывает ячейку выдачи и список товаров, которые в неё нужно разместить
-@freezed
-class CellPlacement with _$CellPlacement {
-  const factory CellPlacement({
-    /// Идентификатор назначения (assembly assignment ID)
-    required String assignmentId,
+class CellPlacementInfoDto {
+  final int targetPositionId;
+  final String? cellCode;
+  final String? cellDisplayName;
+  final List<PlacementLineDto> items;
 
-    /// Код ячейки (штрихкод, который сканирует работник в режиме Размещения)
-    required String cellCode,
+  CellPlacementInfoDto({
+    required this.targetPositionId,
+    this.cellCode,
+    this.cellDisplayName,
+    required this.items,
+  });
 
-    /// Отображаемое название ячейки
-    @Default('') String cellDisplayName,
+  factory CellPlacementInfoDto.fromJson(Map<String, dynamic> json) {
+    final targetPositionId = (json['targetPositionId'] ?? json['TargetPositionId']) as int;
+    final cellCode = (json['cellCode'] ?? json['CellCode']) as String?;
+    final cellDisplayName = (json['cellDisplayName'] ?? json['CellDisplayName']) as String?;
+    final itemsList = (json['items'] ?? json['Items']) as List<dynamic>;
 
-    /// Список товаров, относящихся к этой ячейке
-    @Default([]) List<AssemblyItemDto> items,
-  }) = _CellPlacement;
+    return CellPlacementInfoDto(
+      targetPositionId: targetPositionId,
+      cellCode: cellCode,
+      cellDisplayName: cellDisplayName,
+      items: itemsList.map((e) => PlacementLineDto.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
 
-  factory CellPlacement.fromJson(Map<String, dynamic> json) =>
-      _$CellPlacementFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'targetPositionId': targetPositionId,
+        'cellCode': cellCode,
+        'cellDisplayName': cellDisplayName,
+        'items': items.map((e) => e.toJson()).toList(),
+      };
 }
 
-// ---------------------------------------------------------------------------
-// DTO: основная задача сборки для сотрудника
-// ---------------------------------------------------------------------------
+class WorkerAssemblyTaskDto {
+  final int assignmentId;
+  final int taskId;
+  final String? taskNumber;
+  final int orderId;
+  final OrderAssemblyAssignmentStatus status;
+  final DateTime? createdDate;
+  final int totalLines;
+  final List<CellPlacementInfoDto> cellPlacements;
 
-/// Общая задача сборки, назначенная сотруднику
-@freezed
-class WorkerAssemblyTaskDto with _$WorkerAssemblyTaskDto {
-  const factory WorkerAssemblyTaskDto({
-    /// Уникальный ID назначения
-    required String assignmentId,
+  WorkerAssemblyTaskDto({
+    required this.assignmentId,
+    required this.taskId,
+    this.taskNumber,
+    required this.orderId,
+    required this.status,
+    this.createdDate,
+    required this.totalLines,
+    required this.cellPlacements,
+  });
 
-    /// Номер задачи (отображается в списке)
-    @Default('') String taskNumber,
+  factory WorkerAssemblyTaskDto.fromJson(Map<String, dynamic> json) {
+    final assignmentId = (json['assignmentId'] ?? json['AssignmentId']) as int;
+    final taskId = (json['taskId'] ?? json['TaskId']) as int;
+    final taskNumber = (json['taskNumber'] ?? json['TaskNumber']) as String?;
+    final orderId = (json['orderId'] ?? json['OrderId']) as int;
+    final status = $enumDecode(_$OrderAssemblyAssignmentStatusEnumMap, json['status'] ?? json['Status']);
+    
+    final createdDateRaw = json['createdDate'] ?? json['CreatedDate'];
+    final createdDate = createdDateRaw == null ? null : DateTime.parse(createdDateRaw as String);
+    
+    final totalLines = (json['totalLines'] ?? json['TotalLines']) as int;
+    final cellPlacementsList = (json['cellPlacements'] ?? json['CellPlacements']) as List<dynamic>;
 
-    /// Дата создания задачи
-    String? createdDate,
+    return WorkerAssemblyTaskDto(
+      assignmentId: assignmentId,
+      taskId: taskId,
+      taskNumber: taskNumber,
+      orderId: orderId,
+      status: status,
+      createdDate: createdDate,
+      totalLines: totalLines,
+      cellPlacements: cellPlacementsList.map((e) => CellPlacementInfoDto.fromJson(e as Map<String, dynamic>)).toList(),
+    );
+  }
 
-    /// Список ячеек выдачи с привязанными товарами
-    @Default([]) List<CellPlacement> cellPlacements,
-  }) = _WorkerAssemblyTaskDto;
-
-  factory WorkerAssemblyTaskDto.fromJson(Map<String, dynamic> json) =>
-      _$WorkerAssemblyTaskDtoFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'assignmentId': assignmentId,
+        'taskId': taskId,
+        'taskNumber': taskNumber,
+        'orderId': orderId,
+        'status': _$OrderAssemblyAssignmentStatusEnumMap[status],
+        'createdDate': createdDate?.toIso8601String(),
+        'totalLines': totalLines,
+        'cellPlacements': cellPlacements.map((e) => e.toJson()).toList(),
+      };
 }
 
+const _$OrderAssemblyAssignmentStatusEnumMap = {
+  OrderAssemblyAssignmentStatus.assigned: 0,
+  OrderAssemblyAssignmentStatus.inProgress: 1,
+  OrderAssemblyAssignmentStatus.completed: 2,
+  OrderAssemblyAssignmentStatus.cancelled: 3,
+};
+
 // ---------------------------------------------------------------------------
-// Request DTOs
+// Requests
 // ---------------------------------------------------------------------------
 
-/// Запрос для сканирования товара (режим Сбора)
-@freezed
-class ScanPickRequest with _$ScanPickRequest {
-  const factory ScanPickRequest({
-    /// ID строки задания
-    required String lineId,
+class ScanPickRequest {
+  final int lineId;
+  final String barcode;
 
-    /// Отсканированный штрихкод товара
-    required String barcode,
-  }) = _ScanPickRequest;
+  ScanPickRequest({required this.lineId, required this.barcode});
 
-  factory ScanPickRequest.fromJson(Map<String, dynamic> json) =>
-      _$ScanPickRequestFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'lineId': lineId,
+        'barcode': barcode,
+      };
 }
 
-/// Запрос для массового размещения товаров ячейки (режим Размещения)
-@freezed
-class ScanPlaceBulkRequest with _$ScanPlaceBulkRequest {
-  const factory ScanPlaceBulkRequest({
-    /// ID назначения (все товары этого назначения переводятся в «Размещено»)
-    required String assignmentId,
+class ScanPlaceBulkRequest {
+  final int assignmentId;
+  final String cellCode;
 
-    /// Код ячейки выдачи (результат сканирования)
-    required String cellCode,
-  }) = _ScanPlaceBulkRequest;
+  ScanPlaceBulkRequest({required this.assignmentId, required this.cellCode});
 
-  factory ScanPlaceBulkRequest.fromJson(Map<String, dynamic> json) =>
-      _$ScanPlaceBulkRequestFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'assignmentId': assignmentId,
+        'cellCode': cellCode,
+      };
 }
 
-/// Запрос для сообщения об отсутствующем товаре
-@freezed
-class ReportMissingRequest with _$ReportMissingRequest {
-  const factory ReportMissingRequest({
-    /// ID строки задания с отсутствующим товаром
-    required String lineId,
+class ReportMissingRequest {
+  final int lineId;
+  final String reason;
 
-    /// Причина отсутствия
-    required String reason,
-  }) = _ReportMissingRequest;
+  ReportMissingRequest({required this.lineId, required this.reason});
 
-  factory ReportMissingRequest.fromJson(Map<String, dynamic> json) =>
-      _$ReportMissingRequestFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'lineId': lineId,
+        'reason': reason,
+      };
+}
+
+// Helper for enum decoding
+T $enumDecode<T>(Map<T, dynamic> enumValues, dynamic source) {
+  if (source == null) return enumValues.keys.first;
+  
+  for (final entry in enumValues.entries) {
+    if (entry.value == source) {
+      return entry.key;
+    }
+  }
+  
+  return enumValues.keys.first;
 }
