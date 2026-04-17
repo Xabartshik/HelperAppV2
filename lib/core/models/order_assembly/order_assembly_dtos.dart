@@ -37,6 +37,7 @@ class PlacementLineDto {
   final String itemName;
   final String barcode;
   final int quantity;
+  final int pickedQuantity;
   final OrderAssemblyLineStatus status;
 
   PlacementLineDto({
@@ -46,6 +47,7 @@ class PlacementLineDto {
     required this.itemName,
     required this.barcode,
     required this.quantity,
+    required this.pickedQuantity,
     required this.status,
   });
 
@@ -56,6 +58,7 @@ class PlacementLineDto {
     final itemName = (json['itemName'] ?? json['ItemName']) as String? ?? 'Неизвестный товар';
     final barcode = (json['barcode'] ?? json['Barcode']) as String? ?? '';
     final quantity = (json['quantity'] ?? json['Quantity']) as int;
+    final pickedQuantity = (json['pickedQuantity'] ?? json['PickedQuantity']) as int? ?? 0;
     final status = $enumDecode(_$OrderAssemblyLineStatusEnumMap, json['status'] ?? json['Status']);
 
     return PlacementLineDto(
@@ -65,6 +68,7 @@ class PlacementLineDto {
       itemName: itemName,
       barcode: barcode,
       quantity: quantity,
+      pickedQuantity: pickedQuantity,
       status: status,
     );
   }
@@ -76,6 +80,7 @@ class PlacementLineDto {
         'itemName': itemName,
         'barcode': barcode,
         'quantity': quantity,
+        'pickedQuantity': pickedQuantity,
         'status': _$OrderAssemblyLineStatusEnumMap[status],
       };
 }

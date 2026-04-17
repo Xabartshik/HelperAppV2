@@ -10,6 +10,7 @@ import '../../screens/inventory/inventory_details_page.dart';
 import '../../screens/inventory/barcode_scanner_page.dart';
 import '../../screens/order_assembly/task_selection_screen.dart';
 import '../../screens/order_assembly/active_assembly_screen.dart';
+import '../../screens/order_assembly/assembly_barcode_scanner_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Следим за состоянием текущего пользователя
@@ -66,6 +67,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           final args = state.extra as Map<String, dynamic>? ?? {};
           return ActiveAssemblyScreen(
             assignmentId: args['assignmentId'] as int? ?? 0,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/order-assembly/scanner',
+        name: 'order_assembly_scanner',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return AssemblyBarcodeScannerPage(
+            assignmentId: args['assignmentId'] as int? ?? 0,
+            userId: args['userId'] as int? ?? 0,
           );
         },
       ),

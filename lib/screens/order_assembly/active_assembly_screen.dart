@@ -568,18 +568,22 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       ),
       child: Row(
         children: [
-          // Иконка режима
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: activeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isPick ? Icons.qr_code_scanner : Icons.grid_view,
-              color: activeColor,
-              size: 22,
+          // Кнопка сканера
+          InkWell(
+            onTap: () => _openScanner(state, vm),
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: activeColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                isPick ? Icons.qr_code_scanner : Icons.grid_view,
+                color: activeColor,
+                size: 22,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -628,6 +632,15 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   // ---------------------------------------------------------------------------
   // Обработчики событий
   // ---------------------------------------------------------------------------
+
+  /// Открывает экран сканера (как в инвентаризации)
+  void _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    Logger.i('ActiveAssemblyScreen: переход к сканеру');
+    context.push('/order-assembly/scanner', extra: {
+      'assignmentId': widget.assignmentId,
+      'userId': _args.userId,
+    });
+  }
 
   /// Обрабатывает ввод штрихкода (товар или ячейка, в зависимости от режима)
   Future<void> _handleBarcodeSubmit(

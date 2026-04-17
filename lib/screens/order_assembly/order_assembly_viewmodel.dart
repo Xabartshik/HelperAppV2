@@ -64,6 +64,7 @@ class AssemblyItemVm {
 /// VM для отображения одной ячейки выдачи с её товарами
 class CellPlacementVm {
   final int assignmentId;
+  final int targetPositionId;
   final String cellCode;
   final String cellDisplayName;
   final List<AssemblyItemVm> items;
@@ -72,6 +73,7 @@ class CellPlacementVm {
 
   CellPlacementVm({
     required this.assignmentId,
+    required this.targetPositionId,
     required this.cellCode,
     required this.cellDisplayName,
     required this.items,
@@ -256,7 +258,11 @@ class OrderAssemblyViewModel
       _recalculateProgress();
       _triggerRebuild();
 
-      return (true, '✓ ${foundItem.itemName} собран (${foundItem.collectedQuantity}/${foundItem.quantity})');
+      final isAllDone = state.allItemsPicked;
+      final msg = '✓ ${foundItem.itemName} собран (${foundItem.collectedQuantity}/${foundItem.quantity})';
+      
+      // Возвращаем специальный флаг успеха, если это был последний товар в режиме сбора
+      return (true, isAllDone ? 'FINISH:$msg' : msg);
     } catch (e) {
       Logger.e('OrderAssembly: ошибка scanPick barcode=$barcode', e);
       return (false, 'Ошибка сервера: $e');
@@ -276,9 +282,12 @@ class OrderAssemblyViewModel
 
     if (cellCode.trim().isEmpty) return (false, 'Пустой код ячейки');
 
-    // Ищем ячейку по коду
+    // Пытаемся найти ячейку по ID (если в коде число) или по строковому коду
+    final scannedId = int.tryParse(cellCode.trim());
+    
     final cell = state.cells.firstWhereOrNull(
-      (c) => c.cellCode == cellCode && !c.isPlaced,
+      (c) => (scannedId != null && c.targetPositionId == scannedId) || 
+             (c.cellCode == cellCode && !c.isPlaced),
     );
 
     if (cell == null) {
@@ -390,13 +399,14 @@ class OrderAssemblyViewModel
     final allDone = allItems.isNotEmpty && allItems.every((i) => i.isDone);
     final allPlaced = state.cells.isNotEmpty && state.cells.every((c) => c.isPlaced);
 
-    // Автоматически переходим в режим Размещения, когда все товары обработаны
+    // Возвращаем автоматическое переключение Pick -> Place, чтобы основной экран обновил UI.
+    // При этом сканер все равно закроется из-за логики в AssemblyBarcodeScannerPage.
     final newMode = (allDone && state.mode == AssemblyMode.pick)
         ? AssemblyMode.place
         : state.mode;
 
     if (newMode == AssemblyMode.place && state.mode == AssemblyMode.pick) {
-      Logger.i('OrderAssembly: все товары собраны, переход в режим Размещения');
+      Logger.i('OrderAssembly: все товары собраны, переход в состояние Размещения');
     }
 
     state = state.copyWith(
@@ -420,15 +430,14 @@ class OrderAssemblyViewModel
               itemName: item.itemName,
               barcode: item.barcode,
               quantity: item.quantity,
-              collectedQuantity: (item.status == OrderAssemblyLineStatus.picked || 
-                                  item.status == OrderAssemblyLineStatus.placed) 
-                                  ? item.quantity : 0, 
+              collectedQuantity: item.pickedQuantity, 
               status: item.status,
             ))
         .toList();
 
     return CellPlacementVm(
       assignmentId: assignmentId,
+      targetPositionId: dto.targetPositionId,
       cellCode: dto.cellCode ?? '',
       cellDisplayName: dto.cellDisplayName ?? dto.cellCode ?? '',
       items: items,
