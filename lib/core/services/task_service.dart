@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:helper_app/core/utils/task_factory.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
 import '../models/tasks/task_models.dart';
@@ -75,7 +74,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         branchId: dto.branchId,
         title: dto.title,
         description: dto.description,
-        status: TaskStatus.assigned, 
+        status: _parseStatusFromInt(dto.status),
         priority: dto.priority,
         createdAt: dto.createdAt,
         completedAt: null,
@@ -87,6 +86,18 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
       return null;
+    }
+  }
+
+
+  TaskStatus _parseStatusFromInt(int serverStatus) {
+    switch (serverStatus) {
+      case 0: return TaskStatus.assigned;
+      case 1: return TaskStatus.inProgress;
+      case 2: return TaskStatus.paused;
+      case 3: return TaskStatus.completed;
+      case 4: return TaskStatus.cancelled;
+      default: return TaskStatus.newStatus;
     }
   }
 
@@ -110,7 +121,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         branchId: dto.branchId,
         title: dto.title,
         description: dto.description,
-        status: TaskStatus.assigned, 
+        status: _parseStatusFromInt(dto.status),
         priority: dto.priority,
         createdAt: dto.createdAt,
         assignedToEmployeeId: employeeId,
@@ -285,6 +296,28 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи сборки ${dto.assignmentId}', e, stack);
       return null;
+    }
+  }
+
+  /// Запуск или возобновление задачи
+  Future<bool> startTaskAsync(int taskId, int workerId) async {
+    try {
+      Logger.i('Запуск задачи $taskId для работника $workerId');
+
+      // Используем вынесенный эндпоинт
+      final response = await _apiClient.postAsync(
+        ApiEndpoints.workerTaskStart(taskId, workerId),
+        data: {}, // Тело пустое, так как параметры в Query
+      );
+
+      // После успешного запуска обновляем список задач, 
+      // чтобы получить актуальные статусы (включая Paused для других задач)
+      await _performPeriodicSync();
+      
+      return true;
+    } catch (e, stack) {
+      Logger.e('Ошибка при старте задачи $taskId', e, stack);
+      return false;
     }
   }
 

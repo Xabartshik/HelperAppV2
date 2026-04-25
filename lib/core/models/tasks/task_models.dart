@@ -16,7 +16,7 @@ enum TaskStatus {
   inProgress,
   completed,
   cancelled,
-  onHold,
+  paused,
   blocked
 }
 
@@ -174,6 +174,7 @@ class MobileBaseTaskDto {
   final int taskId;
   final int branchId;
   final String taskType;
+  final int status;
   final String title;
   final String? description;
   final int priority;
@@ -188,12 +189,14 @@ class MobileBaseTaskDto {
     this.description,
     required this.priority,
     required this.createdAt,
+    required this.status,
     required this.taskDetails,
   });
 
   factory MobileBaseTaskDto.fromJson(Map<String, dynamic> json) {
     return MobileBaseTaskDto(
       taskId: json['taskId'] as int? ?? 0,
+      status: json['status'] as int? ?? 0,
       branchId: json['branchId'] as int? ?? 0,
       taskType: json['taskType'] as String? ?? '',
       title: json['title'] as String? ?? 'Без названия',
