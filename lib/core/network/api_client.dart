@@ -254,6 +254,12 @@ class ApiClient {
     return (response).map((x) => WorkerAssemblyTaskDto.fromJson(x)).toList();
   }
 
+  Future<WorkerAssemblyTaskDto?> getOrderAssemblyTaskDetailsAsync(int assignmentId) async {
+    final response = await getAsync(ApiEndpoints.orderAssemblyDetails(assignmentId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return WorkerAssemblyTaskDto.fromJson(response);
+  }
+
   Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
     final request = ScanPickRequest(lineId: lineId, barcode: barcode);
     await postAsync(ApiEndpoints.orderAssemblyScanPick, data: request.toJson());
