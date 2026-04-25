@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
 import '../../core/utils/logger.dart';
+import 'package:dio/dio.dart';
 
 // Вспомогательные классы для UI
 class SelectableItem<T> {
@@ -466,6 +467,12 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
         .where((e) => e.isSelected)
         .map((e) => e.item.employeeId)
         .toList();
+
+    final selectedPositionIds = _resolveSelectedPositionIds(selectedPrefixes);
+    final inventoryPositionIds = selectedPositionIds.isNotEmpty
+        ? selectedPositionIds
+        : _allPositions.map((p) => p.positionId).toList();
+    final branchId = _resolveBranchId(inventoryPositionIds);
         
     state = state.copyWith(isLoading: true, errorMessage: '');
     
@@ -473,14 +480,18 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
       final client = ref.read(apiClientProvider);
       
       final dto = CreateInventoryByZoneDto(
-        priority: state.newInventoryPriority,
+        priorityLevel: state.newInventoryPriority,
         workerCount: state.newInventoryWorkerCount,
         description: state.newInventoryDescription.trim().isEmpty ? 'Инвентаризация' : state.newInventoryDescription.trim(),
         zonePrefixes: selectedPrefixes,
         workerIds: selectedEmployees.isNotEmpty ? selectedEmployees : null,
       );
       
-      final result = await client.createBossPanelInventoryTaskByZoneAsync(dto);
+      final result = await client.createBossPanelInventoryTaskByZoneAsync(
+        dto,
+        branchId: branchId,
+        itemPositionIds: inventoryPositionIds,
+      );
       
       if (result != null) {
         await loadDataAsync();
@@ -499,10 +510,61 @@ class BossPanelViewModel extends AutoDisposeNotifier<BossPanelState> {
         return true; // Успешно
       }
       return false;
+    } on DioException catch (e) {
+      // Перехватываем ответ бэкенда (400 Bad Request или 500)
+      String serverMessage = 'Неизвестная ошибка сервера';
+      if (e.response?.data != null && e.response?.data is Map<String, dynamic>) {
+        // Достаем поле message, которое мы отправляем из C# ( BadRequest(new { message = ex.Message }) )
+        serverMessage = e.response?.data['message'] ?? e.response?.data['details'] ?? serverMessage;
+      }
+      
+      Logger.w('Ошибка бизнес-логики от сервера: $serverMessage');
+      state = state.copyWith(errorMessage: serverMessage, isLoading: false);
+      return false;
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Ошибка создания задачи: $e', isLoading: false);
+      // Ловим все остальные ошибки (например, нет интернета или ошибка парсинга)
+      state = state.copyWith(errorMessage: 'Системная ошибка: $e', isLoading: false);
       return false;
     }
+  }
+
+  List<int> _resolveSelectedPositionIds(List<String> selectedPrefixes) {
+    if (selectedPrefixes.isEmpty) return const [];
+
+    final selectedSet = selectedPrefixes.toSet();
+
+    return _allPositions
+        .where((p) => selectedSet.contains(_nodeValueForPosition(p)))
+        .map((p) => p.positionId)
+        .toList();
+  }
+
+  int? _resolveBranchId(List<int> positionIds) {
+    if (_allPositions.isEmpty) return null;
+    if (positionIds.isEmpty) return _allPositions.first.branchId;
+
+    final idSet = positionIds.toSet();
+    final matched = _allPositions.where((p) => idSet.contains(p.positionId));
+    if (matched.isEmpty) return null;
+    return matched.first.branchId;
+  }
+
+  String _nodeValueForPosition(PositionCellDto position) {
+    final parts = <String>[
+      position.branchId.toString(),
+      position.zoneCode,
+      position.firstLevelStorageType,
+      position.flsNumber,
+    ];
+
+    if (position.secondLevelStorage?.isNotEmpty ?? false) {
+      parts.add(position.secondLevelStorage!);
+    }
+    if (position.thirdLevelStorage?.isNotEmpty ?? false) {
+      parts.add(position.thirdLevelStorage!);
+    }
+
+    return parts.join('-');
   }
 
   Future<bool> createOrderAssemblyTaskAsync() async {

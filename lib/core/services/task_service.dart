@@ -60,7 +60,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
   // Обновленный метод парсинга Инвентаризации (принимает DTO, а не Map)
   InventoryTaskItem? _mapToUnifiedInventoryTask(MobileBaseTaskDto dto, int employeeId) {
     try {
-      final linesJson = dto.taskDetails['lines'] as List<dynamic>? ?? [];
+      final linesJson = _extractInventoryLines(dto.taskDetails);
       
       final lines = linesJson
           .map((l) => InventoryAssignmentLineWithItemDto.fromJson(l as Map<String, dynamic>))
@@ -88,6 +88,61 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
       return null;
     }
+  }
+
+  List<Map<String, dynamic>> _extractInventoryLines(Map<String, dynamic> taskDetails) {
+    final rawLines = taskDetails['lines'];
+    if (rawLines is List) {
+      return rawLines.whereType<Map<String, dynamic>>().toList();
+    }
+
+    final rawCells = taskDetails['cellInventories'];
+    if (rawCells is! List) return const [];
+
+    final lines = <Map<String, dynamic>>[];
+
+    for (final rawCell in rawCells) {
+      if (rawCell is! Map<String, dynamic>) continue;
+
+      final positionId = (rawCell['positionId'] as num?)?.toInt() ?? 0;
+      final positionCode = _buildPositionCodeJson(rawCell);
+      final rawItems = rawCell['items'];
+      if (rawItems is! List) continue;
+
+      for (final rawItem in rawItems) {
+        if (rawItem is! Map<String, dynamic>) continue;
+
+        lines.add({
+          'id': (rawItem['lineId'] as num?)?.toInt() ?? 0,
+          'itemPositionId': (rawItem['itemPositionId'] as num?)?.toInt() ?? positionId,
+          'positionId': positionId,
+          'expectedQuantity': (rawItem['expectedQuantity'] as num?)?.toInt() ?? 0,
+          'actualQuantity': (rawItem['actualQuantity'] as num?)?.toInt(),
+          'itemId': (rawItem['itemId'] as num?)?.toInt() ?? 0,
+          'itemName': (rawItem['itemName'] ?? '').toString(),
+          'displayName': (rawItem['displayName'] ?? rawItem['itemName'] ?? '').toString(),
+          'positionCode': positionCode,
+        });
+      }
+    }
+
+    return lines;
+  }
+
+  Map<String, dynamic> _buildPositionCodeJson(Map<String, dynamic> rawCell) {
+    final rawPositionCode = rawCell['positionCode'];
+    if (rawPositionCode is Map<String, dynamic>) {
+      return rawPositionCode;
+    }
+
+    return {
+      'branchId': (rawCell['branchId'] as num?)?.toInt() ?? 0,
+      'zoneCode': (rawCell['zoneCode'] ?? '').toString(),
+      'firstLevelStorageType': (rawCell['firstLevelStorageType'] ?? '').toString(),
+      'fLSNumber': (rawCell['fLSNumber'] ?? rawCell['flsNumber'] ?? '').toString(),
+      'secondLevelStorage': rawCell['secondLevelStorage'],
+      'thirdLevelStorage': rawCell['thirdLevelStorage'],
+    };
   }
 
 

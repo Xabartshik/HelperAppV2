@@ -1373,7 +1373,7 @@ CreateInventoryByZoneDto _$CreateInventoryByZoneDtoFromJson(
 /// @nodoc
 mixin _$CreateInventoryByZoneDto {
   List<String> get zonePrefixes => throw _privateConstructorUsedError;
-  int get priority => throw _privateConstructorUsedError;
+  int get priorityLevel => throw _privateConstructorUsedError;
   int get workerCount => throw _privateConstructorUsedError;
   List<int>? get workerIds => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
@@ -1398,7 +1398,7 @@ abstract class $CreateInventoryByZoneDtoCopyWith<$Res> {
   @useResult
   $Res call({
     List<String> zonePrefixes,
-    int priority,
+    int priorityLevel,
     int workerCount,
     List<int>? workerIds,
     String? description,
@@ -1425,7 +1425,7 @@ class _$CreateInventoryByZoneDtoCopyWithImpl<
   @override
   $Res call({
     Object? zonePrefixes = null,
-    Object? priority = null,
+    Object? priorityLevel = null,
     Object? workerCount = null,
     Object? workerIds = freezed,
     Object? description = freezed,
@@ -1437,9 +1437,9 @@ class _$CreateInventoryByZoneDtoCopyWithImpl<
                 ? _value.zonePrefixes
                 : zonePrefixes // ignore: cast_nullable_to_non_nullable
                       as List<String>,
-            priority: null == priority
-                ? _value.priority
-                : priority // ignore: cast_nullable_to_non_nullable
+            priorityLevel: null == priorityLevel
+                ? _value.priorityLevel
+                : priorityLevel // ignore: cast_nullable_to_non_nullable
                       as int,
             workerCount: null == workerCount
                 ? _value.workerCount
@@ -1474,7 +1474,7 @@ abstract class _$$CreateInventoryByZoneDtoImplCopyWith<$Res>
   @useResult
   $Res call({
     List<String> zonePrefixes,
-    int priority,
+    int priorityLevel,
     int workerCount,
     List<int>? workerIds,
     String? description,
@@ -1501,7 +1501,7 @@ class __$$CreateInventoryByZoneDtoImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? zonePrefixes = null,
-    Object? priority = null,
+    Object? priorityLevel = null,
     Object? workerCount = null,
     Object? workerIds = freezed,
     Object? description = freezed,
@@ -1513,9 +1513,9 @@ class __$$CreateInventoryByZoneDtoImplCopyWithImpl<$Res>
             ? _value._zonePrefixes
             : zonePrefixes // ignore: cast_nullable_to_non_nullable
                   as List<String>,
-        priority: null == priority
-            ? _value.priority
-            : priority // ignore: cast_nullable_to_non_nullable
+        priorityLevel: null == priorityLevel
+            ? _value.priorityLevel
+            : priorityLevel // ignore: cast_nullable_to_non_nullable
                   as int,
         workerCount: null == workerCount
             ? _value.workerCount
@@ -1543,7 +1543,7 @@ class __$$CreateInventoryByZoneDtoImplCopyWithImpl<$Res>
 class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
   const _$CreateInventoryByZoneDtoImpl({
     final List<String> zonePrefixes = const [],
-    this.priority = 3,
+    this.priorityLevel = 3,
     this.workerCount = 1,
     final List<int>? workerIds,
     this.description,
@@ -1565,7 +1565,7 @@ class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
 
   @override
   @JsonKey()
-  final int priority;
+  final int priorityLevel;
   @override
   @JsonKey()
   final int workerCount;
@@ -1586,7 +1586,7 @@ class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
 
   @override
   String toString() {
-    return 'CreateInventoryByZoneDto(zonePrefixes: $zonePrefixes, priority: $priority, workerCount: $workerCount, workerIds: $workerIds, description: $description, deadlineDate: $deadlineDate)';
+    return 'CreateInventoryByZoneDto(zonePrefixes: $zonePrefixes, priorityLevel: $priorityLevel, workerCount: $workerCount, workerIds: $workerIds, description: $description, deadlineDate: $deadlineDate)';
   }
 
   @override
@@ -1598,8 +1598,8 @@ class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
               other._zonePrefixes,
               _zonePrefixes,
             ) &&
-            (identical(other.priority, priority) ||
-                other.priority == priority) &&
+            (identical(other.priorityLevel, priorityLevel) ||
+                other.priorityLevel == priorityLevel) &&
             (identical(other.workerCount, workerCount) ||
                 other.workerCount == workerCount) &&
             const DeepCollectionEquality().equals(
@@ -1617,7 +1617,7 @@ class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
   int get hashCode => Object.hash(
     runtimeType,
     const DeepCollectionEquality().hash(_zonePrefixes),
-    priority,
+    priorityLevel,
     workerCount,
     const DeepCollectionEquality().hash(_workerIds),
     description,
@@ -1644,7 +1644,7 @@ class _$CreateInventoryByZoneDtoImpl implements _CreateInventoryByZoneDto {
 abstract class _CreateInventoryByZoneDto implements CreateInventoryByZoneDto {
   const factory _CreateInventoryByZoneDto({
     final List<String> zonePrefixes,
-    final int priority,
+    final int priorityLevel,
     final int workerCount,
     final List<int>? workerIds,
     final String? description,
@@ -1657,7 +1657,7 @@ abstract class _CreateInventoryByZoneDto implements CreateInventoryByZoneDto {
   @override
   List<String> get zonePrefixes;
   @override
-  int get priority;
+  int get priorityLevel;
   @override
   int get workerCount;
   @override

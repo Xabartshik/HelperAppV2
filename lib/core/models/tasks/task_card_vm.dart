@@ -134,7 +134,7 @@ class TaskCardVm {
       kind: task.type.name,
       navigationId: task.assignmentId,
       title: task.title,
-      subtitle: task.description ?? 'Заказ #${task.orderId}',
+      subtitle: task.description,
       status: task.status,
       statusText: taskStatusToRussian(task.status),
       priority: task.priority,

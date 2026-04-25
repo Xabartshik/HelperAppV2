@@ -207,7 +207,7 @@ class MobileBaseTaskDto {
       taskType: json['taskType'] as String? ?? '',
       title: json['title'] as String? ?? 'Без названия',
       description: json['description'] as String?,
-      priority: json['priority'] as int? ?? 5,
+      priority: json['priorityLevel'] as int? ?? 5,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt']).toUtc()
           : DateTime.now().toUtc(),

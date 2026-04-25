@@ -210,8 +210,24 @@ class ApiClient {
     return List<int>.from(response);
   }
 
-  Future<dynamic> createBossPanelInventoryTaskByZoneAsync(CreateInventoryByZoneDto dto) async {
-    return await postAsync(ApiEndpoints.bossPanelCreateInventoryByZone, data: dto.toJson());
+  Future<dynamic> createBossPanelInventoryTaskByZoneAsync(
+    CreateInventoryByZoneDto dto, {
+    int? branchId,
+    List<int>? itemPositionIds,
+  }) async {
+    final payload = Map<String, dynamic>.from(dto.toJson());
+    if (branchId != null) {
+      payload['branchId'] = branchId;
+    }
+    if (itemPositionIds != null) {
+      payload['itemPositionsIds'] = itemPositionIds;
+      payload['divisionStrategy'] = 'ByQuantity';
+    }
+
+    return await postAsync(
+      ApiEndpoints.bossPanelCreateInventoryByZone,
+      data: payload,
+    );
   }
 
   Future<List<AvailableOrderDto>> getBossPanelAvailableOrdersAsync() async {
