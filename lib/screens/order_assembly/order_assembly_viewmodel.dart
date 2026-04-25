@@ -427,8 +427,8 @@ class OrderAssemblyViewModel
         .map((item) => AssemblyItemVm(
               lineId: item.lineId,
               itemId: item.itemId,
-              itemName: item.itemName,
-              barcode: item.barcode,
+              itemName: item.itemName ?? '',
+              barcode: item.barcode ?? '',
               quantity: item.quantity,
               collectedQuantity: item.pickedQuantity, 
               status: item.status,
