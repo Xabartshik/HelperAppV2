@@ -22,13 +22,14 @@ class TaskService {
   TaskService(this._apiClient);
 
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
-Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
+  Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
       Logger.i('Запрос задач через агрегатор для сотрудника $employeeId');
 
       if (employeeId <= 0) return [];
 
-      final response = await _apiClient.getAsync('WorkerTasks/$employeeId/pending');
+      // Использование статического метода из ApiEndpoints
+      final response = await _apiClient.getAsync(ApiEndpoints.workerTasksPending(employeeId));
       
       if (response == null || response is! List) return [];
       
@@ -208,7 +209,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
 
   int get employeeIdForPeriodicSync => _lastSyncEmployeeId;
 
-  // --- Mappers ---
+  // Мапперы 
 
   InventoryTaskItem? _mapToInventoryTaskItem(InventoryAssignmentDetailedWithItemDto assignment, int employeeId) {
     try {

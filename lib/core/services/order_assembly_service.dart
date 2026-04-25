@@ -29,7 +29,7 @@ class OrderAssemblyService {
         return [];
       }
 
-      final response = await _apiClient.getAsync('OrderAssembly/tasks/$userId');
+      final response = await _apiClient.getAsync(ApiEndpoints.orderAssemblyTasks(userId));
 
       if (response == null || (response is List && response.isEmpty)) {
         Logger.i('OrderAssembly: задачи не найдены для userId=$userId');
@@ -59,7 +59,7 @@ class OrderAssemblyService {
 
       final request = ScanPickRequest(lineId: lineId, barcode: barcode);
       await _apiClient.postAsync(
-        'OrderAssembly/scan-pick',
+        ApiEndpoints.orderAssemblyScanPick,
         data: request.toJson(),
       );
 
@@ -84,7 +84,7 @@ class OrderAssemblyService {
         cellCode: cellCode,
       );
       await _apiClient.postAsync(
-        'OrderAssembly/scan-place-bulk',
+        ApiEndpoints.orderAssemblyScanPlaceBulk,
         data: request.toJson(),
       );
 
@@ -106,7 +106,7 @@ class OrderAssemblyService {
 
       final request = ReportMissingRequest(lineId: lineId, reason: reason);
       await _apiClient.postAsync(
-        'OrderAssembly/report-missing',
+        ApiEndpoints.orderAssemblyReportMissing,
         data: request.toJson(),
       );
 
@@ -127,7 +127,7 @@ class OrderAssemblyService {
       Logger.i('OrderAssembly: completeAssembly assignmentId=$assignmentId');
 
       await _apiClient.postAsync(
-        'OrderAssembly/complete/$assignmentId',
+        ApiEndpoints.orderAssemblyComplete(assignmentId),
         data: null,
       );
 

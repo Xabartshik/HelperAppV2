@@ -38,7 +38,7 @@ class AuthService {
       final request = LoginRequest(username: employeeId, password: password);
       
       final responseData = await _apiClient.postAsync(
-        'v1/mobileappuser/login', // Исправленный эндпоинт, удалено /api так как оно в baseUrl
+        ApiEndpoints.login, // Использование статической переменной
         data: request.toJson(),
       );
 
