@@ -160,7 +160,7 @@ class InventoryViewModel extends AutoDisposeFamilyNotifier<InventoryState, Inven
 
     try {
       final client = ref.read(apiClientProvider);
-      final dto = await client.getInventoryTaskDetailsAsync(state.workerId, state.assignmentId);
+      final dto = await client.getInventoryTaskDetailsAsync(state.assignmentId);
 
       if (dto == null) {
         state = state.copyWith(errorMessage: 'Сервер вернул пустой ответ', isLoading: false);
