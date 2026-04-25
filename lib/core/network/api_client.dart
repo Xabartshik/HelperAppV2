@@ -29,7 +29,7 @@ class ApiEndpoints {
   static const String bossPanelCreateOrderAssembly = 'v1/bosspanel/tasks/order-assembly/create';
 
   // Inventory
-  static String inventoryTaskDetails(int workerId, int assignmentId) => 'v1/Inventory/worker/$workerId/assignments/$assignmentId/details';
+  static String inventoryTaskDetails(int assignmentId) => 'v1/Inventory/assignment/$assignmentId/details';
   static const String inventoryCompleteAssignment = 'v1/Inventory/complete-assignment';
   static const String inventoryProcessScan = 'v1/Inventory/scan';
   static String itemInfo(int itemId) => 'v1/Item/$itemId';
@@ -223,10 +223,47 @@ class ApiClient {
   }
 
   // Inventory API Endpoints
-  Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int workerId, int assignmentId) async {
-    final response = await getAsync(ApiEndpoints.inventoryTaskDetails(workerId, assignmentId));
-    if (response == null) return null;
-    return InventoryTaskDetailsDto.fromJson(response);
+  Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int assignmentId) async {
+    final response = await getAsync(ApiEndpoints.inventoryTaskDetails(assignmentId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return _mapInventoryAssignmentDetails(response);
+  }
+
+  InventoryTaskDetailsDto _mapInventoryAssignmentDetails(Map<String, dynamic> json) {
+    final createdDateRaw = json['createdDate']?.toString();
+    final createdDate = DateTime.tryParse(createdDateRaw ?? '') ?? DateTime.now();
+
+    final cellInventoriesRaw = (json['cellInventories'] as List?) ?? const [];
+    final items = <InventoryItemDto>[];
+
+    for (final cell in cellInventoriesRaw) {
+      if (cell is! Map<String, dynamic>) continue;
+
+      final positionId = (cell['positionId'] as num?)?.toInt() ?? 0;
+      final positionCode = (cell['cellDisplayName'] ?? cell['cellCode'] ?? '').toString();
+      final cellItemsRaw = (cell['items'] as List?) ?? const [];
+
+      for (final item in cellItemsRaw) {
+        if (item is! Map<String, dynamic>) continue;
+
+        items.add(InventoryItemDto(
+          itemId: (item['itemId'] as num?)?.toInt() ?? 0,
+          lineId: (item['lineId'] as num?)?.toInt(),
+          itemName: (item['itemName'] ?? '').toString(),
+          positionCode: positionCode,
+          positionId: positionId,
+          expectedQuantity: (item['expectedQuantity'] as num?)?.toInt() ?? 0,
+        ));
+      }
+    }
+
+    return InventoryTaskDetailsDto(
+      taskId: (json['taskId'] as num?)?.toInt() ?? 0,
+      zoneCode: '',
+      items: items,
+      totalExpectedCount: (json['totalLines'] as num?)?.toInt() ?? items.length,
+      initiatedAt: createdDate,
+    );
   }
 
   Future<CompleteAssignmentResultDto?> completeInventoryAssignmentAsync(CompleteAssignmentDto dto) async {
@@ -252,6 +289,12 @@ class ApiClient {
     final response = await getAsync(ApiEndpoints.orderAssemblyTasks(userId));
     if (response == null || response is! List) return [];
     return (response).map((x) => WorkerAssemblyTaskDto.fromJson(x)).toList();
+  }
+
+  Future<WorkerAssemblyTaskDto?> getOrderAssemblyTaskDetailsAsync(int assignmentId) async {
+    final response = await getAsync(ApiEndpoints.orderAssemblyDetails(assignmentId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return WorkerAssemblyTaskDto.fromJson(response);
   }
 
   Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
