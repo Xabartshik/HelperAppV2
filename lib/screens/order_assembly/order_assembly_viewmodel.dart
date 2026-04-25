@@ -184,15 +184,12 @@ class OrderAssemblyViewModel
 
     try {
       final client = ref.read(apiClientProvider);
-      final tasks = await client.getOrderAssemblyTasksAsync(arg.userId);
-
-      final task = tasks.firstWhereOrNull((t) => t.assignmentId == arg.assignmentId);
+      final task = await client.getOrderAssemblyTaskDetailsAsync(arg.assignmentId);
 
       if (task == null) {
-        final availableIds = tasks.map((t) => t.assignmentId).join(', ');
-        Logger.w('OrderAssembly: задача ${arg.assignmentId} не найдена для userId=${arg.userId}. Доступные ID: [$availableIds]');
+        Logger.w('OrderAssembly: детали задачи ${arg.assignmentId} не найдены');
         state = state.copyWith(
-          errorMessage: 'Задача не найдена или уже завершена. Доступные задачи: $availableIds',
+          errorMessage: 'Задача не найдена или уже завершена',
           isLoading: false,
         );
         return;
