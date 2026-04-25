@@ -1,7 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:json_annotation/json_annotation.dart';
 
 part 'order_assembly_dtos.freezed.dart';
 part 'order_assembly_dtos.g.dart';
+
 
 @freezed
 class ScanPickRequest with _$ScanPickRequest {
@@ -34,17 +36,17 @@ class ReportMissingRequest with _$ReportMissingRequest {
 }
 
 enum OrderAssemblyAssignmentStatus {
-  pending,
-  inProgress,
-  completed,
-  cancelled
+  @JsonValue(0) pending,
+  @JsonValue(1) inProgress,
+  @JsonValue(2) completed,
+  @JsonValue(3) cancelled
 }
 
 enum OrderAssemblyLineStatus {
-  pending,
-  picked,
-  placed,
-  discrepancy
+  @JsonValue(0) pending,
+  @JsonValue(1) picked,
+  @JsonValue(2) placed,
+  @JsonValue(3) discrepancy
 }
 
 @freezed

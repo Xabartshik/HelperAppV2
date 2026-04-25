@@ -69,10 +69,10 @@ Map<String, dynamic> _$$PlacementLineDtoImplToJson(
 };
 
 const _$OrderAssemblyLineStatusEnumMap = {
-  OrderAssemblyLineStatus.pending: 'pending',
-  OrderAssemblyLineStatus.picked: 'picked',
-  OrderAssemblyLineStatus.placed: 'placed',
-  OrderAssemblyLineStatus.discrepancy: 'discrepancy',
+  OrderAssemblyLineStatus.pending: 0,
+  OrderAssemblyLineStatus.picked: 1,
+  OrderAssemblyLineStatus.placed: 2,
+  OrderAssemblyLineStatus.discrepancy: 3,
 };
 
 _$CellPlacementInfoDtoImpl _$$CellPlacementInfoDtoImplFromJson(
@@ -130,10 +130,10 @@ Map<String, dynamic> _$$WorkerAssemblyTaskDtoImplToJson(
 };
 
 const _$OrderAssemblyAssignmentStatusEnumMap = {
-  OrderAssemblyAssignmentStatus.pending: 'pending',
-  OrderAssemblyAssignmentStatus.inProgress: 'inProgress',
-  OrderAssemblyAssignmentStatus.completed: 'completed',
-  OrderAssemblyAssignmentStatus.cancelled: 'cancelled',
+  OrderAssemblyAssignmentStatus.pending: 0,
+  OrderAssemblyAssignmentStatus.inProgress: 1,
+  OrderAssemblyAssignmentStatus.completed: 2,
+  OrderAssemblyAssignmentStatus.cancelled: 3,
 };
 
 _$BulkPlaceResultDtoImpl _$$BulkPlaceResultDtoImplFromJson(
