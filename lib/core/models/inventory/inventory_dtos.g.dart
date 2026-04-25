@@ -275,3 +275,23 @@ _$ItemInfoDtoImpl _$$ItemInfoDtoImplFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$$ItemInfoDtoImplToJson(_$ItemInfoDtoImpl instance) =>
     <String, dynamic>{'itemId': instance.itemId, 'name': instance.name};
+
+_$ProcessInventoryScanDtoImpl _$$ProcessInventoryScanDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$ProcessInventoryScanDtoImpl(
+  assignmentId: (json['assignmentId'] as num).toInt(),
+  lineId: (json['lineId'] as num).toInt(),
+  actualQuantity: (json['actualQuantity'] as num).toInt(),
+  userId: (json['userId'] as num).toInt(),
+  note: json['note'] as String?,
+);
+
+Map<String, dynamic> _$$ProcessInventoryScanDtoImplToJson(
+  _$ProcessInventoryScanDtoImpl instance,
+) => <String, dynamic>{
+  'assignmentId': instance.assignmentId,
+  'lineId': instance.lineId,
+  'actualQuantity': instance.actualQuantity,
+  'userId': instance.userId,
+  'note': instance.note,
+};

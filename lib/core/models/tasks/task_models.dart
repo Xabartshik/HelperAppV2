@@ -166,4 +166,43 @@ class OrderAssemblyTaskItem extends TaskItemBase {
     required this.totalLines,
     required this.cellPlacements,
   });
+
+  
+}
+
+class MobileBaseTaskDto {
+  final int taskId;
+  final int branchId;
+  final String taskType;
+  final String title;
+  final String? description;
+  final int priority;
+  final DateTime createdAt;
+  final Map<String, dynamic> taskDetails;
+
+  MobileBaseTaskDto({
+    required this.taskId,
+    required this.branchId,
+    required this.taskType,
+    required this.title,
+    this.description,
+    required this.priority,
+    required this.createdAt,
+    required this.taskDetails,
+  });
+
+  factory MobileBaseTaskDto.fromJson(Map<String, dynamic> json) {
+    return MobileBaseTaskDto(
+      taskId: json['taskId'] as int? ?? 0,
+      branchId: json['branchId'] as int? ?? 0,
+      taskType: json['taskType'] as String? ?? '',
+      title: json['title'] as String? ?? 'Без названия',
+      description: json['description'] as String?,
+      priority: json['priority'] as int? ?? 5,
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt']).toUtc()
+          : DateTime.now().toUtc(),
+      taskDetails: json['taskDetails'] as Map<String, dynamic>? ?? {},
+    );
+  }
 }

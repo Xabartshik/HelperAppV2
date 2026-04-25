@@ -22,22 +22,33 @@ class TaskService {
   TaskService(this._apiClient);
 
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
-  Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
+Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
       Logger.i('Запрос задач через агрегатор для сотрудника $employeeId');
 
       if (employeeId <= 0) return [];
 
-      // Использование статического метода из ApiEndpoints
       final response = await _apiClient.getAsync(ApiEndpoints.workerTasksPending(employeeId));
       
       if (response == null || response is! List) return [];
       
-      // Используем фабрику для каждой задачи в списке
-      final allTasks = response
-          .map((json) => TaskFactory.createFromJson(json as Map<String, dynamic>, employeeId))
-          .whereType<TaskItemBase>() // Автоматически удаляет null (неизвестные типы)
-          .toList();
+      final List<TaskItemBase> allTasks = [];
+
+      for (var item in response) {
+        // 1. Строго типизируем ответ бэкенда через DTO
+        final dto = MobileBaseTaskDto.fromJson(item as Map<String, dynamic>);
+        
+        // 2. Маппим DTO в доменные объекты в зависимости от типа задачи
+        if (dto.taskType == 'Inventory') {
+          final task = _mapToUnifiedInventoryTask(dto, employeeId);
+          if (task != null) allTasks.add(task);
+        } else if (dto.taskType == 'OrderAssembly') {
+          final task = _mapToUnifiedOrderAssemblyTask(dto, employeeId);
+          if (task != null) allTasks.add(task);
+        } else {
+          Logger.w('Неизвестный тип задачи от агрегатора: ${dto.taskType}');
+        }
+      }
 
       Logger.i('Получено ${allTasks.length} задач');
       return allTasks;
@@ -47,47 +58,42 @@ class TaskService {
     }
   }
 
-
-  InventoryTaskItem? _parseUnifiedInventoryTask(Map<String, dynamic> json, int employeeId) {
+  // Обновленный метод парсинга Инвентаризации (принимает DTO, а не Map)
+  InventoryTaskItem? _mapToUnifiedInventoryTask(MobileBaseTaskDto dto, int employeeId) {
     try {
-      final createdAt = _parseCreatedDate(json['createdAt']);
-      final details = json['taskDetails'] ?? {}; // Берем полиморфную нагрузку
-      final linesJson = details['lines'] as List<dynamic>? ?? [];
+      final linesJson = dto.taskDetails['lines'] as List<dynamic>? ?? [];
       
       final lines = linesJson
-          .map((l) => InventoryAssignmentLineWithItemDto.fromJson(l))
+          .map((l) => InventoryAssignmentLineWithItemDto.fromJson(l as Map<String, dynamic>))
           .map(_mapToInventoryLineItem)
           .whereType<InventoryLineItem>()
           .toList();
 
       return InventoryTaskItem(
-        taskId: json['taskId'],
+        taskId: dto.taskId,
         type: TaskType.inventory,
-        branchId: json['branchId'] ?? 0,
-        title: json['title'] ?? 'Инвентаризация',
-        description: json['description'],
-        status: TaskStatus.newStatus, // Либо парсить json['status'] если оно передается
-        priority: json['priority'] ?? 5,
-        createdAt: createdAt,
+        branchId: dto.branchId,
+        title: dto.title,
+        description: dto.description,
+        status: TaskStatus.assigned, 
+        priority: dto.priority,
+        createdAt: dto.createdAt,
         completedAt: null,
         assignedToEmployeeId: employeeId,
-        assignedAt: createdAt,
-        assignmentId: details['assignmentId'] ?? json['taskId'],
+        assignedAt: dto.createdAt,
+        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
         lines: lines,
       );
     } catch (e, stack) {
-      Logger.e('Ошибка маппинга задачи инвентаризации из агрегатора', e, stack);
+      Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
       return null;
     }
   }
 
-  OrderAssemblyTaskItem? _parseUnifiedOrderAssemblyTask(Map<String, dynamic> json, int employeeId) {
+  OrderAssemblyTaskItem? _mapToUnifiedOrderAssemblyTask(MobileBaseTaskDto dto, int employeeId) {
     try {
-      final createdAt = _parseCreatedDate(json['createdAt']);
-      final details = json['taskDetails'] ?? {};
-
-      // Маппинг ячеек сборки (зависит от того, как Backend сериализует OrderAssemblyDetailsDto)
-      final cellPlacementsJson = details['cellPlacements'] as List<dynamic>? ?? [];
+      final cellPlacementsJson = dto.taskDetails['cellPlacements'] as List<dynamic>? ?? [];
+      
       final cellPlacements = cellPlacementsJson.map((c) => CellPlacementInfo(
         targetPositionId: c['targetPositionId'],
         items: (c['items'] as List<dynamic>).map((i) => PlacementLineInfo(
@@ -99,23 +105,23 @@ class TaskService {
       )).toList();
 
       return OrderAssemblyTaskItem(
-        taskId: json['taskId'],
+        taskId: dto.taskId,
         type: TaskType.orderAssembly,
-        branchId: json['branchId'] ?? 0,
-        title: json['title'] ?? 'Сборка заказа',
-        description: json['description'],
+        branchId: dto.branchId,
+        title: dto.title,
+        description: dto.description,
         status: TaskStatus.assigned, 
-        priority: json['priority'] ?? 7,
-        createdAt: createdAt,
+        priority: dto.priority,
+        createdAt: dto.createdAt,
         assignedToEmployeeId: employeeId,
-        assignedAt: createdAt,
-        assignmentId: details['assignmentId'] ?? json['taskId'],
-        orderId: details['orderId'] ?? 0,
-        totalLines: details['totalLines'] ?? 0,
+        assignedAt: dto.createdAt,
+        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
+        orderId: dto.taskDetails['orderId'] ?? 0,
+        totalLines: dto.taskDetails['totalLines'] ?? 0,
         cellPlacements: cellPlacements,
       );
     } catch (e, stack) {
-      Logger.e('Ошибка маппинга задачи сборки из агрегатора', e, stack);
+      Logger.e('Ошибка маппинга задачи сборки из DTO агрегатора', e, stack);
       return null;
     }
   }

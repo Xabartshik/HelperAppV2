@@ -166,3 +166,17 @@ class ItemInfoDto with _$ItemInfoDto {
   factory ItemInfoDto.fromJson(Map<String, dynamic> json) => 
       _$ItemInfoDtoFromJson(json);
 }
+
+@freezed
+class ProcessInventoryScanDto with _$ProcessInventoryScanDto {
+  const factory ProcessInventoryScanDto({
+    required int assignmentId,
+    required int lineId,
+    required int actualQuantity,
+    required int userId,
+    String? note,
+  }) = _ProcessInventoryScanDto;
+
+  factory ProcessInventoryScanDto.fromJson(Map<String, dynamic> json) => 
+      _$ProcessInventoryScanDtoFromJson(json);
+}

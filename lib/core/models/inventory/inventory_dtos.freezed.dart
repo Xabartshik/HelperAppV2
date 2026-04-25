@@ -3195,3 +3195,267 @@ abstract class _ItemInfoDto implements ItemInfoDto {
   _$$ItemInfoDtoImplCopyWith<_$ItemInfoDtoImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
+
+ProcessInventoryScanDto _$ProcessInventoryScanDtoFromJson(
+  Map<String, dynamic> json,
+) {
+  return _ProcessInventoryScanDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProcessInventoryScanDto {
+  int get assignmentId => throw _privateConstructorUsedError;
+  int get lineId => throw _privateConstructorUsedError;
+  int get actualQuantity => throw _privateConstructorUsedError;
+  int get userId => throw _privateConstructorUsedError;
+  String? get note => throw _privateConstructorUsedError;
+
+  /// Serializes this ProcessInventoryScanDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProcessInventoryScanDtoCopyWith<ProcessInventoryScanDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProcessInventoryScanDtoCopyWith<$Res> {
+  factory $ProcessInventoryScanDtoCopyWith(
+    ProcessInventoryScanDto value,
+    $Res Function(ProcessInventoryScanDto) then,
+  ) = _$ProcessInventoryScanDtoCopyWithImpl<$Res, ProcessInventoryScanDto>;
+  @useResult
+  $Res call({
+    int assignmentId,
+    int lineId,
+    int actualQuantity,
+    int userId,
+    String? note,
+  });
+}
+
+/// @nodoc
+class _$ProcessInventoryScanDtoCopyWithImpl<
+  $Res,
+  $Val extends ProcessInventoryScanDto
+>
+    implements $ProcessInventoryScanDtoCopyWith<$Res> {
+  _$ProcessInventoryScanDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? assignmentId = null,
+    Object? lineId = null,
+    Object? actualQuantity = null,
+    Object? userId = null,
+    Object? note = freezed,
+  }) {
+    return _then(
+      _value.copyWith(
+            assignmentId: null == assignmentId
+                ? _value.assignmentId
+                : assignmentId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            lineId: null == lineId
+                ? _value.lineId
+                : lineId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            actualQuantity: null == actualQuantity
+                ? _value.actualQuantity
+                : actualQuantity // ignore: cast_nullable_to_non_nullable
+                      as int,
+            userId: null == userId
+                ? _value.userId
+                : userId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$ProcessInventoryScanDtoImplCopyWith<$Res>
+    implements $ProcessInventoryScanDtoCopyWith<$Res> {
+  factory _$$ProcessInventoryScanDtoImplCopyWith(
+    _$ProcessInventoryScanDtoImpl value,
+    $Res Function(_$ProcessInventoryScanDtoImpl) then,
+  ) = __$$ProcessInventoryScanDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    int assignmentId,
+    int lineId,
+    int actualQuantity,
+    int userId,
+    String? note,
+  });
+}
+
+/// @nodoc
+class __$$ProcessInventoryScanDtoImplCopyWithImpl<$Res>
+    extends
+        _$ProcessInventoryScanDtoCopyWithImpl<
+          $Res,
+          _$ProcessInventoryScanDtoImpl
+        >
+    implements _$$ProcessInventoryScanDtoImplCopyWith<$Res> {
+  __$$ProcessInventoryScanDtoImplCopyWithImpl(
+    _$ProcessInventoryScanDtoImpl _value,
+    $Res Function(_$ProcessInventoryScanDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? assignmentId = null,
+    Object? lineId = null,
+    Object? actualQuantity = null,
+    Object? userId = null,
+    Object? note = freezed,
+  }) {
+    return _then(
+      _$ProcessInventoryScanDtoImpl(
+        assignmentId: null == assignmentId
+            ? _value.assignmentId
+            : assignmentId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        lineId: null == lineId
+            ? _value.lineId
+            : lineId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        actualQuantity: null == actualQuantity
+            ? _value.actualQuantity
+            : actualQuantity // ignore: cast_nullable_to_non_nullable
+                  as int,
+        userId: null == userId
+            ? _value.userId
+            : userId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProcessInventoryScanDtoImpl implements _ProcessInventoryScanDto {
+  const _$ProcessInventoryScanDtoImpl({
+    required this.assignmentId,
+    required this.lineId,
+    required this.actualQuantity,
+    required this.userId,
+    this.note,
+  });
+
+  factory _$ProcessInventoryScanDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProcessInventoryScanDtoImplFromJson(json);
+
+  @override
+  final int assignmentId;
+  @override
+  final int lineId;
+  @override
+  final int actualQuantity;
+  @override
+  final int userId;
+  @override
+  final String? note;
+
+  @override
+  String toString() {
+    return 'ProcessInventoryScanDto(assignmentId: $assignmentId, lineId: $lineId, actualQuantity: $actualQuantity, userId: $userId, note: $note)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProcessInventoryScanDtoImpl &&
+            (identical(other.assignmentId, assignmentId) ||
+                other.assignmentId == assignmentId) &&
+            (identical(other.lineId, lineId) || other.lineId == lineId) &&
+            (identical(other.actualQuantity, actualQuantity) ||
+                other.actualQuantity == actualQuantity) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.note, note) || other.note == note));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    assignmentId,
+    lineId,
+    actualQuantity,
+    userId,
+    note,
+  );
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProcessInventoryScanDtoImplCopyWith<_$ProcessInventoryScanDtoImpl>
+  get copyWith =>
+      __$$ProcessInventoryScanDtoImplCopyWithImpl<
+        _$ProcessInventoryScanDtoImpl
+      >(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProcessInventoryScanDtoImplToJson(this);
+  }
+}
+
+abstract class _ProcessInventoryScanDto implements ProcessInventoryScanDto {
+  const factory _ProcessInventoryScanDto({
+    required final int assignmentId,
+    required final int lineId,
+    required final int actualQuantity,
+    required final int userId,
+    final String? note,
+  }) = _$ProcessInventoryScanDtoImpl;
+
+  factory _ProcessInventoryScanDto.fromJson(Map<String, dynamic> json) =
+      _$ProcessInventoryScanDtoImpl.fromJson;
+
+  @override
+  int get assignmentId;
+  @override
+  int get lineId;
+  @override
+  int get actualQuantity;
+  @override
+  int get userId;
+  @override
+  String? get note;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProcessInventoryScanDtoImplCopyWith<_$ProcessInventoryScanDtoImpl>
+  get copyWith => throw _privateConstructorUsedError;
+}

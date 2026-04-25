@@ -31,10 +31,16 @@ class ApiEndpoints {
   // Inventory
   static String inventoryTaskDetails(int workerId, int assignmentId) => 'v1/Inventory/worker/$workerId/assignments/$assignmentId/details';
   static const String inventoryCompleteAssignment = 'v1/Inventory/complete-assignment';
+  static const String inventoryProcessScan = 'v1/Inventory/scan';
   static String itemInfo(int itemId) => 'v1/Item/$itemId';
 
   // Order Assembly
-  static String orderAssemblyTasks(int userId) => 'v1/OrderAssembly/tasks/$userId';
+  static String orderAssemblyTasks(int userId) => 'v1/OrderAssembly/worker/$userId/assignments';
+  static String orderAssemblyDetails(int id) => 'v1/OrderAssembly/assignment/$id/details';
+  static String orderAssemblyStart(int id) => 'v1/OrderAssembly/assignment/$id/start';
+  static String orderAssemblyPause(int id) => 'v1/OrderAssembly/assignment/$id/pause';
+  static String orderAssemblyCancel(int id) => 'v1/OrderAssembly/assignment/$id/cancel';
+  
   static const String orderAssemblyScanPick = 'v1/OrderAssembly/scan-pick';
   static const String orderAssemblyScanPlaceBulk = 'v1/OrderAssembly/scan-place-bulk';
   static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
@@ -233,6 +239,12 @@ class ApiClient {
     final response = await getAsync(ApiEndpoints.itemInfo(itemId));
     if (response == null) return null;
     return ItemInfoDto.fromJson(response);
+  }
+
+  Future<InventoryStatisticsDto?> processInventoryScanAsync(ProcessInventoryScanDto dto) async {
+    final response = await postAsync(ApiEndpoints.inventoryProcessScan, data: dto.toJson());
+    if (response == null) return null;
+    return InventoryStatisticsDto.fromJson(response);
   }
 
   // Order Assembly API Endpoints
