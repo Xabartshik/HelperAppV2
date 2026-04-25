@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/utils/task_factory.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
 import '../models/tasks/task_models.dart';
@@ -21,65 +22,104 @@ class TaskService {
   TaskService(this._apiClient);
 
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
-  Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
+Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
-      Logger.i('Получение задач для сотрудника $employeeId');
+      Logger.i('Запрос задач через агрегатор для сотрудника $employeeId');
 
-      if (employeeId <= 0) {
-        Logger.w('Некорректный ID сотрудника: $employeeId');
-        return [];
-      }
+      if (employeeId <= 0) return [];
 
-      // Параллельный запрос обоих API
-      final results = await Future.wait([
-        _fetchInventoryTasks(employeeId),
-        _fetchOrderAssemblyTasks(employeeId),
-      ]);
+      final response = await _apiClient.getAsync('WorkerTasks/$employeeId/pending');
+      
+      if (response == null || response is! List) return [];
+      
+      // Используем фабрику для каждой задачи в списке
+      final allTasks = response
+          .map((json) => TaskFactory.createFromJson(json as Map<String, dynamic>, employeeId))
+          .whereType<TaskItemBase>() // Автоматически удаляет null (неизвестные типы)
+          .toList();
 
-      final allTasks = [...results[0], ...results[1]];
-      Logger.i('Итого получено ${allTasks.length} задач (инвентаризация: ${results[0].length}, сборка: ${results[1].length})');
+      Logger.i('Получено ${allTasks.length} задач');
       return allTasks;
     } catch (e, stack) {
-      Logger.e('Ошибка при получении задач для сотрудника $employeeId', e, stack);
+      Logger.e('TaskService: ошибка при загрузке задач', e, stack);
       rethrow;
     }
   }
 
-  /// Задачи инвентаризации
-  Future<List<TaskItemBase>> _fetchInventoryTasks(int employeeId) async {
+
+  InventoryTaskItem? _parseUnifiedInventoryTask(Map<String, dynamic> json, int employeeId) {
     try {
-      final response = await _apiClient.getAsync('v1/Inventory/worker/$employeeId/new-tasks');
-      if (response == null || (response is List && response.isEmpty)) return [];
-      final List<dynamic> dataList = response;
-      final assignments = dataList
-          .map((json) => InventoryAssignmentDetailedWithItemDto.fromJson(json))
+      final createdAt = _parseCreatedDate(json['createdAt']);
+      final details = json['taskDetails'] ?? {}; // Берем полиморфную нагрузку
+      final linesJson = details['lines'] as List<dynamic>? ?? [];
+      
+      final lines = linesJson
+          .map((l) => InventoryAssignmentLineWithItemDto.fromJson(l))
+          .map(_mapToInventoryLineItem)
+          .whereType<InventoryLineItem>()
           .toList();
-      return assignments
-          .map((a) => _mapToInventoryTaskItem(a, employeeId))
-          .whereType<InventoryTaskItem>()
-          .toList();
-    } catch (e) {
-      Logger.e('Ошибка получения задач инвентаризации', e);
-      return []; // Не пробрасываем: если один модуль недоступен, показываем другой
+
+      return InventoryTaskItem(
+        taskId: json['taskId'],
+        type: TaskType.inventory,
+        branchId: json['branchId'] ?? 0,
+        title: json['title'] ?? 'Инвентаризация',
+        description: json['description'],
+        status: TaskStatus.newStatus, // Либо парсить json['status'] если оно передается
+        priority: json['priority'] ?? 5,
+        createdAt: createdAt,
+        completedAt: null,
+        assignedToEmployeeId: employeeId,
+        assignedAt: createdAt,
+        assignmentId: details['assignmentId'] ?? json['taskId'],
+        lines: lines,
+      );
+    } catch (e, stack) {
+      Logger.e('Ошибка маппинга задачи инвентаризации из агрегатора', e, stack);
+      return null;
     }
   }
 
-  /// Задачи сборки заказов
-  Future<List<TaskItemBase>> _fetchOrderAssemblyTasks(int employeeId) async {
+  OrderAssemblyTaskItem? _parseUnifiedOrderAssemblyTask(Map<String, dynamic> json, int employeeId) {
     try {
-      final response = await _apiClient.getAsync('OrderAssembly/tasks/$employeeId');
-      if (response == null || (response is List && response.isEmpty)) return [];
-      final List<dynamic> dataList = response;
-      return dataList
-          .map((json) => WorkerAssemblyTaskDto.fromJson(json))
-          .map((dto) => _mapToOrderAssemblyTaskItem(dto, employeeId))
-          .whereType<OrderAssemblyTaskItem>()
-          .toList();
-    } catch (e) {
-      Logger.e('Ошибка получения задач сборки', e);
-      return [];
+      final createdAt = _parseCreatedDate(json['createdAt']);
+      final details = json['taskDetails'] ?? {};
+
+      // Маппинг ячеек сборки (зависит от того, как Backend сериализует OrderAssemblyDetailsDto)
+      final cellPlacementsJson = details['cellPlacements'] as List<dynamic>? ?? [];
+      final cellPlacements = cellPlacementsJson.map((c) => CellPlacementInfo(
+        targetPositionId: c['targetPositionId'],
+        items: (c['items'] as List<dynamic>).map((i) => PlacementLineInfo(
+          lineId: i['lineId'],
+          itemPositionId: i['itemPositionId'],
+          quantity: i['quantity'],
+          status: i['status'] ?? 'pending',
+        )).toList(),
+      )).toList();
+
+      return OrderAssemblyTaskItem(
+        taskId: json['taskId'],
+        type: TaskType.orderAssembly,
+        branchId: json['branchId'] ?? 0,
+        title: json['title'] ?? 'Сборка заказа',
+        description: json['description'],
+        status: TaskStatus.assigned, 
+        priority: json['priority'] ?? 7,
+        createdAt: createdAt,
+        assignedToEmployeeId: employeeId,
+        assignedAt: createdAt,
+        assignmentId: details['assignmentId'] ?? json['taskId'],
+        orderId: details['orderId'] ?? 0,
+        totalLines: details['totalLines'] ?? 0,
+        cellPlacements: cellPlacements,
+      );
+    } catch (e, stack) {
+      Logger.e('Ошибка маппинга задачи сборки из агрегатора', e, stack);
+      return null;
     }
   }
+
+
 
   Future<InventoryTaskItem> getInventoryTaskDetailsAsync(int employeeId, int inventoryTaskId) async {
     try {

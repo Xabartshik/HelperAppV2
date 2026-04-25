@@ -17,7 +17,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(ref);
 });
 
-/// Замена ApiClient.cs с использованием Dio
 class ApiClient {
   final Ref ref;
   late final Dio _dio;
@@ -74,9 +73,7 @@ class ApiClient {
 
   static String? _cachedBaseUrl;
 
-  /// Метод для получения Base URL. 
-  /// В Flutter initState или конструкторы не могут быть async, 
-  /// поэтому мы используем этот метод, который инициализирует URL при первом запросе.
+
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) return _cachedBaseUrl!;
 
@@ -189,8 +186,8 @@ class ApiClient {
   }
 
   // Inventory API Endpoints
-  Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int workerId, int assignmentId) async {
-    final response = await getAsync('v1/Inventory/worker/$workerId/tasks/$assignmentId/details');
+Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int workerId, int assignmentId) async {
+    final response = await getAsync('v1/Inventory/worker/$workerId/assignments/$assignmentId/details');
     if (response == null) return null;
     return InventoryTaskDetailsDto.fromJson(response);
   }
