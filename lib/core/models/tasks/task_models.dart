@@ -58,8 +58,9 @@ abstract class TaskItemBase {
   String title;
   String? description;
   TaskStatus status;
-  int priority;
+  int priority;      // Уровень приоритета (уже был, убедимся в использовании)
   DateTime createdAt;
+  DateTime? deadline;
   DateTime? completedAt;
   int assignedToEmployeeId;
   DateTime assignedAt;
@@ -72,6 +73,7 @@ abstract class TaskItemBase {
     this.description,
     required this.status,
     required this.priority,
+    this.deadline,
     required this.createdAt,
     this.completedAt,
     required this.assignedToEmployeeId,
@@ -107,6 +109,7 @@ class InventoryTaskItem extends TaskItemBase {
     super.description,
     required super.status,
     required super.priority,
+    super.deadline,
     required super.createdAt,
     super.completedAt,
     required super.assignedToEmployeeId,
@@ -157,6 +160,7 @@ class OrderAssemblyTaskItem extends TaskItemBase {
     super.description,
     required super.status,
     required super.priority,
+    super.deadline,
     required super.createdAt,
     super.completedAt,
     required super.assignedToEmployeeId,
@@ -175,6 +179,7 @@ class MobileBaseTaskDto {
   final int branchId;
   final String taskType;
   final int status;
+  final DateTime? deadline;
   final String title;
   final String? description;
   final int priority;
@@ -190,6 +195,7 @@ class MobileBaseTaskDto {
     required this.priority,
     required this.createdAt,
     required this.status,
+    this.deadline,
     required this.taskDetails,
   });
 
@@ -205,6 +211,9 @@ class MobileBaseTaskDto {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt']).toUtc()
           : DateTime.now().toUtc(),
+      deadline: json['deadline'] != null
+          ? DateTime.parse(json['deadline']).toUtc()
+          : null,
       taskDetails: json['taskDetails'] as Map<String, dynamic>? ?? {},
     );
   }

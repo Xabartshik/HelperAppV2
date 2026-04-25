@@ -5,7 +5,15 @@ class TaskCardVm {
   final int navigationId;
   final String title;
   final String? subtitle;
+  
+  // Обновленные и новые поля
+  final TaskStatus status;       // <-- Передаем сам объект статуса
   final String statusText;
+  final int priority;            // <-- Приоритет задачи
+  final DateTime? deadline;      // <-- Дэдлайн
+  final int completedSteps;      // <-- Для прогресс-бара
+  final int totalSteps;          // <-- Для прогресс-бара
+  
   final String? primaryMetric;
   final DateTime createdAt;
   final Map<String, String> badges;
@@ -16,12 +24,27 @@ class TaskCardVm {
     required this.navigationId,
     required this.title,
     this.subtitle,
+    required this.status,        // НОВОЕ
     required this.statusText,
+    required this.priority,      // НОВОЕ
+    this.deadline,               // НОВОЕ
+    this.completedSteps = 0,     // НОВОЕ
+    this.totalSteps = 0,         // НОВОЕ
     this.primaryMetric,
     required this.createdAt,
     required this.badges,
     this.rawTask,
   });
+
+  // Удобный геттер для UI, чтобы подсвечивать просроченные задачи красным
+  bool get isOverdue => 
+      deadline != null && 
+      deadline!.isBefore(DateTime.now().toUtc()) && 
+      status != TaskStatus.completed;
+
+  // Геттер для прогресса (от 0.0 до 1.0)
+  double get progressFraction => 
+      totalSteps > 0 ? (completedSteps / totalSteps).clamp(0.0, 1.0) : 0.0;
 
   static TaskCardVm fromTask(TaskItemBase task) {
     if (task is InventoryTaskItem) {
@@ -44,7 +67,6 @@ class TaskCardVm {
     final firstPosition = lines.isNotEmpty ? lines.first.positionCode : null;
     final positionText = firstPosition?.shortDescription ?? firstPosition?.fullDescription ?? '—';
 
-    // В Dart enum.name выдает имя значения в camelCase. Можно улучшить отображение при желании.
     final badges = <String, String>{
       'Позиция': positionText,
       'Статус задачи': task.status.name, 
@@ -56,10 +78,45 @@ class TaskCardVm {
       navigationId: task.assignmentId,
       title: task.title,
       subtitle: task.description,
+      status: task.status,           // Прокидываем статус
       statusText: task.status.name,
+      priority: task.priority,       // Прокидываем приоритет
+      deadline: task.deadline,       // Прокидываем дэдлайн
+      completedSteps: completedCount,// Прокидываем числовые шаги
+      totalSteps: totalCount,
       primaryMetric: primaryMetric,
       createdAt: task.createdAt,
       badges: badges,
+      rawTask: task,
+    );
+  }
+
+  static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
+    final placedCount = task.cellPlacements
+        .expand((c) => c.items)
+        .where((i) => i.status.toLowerCase() == 'placed')
+        .length;
+    final totalItems = task.totalLines;
+
+    return TaskCardVm(
+      kind: task.type.name,
+      navigationId: task.assignmentId,
+      title: task.title,
+      subtitle: task.description ?? 'Сборка заказа #${task.orderId}',
+      status: task.status,           // Прокидываем статус
+      statusText: task.status.name,
+      priority: task.priority,       // Прокидываем приоритет
+      deadline: task.deadline,       // Прокидываем дэдлайн
+      completedSteps: placedCount,   // Прокидываем числовые шаги
+      totalSteps: totalItems,
+      primaryMetric: totalItems > 0 ? '$placedCount/$totalItems позиций' : 'Нет позиций',
+      createdAt: task.createdAt,
+      badges: {
+        'Тип': 'Сборка',
+        'Заказ': '#${task.orderId}',
+        'Статус': task.status.name,
+        'Ячеек': '${task.cellPlacements.length}',
+      },
       rawTask: task,
     );
   }
@@ -70,38 +127,17 @@ class TaskCardVm {
       navigationId: task.taskId,
       title: task.title,
       subtitle: task.description,
+      status: task.status,           // Прокидываем статус
       statusText: task.status.name,
+      priority: task.priority,       // Прокидываем приоритет
+      deadline: task.deadline,       // Прокидываем дэдлайн
+      completedSteps: 0,
+      totalSteps: 0,
       primaryMetric: 'Приоритет: ${task.priority}',
       createdAt: task.createdAt,
       badges: {
         'Тип': task.type.name,
         'Статус': task.status.name,
-      },
-      rawTask: task,
-    );
-  }
-
-  static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
-    // Подсчитываем количество уже размещённых товаров
-    final placedCount = task.cellPlacements
-        .expand((c) => c.items)
-        .where((i) => i.status.toLowerCase() == 'placed')
-        .length;
-    final totalItems = task.totalLines;
-
-    return TaskCardVm(
-      kind: task.type.name,          // 'orderAssembly'
-      navigationId: task.assignmentId,
-      title: task.title,
-      subtitle: task.description ?? 'Сборка заказа #${task.orderId}',
-      statusText: task.status.name,
-      primaryMetric: totalItems > 0 ? '$placedCount/$totalItems позиций' : 'Нет позиций',
-      createdAt: task.createdAt,
-      badges: {
-        'Тип': 'Сборка',
-        'Заказ': '#${task.orderId}',
-        'Статус': task.status.name,
-        'Ячеек': '${task.cellPlacements.length}',
       },
       rawTask: task,
     );
