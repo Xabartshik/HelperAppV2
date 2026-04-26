@@ -19,6 +19,21 @@ String taskStatusToRussian(TaskStatus status) {
   }
 }
 
+String assignmentStatusToRussian(AssignmentStatus status) {
+  switch (status) {
+    case AssignmentStatus.assigned:
+      return 'Назначена';
+    case AssignmentStatus.inProgress:
+      return 'В работе';
+    case AssignmentStatus.paused:
+      return 'На паузе';
+    case AssignmentStatus.completed:
+      return 'Завершена';
+    case AssignmentStatus.cancelled:
+      return 'Отменена';
+  }
+}
+
 String taskTypeToRussian(TaskType type) {
   switch (type) {
     case TaskType.inventory:
@@ -110,7 +125,7 @@ class TaskCardVm {
 
     final badges = <String, String>{
       'Позиция': positionText,
-      'Статус': taskStatusToRussian(task.status),
+      'Статус': assignmentStatusToRussian(task.assignmentStatus),
       'Расхождения': varianceCount.toString(),
     };
 
@@ -120,7 +135,7 @@ class TaskCardVm {
       title: task.title,
       subtitle: task.description,
       status: task.status,
-      statusText: taskStatusToRussian(task.status),
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
       priority: task.priority,
       deadline: task.deadline,
       completedSteps: completedCount,
@@ -146,7 +161,7 @@ class TaskCardVm {
       title: task.title,
       subtitle: task.description,
       status: task.status,
-      statusText: taskStatusToRussian(task.status),
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
       priority: task.priority,
       deadline: task.deadline,
       completedSteps: placedCount,
@@ -156,7 +171,7 @@ class TaskCardVm {
       badges: {
         'Тип': 'Подготовка заказа',
         'Заказ': '#${task.orderId}',
-        'Статус': taskStatusToRussian(task.status),
+        'Статус': assignmentStatusToRussian(task.assignmentStatus),
         'Ячейки': '${task.cellPlacements.length}',
       },
       rawTask: task,
@@ -170,7 +185,7 @@ class TaskCardVm {
       title: task.title,
       subtitle: task.description,
       status: task.status,
-      statusText: taskStatusToRussian(task.status),
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
       priority: task.priority,
       deadline: task.deadline,
       completedSteps: 0,
@@ -179,7 +194,7 @@ class TaskCardVm {
       createdAt: task.createdAt,
       badges: {
         'Тип': taskTypeToRussian(task.type),
-        'Статус': taskStatusToRussian(task.status),
+        'Статус': assignmentStatusToRussian(task.assignmentStatus),
       },
       rawTask: task,
     );
