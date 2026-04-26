@@ -30,7 +30,7 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
 
   @protected
   AssignmentStatus? get initialStatus {
-    final idx = baseTaskArgs.assignmentStatusIndex;
+    final idx = baseTaskArgs.taskStatusIndex;
     if (idx == null || idx < 0 || idx >= AssignmentStatus.values.length) return null;
     return AssignmentStatus.values[idx];
   }
