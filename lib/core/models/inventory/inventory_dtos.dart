@@ -37,33 +37,6 @@ class InventoryAssignmentLineWithItemDto with _$InventoryAssignmentLineWithItemD
 }
 
 @freezed
-class InventoryAssignmentDetailedWithItemDto with _$InventoryAssignmentDetailedWithItemDto {
-  const factory InventoryAssignmentDetailedWithItemDto({
-    required int id,
-    @Default('') String taskNumber,
-    @Default('') String description,
-    String? createdDate,
-    @Default([]) List<InventoryAssignmentLineWithItemDto> lines,
-  }) = _InventoryAssignmentDetailedWithItemDto;
-
-  factory InventoryAssignmentDetailedWithItemDto.fromJson(Map<String, dynamic> json) => 
-      _$InventoryAssignmentDetailedWithItemDtoFromJson(json);
-}
-
-@freezed
-class TaskCheckResponse with _$TaskCheckResponse {
-  const factory TaskCheckResponse({
-    required bool hasNewTasks,
-    required int newTaskCount,
-    DateTime? latestTaskTime,
-    required DateTime lastChecked,
-  }) = _TaskCheckResponse;
-
-  factory TaskCheckResponse.fromJson(Map<String, dynamic> json) => 
-      _$TaskCheckResponseFromJson(json);
-}
-
-@freezed
 class InventoryItemDto with _$InventoryItemDto {
   const factory InventoryItemDto({
     required int itemId,

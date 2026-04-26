@@ -29,16 +29,12 @@ class OrderAssemblyService {
         return [];
       }
 
-      final response = await _apiClient.getAsync(ApiEndpoints.orderAssemblyTasks(userId));
+      final tasks = await _apiClient.getOrderAssemblyTasksAsync(userId);
 
-      if (response == null || (response is List && response.isEmpty)) {
+      if (tasks.isEmpty) {
         Logger.i('OrderAssembly: задачи не найдены для userId=$userId');
         return [];
       }
-
-      final tasks = (response as List)
-          .map((json) => WorkerAssemblyTaskDto.fromJson(json))
-          .toList();
 
       Logger.i('OrderAssembly: получено ${tasks.length} задач для userId=$userId');
       return tasks;
@@ -57,11 +53,7 @@ class OrderAssemblyService {
     try {
       Logger.i('OrderAssembly: scanPick lineId=$lineId, barcode=$barcode');
 
-      final request = ScanPickRequest(lineId: lineId, barcode: barcode);
-      await _apiClient.postAsync(
-        ApiEndpoints.orderAssemblyScanPick,
-        data: request.toJson(),
-      );
+      await _apiClient.orderAssemblyScanPickAsync(lineId, barcode);
 
       Logger.i('OrderAssembly: scanPick успешно для lineId=$lineId');
     } catch (e, stack) {
@@ -79,14 +71,7 @@ class OrderAssemblyService {
     try {
       Logger.i('OrderAssembly: scanPlaceBulk assignmentId=$assignmentId, cellCode=$cellCode');
 
-      final request = ScanPlaceBulkRequest(
-        assignmentId: assignmentId,
-        cellCode: cellCode,
-      );
-      await _apiClient.postAsync(
-        ApiEndpoints.orderAssemblyScanPlaceBulk,
-        data: request.toJson(),
-      );
+      await _apiClient.orderAssemblyScanPlaceBulkAsync(assignmentId, cellCode);
 
       Logger.i('OrderAssembly: scanPlaceBulk успешно для assignmentId=$assignmentId');
     } catch (e, stack) {
@@ -104,11 +89,7 @@ class OrderAssemblyService {
     try {
       Logger.i('OrderAssembly: reportMissing lineId=$lineId, reason=$reason');
 
-      final request = ReportMissingRequest(lineId: lineId, reason: reason);
-      await _apiClient.postAsync(
-        ApiEndpoints.orderAssemblyReportMissing,
-        data: request.toJson(),
-      );
+      await _apiClient.orderAssemblyReportMissingAsync(lineId, reason);
 
       Logger.i('OrderAssembly: reportMissing успешно для lineId=$lineId');
     } catch (e, stack) {
@@ -126,10 +107,7 @@ class OrderAssemblyService {
     try {
       Logger.i('OrderAssembly: completeAssembly assignmentId=$assignmentId');
 
-      await _apiClient.postAsync(
-        ApiEndpoints.orderAssemblyComplete(assignmentId),
-        data: null,
-      );
+      await _apiClient.orderAssemblyCompleteAsync(assignmentId);
 
       Logger.i('OrderAssembly: задача $assignmentId успешно завершена');
     } catch (e, stack) {

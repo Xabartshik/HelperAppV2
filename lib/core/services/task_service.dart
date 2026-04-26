@@ -285,33 +285,6 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
 
   // Мапперы 
 
-  InventoryTaskItem? _mapToInventoryTaskItem(InventoryAssignmentDetailedWithItemDto assignment, int employeeId) {
-    try {
-      final createdAt = _parseCreatedDate(assignment.createdDate);
-
-      final lines = assignment.lines.map(_mapToInventoryLineItem).whereType<InventoryLineItem>().toList();
-
-      return InventoryTaskItem(
-        taskId: assignment.id,
-        type: TaskType.inventory,
-        branchId: 0,
-        title: assignment.taskNumber.isNotEmpty ? assignment.taskNumber : 'Inventory ${assignment.id}',
-        description: assignment.description,
-        status: TaskStatus.newStatus,
-        priority: 5,
-        createdAt: createdAt,
-        completedAt: null,
-        assignedToEmployeeId: employeeId,
-        assignedAt: createdAt,
-        assignmentId: assignment.id,
-        lines: lines,
-      );
-    } catch (e, stack) {
-      Logger.e('Ошибка маппинга задачи ${assignment.id}', e, stack);
-      return null;
-    }
-  }
-
   OrderAssemblyTaskItem? _mapToOrderAssemblyTaskItem(WorkerAssemblyTaskDto dto, int employeeId) {
     try {
       final now = DateTime.now().toUtc();
@@ -402,16 +375,6 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       secondLevelStorage: dto.secondLevelStorage,
       thirdLevelStorage: dto.thirdLevelStorage,
     );
-  }
-
-  DateTime _parseCreatedDate(String? dateString) {
-    if (dateString == null || dateString.isEmpty) {
-      return DateTime.now().toUtc();
-    }
-    final parsed = DateTime.tryParse(dateString);
-    if (parsed != null) return parsed;
-    Logger.w('Не удалось распарсить CreatedDate "$dateString"');
-    return DateTime.now().toUtc();
   }
 
   void dispose() {

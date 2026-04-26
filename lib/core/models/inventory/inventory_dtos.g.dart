@@ -58,55 +58,6 @@ Map<String, dynamic> _$$InventoryAssignmentLineWithItemDtoImplToJson(
   'positionCode': instance.positionCode,
 };
 
-_$InventoryAssignmentDetailedWithItemDtoImpl
-_$$InventoryAssignmentDetailedWithItemDtoImplFromJson(
-  Map<String, dynamic> json,
-) => _$InventoryAssignmentDetailedWithItemDtoImpl(
-  id: (json['id'] as num).toInt(),
-  taskNumber: json['taskNumber'] as String? ?? '',
-  description: json['description'] as String? ?? '',
-  createdDate: json['createdDate'] as String?,
-  lines:
-      (json['lines'] as List<dynamic>?)
-          ?.map(
-            (e) => InventoryAssignmentLineWithItemDto.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
-          .toList() ??
-      const [],
-);
-
-Map<String, dynamic> _$$InventoryAssignmentDetailedWithItemDtoImplToJson(
-  _$InventoryAssignmentDetailedWithItemDtoImpl instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'taskNumber': instance.taskNumber,
-  'description': instance.description,
-  'createdDate': instance.createdDate,
-  'lines': instance.lines,
-};
-
-_$TaskCheckResponseImpl _$$TaskCheckResponseImplFromJson(
-  Map<String, dynamic> json,
-) => _$TaskCheckResponseImpl(
-  hasNewTasks: json['hasNewTasks'] as bool,
-  newTaskCount: (json['newTaskCount'] as num).toInt(),
-  latestTaskTime: json['latestTaskTime'] == null
-      ? null
-      : DateTime.parse(json['latestTaskTime'] as String),
-  lastChecked: DateTime.parse(json['lastChecked'] as String),
-);
-
-Map<String, dynamic> _$$TaskCheckResponseImplToJson(
-  _$TaskCheckResponseImpl instance,
-) => <String, dynamic>{
-  'hasNewTasks': instance.hasNewTasks,
-  'newTaskCount': instance.newTaskCount,
-  'latestTaskTime': instance.latestTaskTime?.toIso8601String(),
-  'lastChecked': instance.lastChecked.toIso8601String(),
-};
-
 _$InventoryItemDtoImpl _$$InventoryItemDtoImplFromJson(
   Map<String, dynamic> json,
 ) => _$InventoryItemDtoImpl(
