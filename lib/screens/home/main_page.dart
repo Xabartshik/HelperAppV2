@@ -209,13 +209,13 @@ class MainPage extends ConsumerWidget {
             'workerId': currentUser?.employeeId ?? 0,
             'assignmentId': task.navigationId,
             'taskId': taskId,
-            'status': status.index,
+            'taskStatusIndex': task.rawTask?.assignmentStatus.index,
           });
         } else if (task.kind.toLowerCase() == 'orderassembly') {
           await context.push('/order-assembly/active', extra: {
             'assignmentId': task.navigationId,
             'taskId': taskId,
-            'status': status.index,
+            'taskStatusIndex': task.rawTask?.assignmentStatus.index,
           });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(

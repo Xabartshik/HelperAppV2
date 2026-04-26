@@ -45,7 +45,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             workerId: args['workerId'] as int? ?? 0,
             assignmentId: args['assignmentId'] as int? ?? 0,
             taskId: args['taskId'] as int? ?? 0,
-            taskStatusIndex: args['status'] as int?,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
             assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
@@ -71,7 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return ActiveAssemblyScreen(
             assignmentId: args['assignmentId'] as int? ?? 0,
             taskId: args['taskId'] as int? ?? 0,
-            taskStatusIndex: args['status'] as int?,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
             assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
