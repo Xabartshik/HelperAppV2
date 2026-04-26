@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../tasks/base_task_screen.dart';
 import 'inventory_viewmodel.dart';
-import '../home/main_viewmodel.dart';
-import '../../core/services/task_service.dart';
-import '../../core/models/tasks/task_models.dart';
 
 class InventoryDetailsPage extends ConsumerStatefulWidget {
   final int workerId;
@@ -24,32 +22,31 @@ class InventoryDetailsPage extends ConsumerStatefulWidget {
   ConsumerState<InventoryDetailsPage> createState() => _InventoryDetailsPageState();
 }
 
-class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
+class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
+    with BaseTaskScreenMixin<InventoryDetailsPage> {
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _bgGray950 = const Color(0xFF1C1C1E);
   final Color _bgGray900 = const Color(0xFF2C2C2E);
   final Color _primaryColor = const Color(0xFF7C3AED);
   final Color _textColor = Colors.white;
 
-  late bool _isTaskStarted;
-
-  TaskStatus? get _initialStatus {
-    final idx = widget.taskStatusIndex;
-    if (idx == null || idx < 0 || idx >= TaskStatus.values.length) return null;
-    return TaskStatus.values[idx];
-  }
-
-  bool get _canEditTask {
-    final status = _initialStatus;
-    if (status == null) return true;
-    if (status == TaskStatus.inProgress || status == TaskStatus.completed) return true;
-    return _isTaskStarted;
-  }
+  @override
+  BaseTaskScreenArgs get baseTaskArgs => BaseTaskScreenArgs(
+        taskId: widget.taskId,
+        workerId: widget.workerId,
+        taskStatusIndex: widget.taskStatusIndex,
+      );
 
   @override
   void initState() {
     super.initState();
-    _isTaskStarted = _initialStatus == TaskStatus.inProgress || _initialStatus == TaskStatus.completed;
+    initializeTaskStartState();
+  }
+
+  @override
+  Future<void> onTaskStarted() async {
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    await ref.read(provider.notifier).loadDetailsAsync();
   }
 
   @override
@@ -76,7 +73,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(child: _buildHeader(state, vm)),
-                  if (!_canEditTask) SliverToBoxAdapter(child: _buildStartTaskBanner()),
+                  if (!canEditTask) SliverToBoxAdapter(child: _buildStartTaskBanner()),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -135,7 +132,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _canEditTask ? () => _handleComplete(vm) : null,
+                  onPressed: canEditTask ? () => _handleComplete(vm) : null,
                   icon: const Icon(Icons.check, size: 16, color: Colors.white),
                   label: const Text('Завершить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
@@ -208,28 +205,11 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
   }
 
   Widget _buildStartTaskBanner() {
-    return Container(
+    return buildTaskNotStartedBanner(
+      backgroundColor: _bgGray900,
+      actionColor: _primaryColor,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _bgGray900,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.7)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_clock, color: Colors.orangeAccent),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text('Задача не запущена: доступен только просмотр деталей.', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          ),
-          ElevatedButton(
-            onPressed: _startTask,
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
-            child: const Text('Начать', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      subtitle: 'Доступен только просмотр деталей.',
     );
   }
 
@@ -266,7 +246,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
           if (group.isExpanded) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: _canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}) : null,
+              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}) : null,
               icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
               label: const Text('Сканировать', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
@@ -328,7 +308,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _canEditTask ? () => vm.markAsAbsent(item) : null,
+                    onPressed: canEditTask ? () => vm.markAsAbsent(item) : null,
                     icon: const Icon(Icons.close, size: 14, color: Colors.white),
                     label: const Text('Отсутствует', style: TextStyle(color: Colors.white, fontSize: 11)),
                     style: ElevatedButton.styleFrom(
@@ -341,7 +321,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _canEditTask ? () => _showManualEntryDialog(item, vm) : null,
+                    onPressed: canEditTask ? () => _showManualEntryDialog(item, vm) : null,
                     icon: const Icon(Icons.edit, size: 14, color: Colors.white),
                     label: const Text('Ввести', style: TextStyle(color: Colors.white, fontSize: 11)),
                     style: ElevatedButton.styleFrom(
@@ -409,17 +389,6 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
         ],
       ),
     );
-  }
-
-  Future<void> _startTask() async {
-    if (widget.taskId <= 0 || widget.workerId <= 0) return;
-    final success = await ref.read(taskServiceProvider).startTaskAsync(widget.taskId, widget.workerId);
-    if (!mounted) return;
-    if (success) {
-      setState(() => _isTaskStarted = true);
-      ref.read(mainViewModelProvider.notifier).refreshTasks();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Задача переведена в работу')));
-    }
   }
 
   void _handleComplete(InventoryViewModel vm) async {

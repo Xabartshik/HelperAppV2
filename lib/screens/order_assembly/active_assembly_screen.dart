@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/task_service.dart';
-import '../../core/models/tasks/task_models.dart';
 import '../../core/utils/logger.dart';
 import '../home/main_viewmodel.dart';
+import '../tasks/base_task_screen.dart';
 import 'order_assembly_viewmodel.dart';
 
 /// Основной рабочий экран сборки заказа.
@@ -27,7 +26,7 @@ class ActiveAssemblyScreen extends ConsumerStatefulWidget {
 }
 
 class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, BaseTaskScreenMixin<ActiveAssemblyScreen> {
   // Цвета в стиле приложения
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
@@ -44,20 +43,12 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   final TextEditingController _barcodeController = TextEditingController();
   final FocusNode _barcodeFocusNode = FocusNode();
 
-  late bool _isTaskStarted;
-
-  TaskStatus? get _initialStatus {
-    final idx = widget.taskStatusIndex;
-    if (idx == null || idx < 0 || idx >= TaskStatus.values.length) return null;
-    return TaskStatus.values[idx];
-  }
-
-  bool get _canEditTask {
-    final status = _initialStatus;
-    if (status == null) return true;
-    if (status == TaskStatus.inProgress || status == TaskStatus.completed) return true;
-    return _isTaskStarted;
-  }
+  @override
+  BaseTaskScreenArgs get baseTaskArgs => BaseTaskScreenArgs(
+        taskId: widget.taskId,
+        workerId: _args.userId,
+        taskStatusIndex: widget.taskStatusIndex,
+      );
 
   OrderAssemblyArgs get _args {
     final currentUser = ref.read(currentUserProvider);
@@ -70,7 +61,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   @override
   void initState() {
     super.initState();
-    _isTaskStarted = _initialStatus == TaskStatus.inProgress || _initialStatus == TaskStatus.completed;
+    initializeTaskStartState();
     _modeAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -87,6 +78,11 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     _barcodeController.dispose();
     _barcodeFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<void> onTaskStarted() async {
+    await ref.read(orderAssemblyViewModelProvider(_args).notifier).loadTask();
   }
 
   @override
@@ -115,7 +111,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                 _buildModeBanner(state, vm),
                 // Прогресс-бар
                 _buildProgressBar(state),
-                if (!_canEditTask) _buildStartTaskBanner(),
+                if (!canEditTask) _buildStartTaskBanner(),
                 // Список ячеек / товаров
                 Expanded(
                   child: RefreshIndicator(
@@ -504,7 +500,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
           // Кнопка «Отсутствует» (только в режиме Сбора для непроцессированных товаров)
           if (state.mode == AssemblyMode.pick && !item.isDone)
             TextButton(
-              onPressed: () => _showReportMissingDialog(item, vm),
+              onPressed: canEditTask ? () => _showReportMissingDialog(item, vm) : null,
               style: TextButton.styleFrom(
                 foregroundColor: Colors.redAccent,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -576,32 +572,11 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   }
 
   Widget _buildStartTaskBanner() {
-    return Container(
-      width: double.infinity,
+    return buildTaskNotStartedBanner(
+      backgroundColor: _bgGray900,
+      actionColor: _primaryColor,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _bgGray900,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.65)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lock_clock, color: Colors.orangeAccent),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Задача пока не запущена. Доступен только просмотр деталей.',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: _startTask,
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
-            child: const Text('Начать', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      subtitle: 'Доступен только просмотр деталей.',
     );
   }
 
@@ -624,7 +599,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         children: [
           // Кнопка сканера
           InkWell(
-            onTap: _canEditTask ? () => _openScanner(state, vm) : null,
+            onTap: canEditTask ? () => _openScanner(state, vm) : null,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               width: 40,
@@ -663,14 +638,14 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                   borderSide: BorderSide(color: activeColor, width: 1.5),
                 ),
               ),
-              enabled: _canEditTask,
+              enabled: canEditTask,
               onSubmitted: (value) => _handleBarcodeSubmit(value, state, vm),
             ),
           ),
           const SizedBox(width: 10),
           // Кнопка подтверждения
           ElevatedButton(
-            onPressed: _canEditTask ? () => _handleBarcodeSubmit(_barcodeController.text, state, vm) : null,
+            onPressed: canEditTask ? () => _handleBarcodeSubmit(_barcodeController.text, state, vm) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: activeColor,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -690,7 +665,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
 
   /// Открывает экран сканера (как в инвентаризации)
   void _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
-    if (!_canEditTask) return;
+    if (!canEditTask) return;
     Logger.i('ActiveAssemblyScreen: переход к сканеру');
     context.push('/order-assembly/scanner', extra: {
       'assignmentId': widget.assignmentId,
@@ -701,7 +676,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   /// Обрабатывает ввод штрихкода (товар или ячейка, в зависимости от режима)
   Future<void> _handleBarcodeSubmit(
       String value, OrderAssemblyState state, OrderAssemblyViewModel vm) async {
-    if (!_canEditTask) return;
+    if (!canEditTask) return;
     final barcode = value.trim();
     if (barcode.isEmpty) return;
 
@@ -735,7 +710,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
 
   /// Диалог отметки товара как отсутствующего
   Future<void> _showReportMissingDialog(AssemblyItemVm item, OrderAssemblyViewModel vm) async {
-    if (!_canEditTask) return;
+    if (!canEditTask) return;
     final reasonController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -822,22 +797,6 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
-
-  Future<void> _startTask() async {
-    final currentUser = ref.read(currentUserProvider);
-    final workerId = currentUser?.employeeId ?? 0;
-    if (widget.taskId <= 0 || workerId <= 0) return;
-
-    final success = await ref.read(taskServiceProvider).startTaskAsync(widget.taskId, workerId);
-    if (!mounted) return;
-
-    if (success) {
-      setState(() => _isTaskStarted = true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Задача переведена в работу')));
-      ref.read(orderAssemblyViewModelProvider(_args).notifier).loadTask();
-      ref.read(mainViewModelProvider.notifier).refreshTasks();
-    }
-  }
 
   /// Завершение задачи с подтверждением
   Future<void> _handleCompleteTask(OrderAssemblyViewModel vm) async {
