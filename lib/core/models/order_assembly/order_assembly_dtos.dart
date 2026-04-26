@@ -1,6 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:json_annotation/json_annotation.dart';
-
+import 'package:helper_app/core/models/tasks/task_models.dart';
 part 'order_assembly_dtos.freezed.dart';
 part 'order_assembly_dtos.g.dart';
 
@@ -84,7 +83,7 @@ class WorkerAssemblyTaskDto with _$WorkerAssemblyTaskDto {
     required int taskId,
     String? taskNumber,
     required int orderId,
-    required OrderAssemblyAssignmentStatus status,
+    required AssignmentStatus status,
     DateTime? createdDate,
     required int totalLines,
     @Default([]) List<CellPlacementInfoDto> cellPlacements,

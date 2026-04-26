@@ -9,11 +9,13 @@ class BaseTaskScreenArgs {
   final int taskId;
   final int workerId;
   final int? taskStatusIndex;
+  final int? assignmentStatusIndex;
 
   const BaseTaskScreenArgs({
     required this.taskId,
     required this.workerId,
     this.taskStatusIndex,
+    this.assignmentStatusIndex,
   });
 }
 
@@ -27,24 +29,24 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   bool get isTaskStarted => _isTaskStarted;
 
   @protected
-  TaskStatus? get initialStatus {
-    final idx = baseTaskArgs.taskStatusIndex;
-    if (idx == null || idx < 0 || idx >= TaskStatus.values.length) return null;
-    return TaskStatus.values[idx];
+  AssignmentStatus? get initialStatus {
+    final idx = baseTaskArgs.assignmentStatusIndex;
+    if (idx == null || idx < 0 || idx >= AssignmentStatus.values.length) return null;
+    return AssignmentStatus.values[idx];
   }
 
   @protected
   bool get canEditTask {
     final status = initialStatus;
     if (status == null) return false;
-    if (status == TaskStatus.inProgress || status == TaskStatus.completed) return true;
+    if (status == AssignmentStatus.inProgress || status == AssignmentStatus.completed) return true;
     return _isTaskStarted;
   }
 
   @protected
   void initializeTaskStartState() {
     final status = initialStatus;
-    _isTaskStarted = status == TaskStatus.inProgress || status == TaskStatus.completed;
+    _isTaskStarted = status == AssignmentStatus.inProgress || status == AssignmentStatus.completed;
   }
 
   @protected

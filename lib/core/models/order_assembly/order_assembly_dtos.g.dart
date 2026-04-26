@@ -104,7 +104,7 @@ _$WorkerAssemblyTaskDtoImpl _$$WorkerAssemblyTaskDtoImplFromJson(
   taskId: (json['taskId'] as num).toInt(),
   taskNumber: json['taskNumber'] as String?,
   orderId: (json['orderId'] as num).toInt(),
-  status: $enumDecode(_$OrderAssemblyAssignmentStatusEnumMap, json['status']),
+  status: $enumDecode(_$AssignmentStatusEnumMap, json['status']),
   createdDate: json['createdDate'] == null
       ? null
       : DateTime.parse(json['createdDate'] as String),
@@ -123,15 +123,16 @@ Map<String, dynamic> _$$WorkerAssemblyTaskDtoImplToJson(
   'taskId': instance.taskId,
   'taskNumber': instance.taskNumber,
   'orderId': instance.orderId,
-  'status': _$OrderAssemblyAssignmentStatusEnumMap[instance.status]!,
+  'status': _$AssignmentStatusEnumMap[instance.status]!,
   'createdDate': instance.createdDate?.toIso8601String(),
   'totalLines': instance.totalLines,
   'cellPlacements': instance.cellPlacements,
 };
 
-const _$OrderAssemblyAssignmentStatusEnumMap = {
-  OrderAssemblyAssignmentStatus.pending: 0,
-  OrderAssemblyAssignmentStatus.inProgress: 1,
-  OrderAssemblyAssignmentStatus.completed: 2,
-  OrderAssemblyAssignmentStatus.cancelled: 3,
+const _$AssignmentStatusEnumMap = {
+  AssignmentStatus.assigned: 0,
+  AssignmentStatus.inProgress: 1,
+  AssignmentStatus.paused: 2,
+  AssignmentStatus.completed: 3,
+  AssignmentStatus.cancelled: 4,
 };

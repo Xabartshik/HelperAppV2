@@ -13,12 +13,14 @@ class ActiveAssemblyScreen extends ConsumerStatefulWidget {
   final int assignmentId;
   final int taskId;
   final int? taskStatusIndex;
+  final int? assignmentStatusIndex;
 
   const ActiveAssemblyScreen({
     super.key,
     required this.assignmentId,
     this.taskId = 0,
     this.taskStatusIndex,
+    this.assignmentStatusIndex,
   });
 
   @override
@@ -48,6 +50,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         taskId: widget.taskId,
         workerId: _args.userId,
         taskStatusIndex: widget.taskStatusIndex,
+        assignmentStatusIndex: widget.assignmentStatusIndex,
       );
 
   OrderAssemblyArgs get _args {

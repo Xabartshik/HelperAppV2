@@ -10,6 +10,7 @@ class InventoryDetailsPage extends ConsumerStatefulWidget {
   final int assignmentId;
   final int taskId;
   final int? taskStatusIndex;
+  final int? assignmentStatusIndex;
 
   const InventoryDetailsPage({
     super.key,
@@ -17,6 +18,7 @@ class InventoryDetailsPage extends ConsumerStatefulWidget {
     required this.assignmentId,
     this.taskId = 0,
     this.taskStatusIndex,
+    this.assignmentStatusIndex,
   });
 
   @override
@@ -36,6 +38,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
         taskId: widget.taskId,
         workerId: widget.workerId,
         taskStatusIndex: widget.taskStatusIndex,
+        assignmentStatusIndex: widget.assignmentStatusIndex,
       );
 
   @override

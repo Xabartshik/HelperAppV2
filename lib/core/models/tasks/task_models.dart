@@ -1,3 +1,5 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 enum TaskType {
   inventory,
   orderAssembly,
@@ -21,11 +23,11 @@ enum TaskStatus {
 }
 
 enum AssignmentStatus{
-    assigned,
-    inProgress,
-    paused,
-    completed,
-    cancelled
+    @JsonValue(0) assigned,
+    @JsonValue(1) inProgress,
+    @JsonValue(2) paused,
+    @JsonValue(3) completed,
+    @JsonValue(4) cancelled
 }
 
 class PositionCodeInfo {

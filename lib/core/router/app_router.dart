@@ -46,6 +46,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentId: args['assignmentId'] as int? ?? 0,
             taskId: args['taskId'] as int? ?? 0,
             taskStatusIndex: args['status'] as int?,
+            assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
       ),
@@ -71,6 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentId: args['assignmentId'] as int? ?? 0,
             taskId: args['taskId'] as int? ?? 0,
             taskStatusIndex: args['status'] as int?,
+            assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
       ),

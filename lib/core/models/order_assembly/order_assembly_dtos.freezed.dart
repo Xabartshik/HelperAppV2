@@ -1121,8 +1121,7 @@ mixin _$WorkerAssemblyTaskDto {
   int get taskId => throw _privateConstructorUsedError;
   String? get taskNumber => throw _privateConstructorUsedError;
   int get orderId => throw _privateConstructorUsedError;
-  OrderAssemblyAssignmentStatus get status =>
-      throw _privateConstructorUsedError;
+  AssignmentStatus get status => throw _privateConstructorUsedError;
   DateTime? get createdDate => throw _privateConstructorUsedError;
   int get totalLines => throw _privateConstructorUsedError;
   List<CellPlacementInfoDto> get cellPlacements =>
@@ -1150,7 +1149,7 @@ abstract class $WorkerAssemblyTaskDtoCopyWith<$Res> {
     int taskId,
     String? taskNumber,
     int orderId,
-    OrderAssemblyAssignmentStatus status,
+    AssignmentStatus status,
     DateTime? createdDate,
     int totalLines,
     List<CellPlacementInfoDto> cellPlacements,
@@ -1205,7 +1204,7 @@ class _$WorkerAssemblyTaskDtoCopyWithImpl<
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
-                      as OrderAssemblyAssignmentStatus,
+                      as AssignmentStatus,
             createdDate: freezed == createdDate
                 ? _value.createdDate
                 : createdDate // ignore: cast_nullable_to_non_nullable
@@ -1238,7 +1237,7 @@ abstract class _$$WorkerAssemblyTaskDtoImplCopyWith<$Res>
     int taskId,
     String? taskNumber,
     int orderId,
-    OrderAssemblyAssignmentStatus status,
+    AssignmentStatus status,
     DateTime? createdDate,
     int totalLines,
     List<CellPlacementInfoDto> cellPlacements,
@@ -1290,7 +1289,7 @@ class __$$WorkerAssemblyTaskDtoImplCopyWithImpl<$Res>
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
-                  as OrderAssemblyAssignmentStatus,
+                  as AssignmentStatus,
         createdDate: freezed == createdDate
             ? _value.createdDate
             : createdDate // ignore: cast_nullable_to_non_nullable
@@ -1334,7 +1333,7 @@ class _$WorkerAssemblyTaskDtoImpl implements _WorkerAssemblyTaskDto {
   @override
   final int orderId;
   @override
-  final OrderAssemblyAssignmentStatus status;
+  final AssignmentStatus status;
   @override
   final DateTime? createdDate;
   @override
@@ -1413,7 +1412,7 @@ abstract class _WorkerAssemblyTaskDto implements WorkerAssemblyTaskDto {
     required final int taskId,
     final String? taskNumber,
     required final int orderId,
-    required final OrderAssemblyAssignmentStatus status,
+    required final AssignmentStatus status,
     final DateTime? createdDate,
     required final int totalLines,
     final List<CellPlacementInfoDto> cellPlacements,
@@ -1431,7 +1430,7 @@ abstract class _WorkerAssemblyTaskDto implements WorkerAssemblyTaskDto {
   @override
   int get orderId;
   @override
-  OrderAssemblyAssignmentStatus get status;
+  AssignmentStatus get status;
   @override
   DateTime? get createdDate;
   @override
