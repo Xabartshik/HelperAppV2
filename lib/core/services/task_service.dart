@@ -196,7 +196,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       final tDetails = dto.taskDetails;
       final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
       final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
-
+      final deadline = dto.deadline?.toUtc();
       return OrderAssemblyTaskItem(
         taskId: dto.taskId,
         type: TaskType.orderAssembly,
@@ -206,7 +206,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         status: _parseStatusFromInt(dto.status),
         assignmentStatus: _parseAssignmentStatusFromInt(dto.assignmentStatus),
         priority: dto.priority,
-        deadline: dto.deadline,
+        deadline: deadline,
         createdAt: createdAt,
         assignedToEmployeeId: employeeId,
         assignedAt: createdAt,
