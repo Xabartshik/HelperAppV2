@@ -24,7 +24,7 @@ mixin _$PositionCodeDto {
   int get branchId => throw _privateConstructorUsedError;
   String get zoneCode => throw _privateConstructorUsedError;
   String get firstLevelStorageType => throw _privateConstructorUsedError;
-  String get fLSNumber => throw _privateConstructorUsedError;
+  String get flsNumber => throw _privateConstructorUsedError;
   String? get secondLevelStorage => throw _privateConstructorUsedError;
   String? get thirdLevelStorage => throw _privateConstructorUsedError;
 
@@ -49,7 +49,7 @@ abstract class $PositionCodeDtoCopyWith<$Res> {
     int branchId,
     String zoneCode,
     String firstLevelStorageType,
-    String fLSNumber,
+    String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   });
@@ -73,7 +73,7 @@ class _$PositionCodeDtoCopyWithImpl<$Res, $Val extends PositionCodeDto>
     Object? branchId = null,
     Object? zoneCode = null,
     Object? firstLevelStorageType = null,
-    Object? fLSNumber = null,
+    Object? flsNumber = null,
     Object? secondLevelStorage = freezed,
     Object? thirdLevelStorage = freezed,
   }) {
@@ -91,9 +91,9 @@ class _$PositionCodeDtoCopyWithImpl<$Res, $Val extends PositionCodeDto>
                 ? _value.firstLevelStorageType
                 : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
                       as String,
-            fLSNumber: null == fLSNumber
-                ? _value.fLSNumber
-                : fLSNumber // ignore: cast_nullable_to_non_nullable
+            flsNumber: null == flsNumber
+                ? _value.flsNumber
+                : flsNumber // ignore: cast_nullable_to_non_nullable
                       as String,
             secondLevelStorage: freezed == secondLevelStorage
                 ? _value.secondLevelStorage
@@ -122,7 +122,7 @@ abstract class _$$PositionCodeDtoImplCopyWith<$Res>
     int branchId,
     String zoneCode,
     String firstLevelStorageType,
-    String fLSNumber,
+    String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   });
@@ -145,7 +145,7 @@ class __$$PositionCodeDtoImplCopyWithImpl<$Res>
     Object? branchId = null,
     Object? zoneCode = null,
     Object? firstLevelStorageType = null,
-    Object? fLSNumber = null,
+    Object? flsNumber = null,
     Object? secondLevelStorage = freezed,
     Object? thirdLevelStorage = freezed,
   }) {
@@ -163,9 +163,9 @@ class __$$PositionCodeDtoImplCopyWithImpl<$Res>
             ? _value.firstLevelStorageType
             : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
                   as String,
-        fLSNumber: null == fLSNumber
-            ? _value.fLSNumber
-            : fLSNumber // ignore: cast_nullable_to_non_nullable
+        flsNumber: null == flsNumber
+            ? _value.flsNumber
+            : flsNumber // ignore: cast_nullable_to_non_nullable
                   as String,
         secondLevelStorage: freezed == secondLevelStorage
             ? _value.secondLevelStorage
@@ -187,7 +187,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
     required this.branchId,
     this.zoneCode = '',
     this.firstLevelStorageType = '',
-    this.fLSNumber = '',
+    this.flsNumber = '',
     this.secondLevelStorage,
     this.thirdLevelStorage,
   });
@@ -205,7 +205,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
   final String firstLevelStorageType;
   @override
   @JsonKey()
-  final String fLSNumber;
+  final String flsNumber;
   @override
   final String? secondLevelStorage;
   @override
@@ -213,7 +213,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
 
   @override
   String toString() {
-    return 'PositionCodeDto(branchId: $branchId, zoneCode: $zoneCode, firstLevelStorageType: $firstLevelStorageType, fLSNumber: $fLSNumber, secondLevelStorage: $secondLevelStorage, thirdLevelStorage: $thirdLevelStorage)';
+    return 'PositionCodeDto(branchId: $branchId, zoneCode: $zoneCode, firstLevelStorageType: $firstLevelStorageType, flsNumber: $flsNumber, secondLevelStorage: $secondLevelStorage, thirdLevelStorage: $thirdLevelStorage)';
   }
 
   @override
@@ -227,8 +227,8 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
                 other.zoneCode == zoneCode) &&
             (identical(other.firstLevelStorageType, firstLevelStorageType) ||
                 other.firstLevelStorageType == firstLevelStorageType) &&
-            (identical(other.fLSNumber, fLSNumber) ||
-                other.fLSNumber == fLSNumber) &&
+            (identical(other.flsNumber, flsNumber) ||
+                other.flsNumber == flsNumber) &&
             (identical(other.secondLevelStorage, secondLevelStorage) ||
                 other.secondLevelStorage == secondLevelStorage) &&
             (identical(other.thirdLevelStorage, thirdLevelStorage) ||
@@ -242,7 +242,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
     branchId,
     zoneCode,
     firstLevelStorageType,
-    fLSNumber,
+    flsNumber,
     secondLevelStorage,
     thirdLevelStorage,
   );
@@ -269,7 +269,7 @@ abstract class _PositionCodeDto implements PositionCodeDto {
     required final int branchId,
     final String zoneCode,
     final String firstLevelStorageType,
-    final String fLSNumber,
+    final String flsNumber,
     final String? secondLevelStorage,
     final String? thirdLevelStorage,
   }) = _$PositionCodeDtoImpl;
@@ -284,7 +284,7 @@ abstract class _PositionCodeDto implements PositionCodeDto {
   @override
   String get firstLevelStorageType;
   @override
-  String get fLSNumber;
+  String get flsNumber;
   @override
   String? get secondLevelStorage;
   @override
@@ -723,7 +723,7 @@ abstract class $InventoryAssignmentDetailedWithItemDtoCopyWith<$Res> {
     int id,
     String taskNumber,
     String description,
-    String? createdDate,
+    DateTime? createdDate,
     List<InventoryAssignmentLineWithItemDto> lines,
   });
 }
@@ -793,7 +793,7 @@ abstract class _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith<$Res>
     int id,
     String taskNumber,
     String description,
-    String? createdDate,
+    DateTime? createdDate,
     List<InventoryAssignmentLineWithItemDto> lines,
   });
 }
@@ -874,7 +874,7 @@ class _$InventoryAssignmentDetailedWithItemDtoImpl
   @JsonKey()
   final String description;
   @override
-  final String? createdDate;
+  final DateTime? createdDate;
   final List<InventoryAssignmentLineWithItemDto> _lines;
   @override
   @JsonKey()
@@ -940,7 +940,7 @@ abstract class _InventoryAssignmentDetailedWithItemDto
     required final int id,
     final String taskNumber,
     final String description,
-    final String? createdDate,
+    final DateTime? createdDate,
     final List<InventoryAssignmentLineWithItemDto> lines,
   }) = _$InventoryAssignmentDetailedWithItemDtoImpl;
 

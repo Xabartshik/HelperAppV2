@@ -112,7 +112,7 @@ static InventoryLineItem _mapToInventoryLineItem(InventoryAssignmentLineWithItem
         branchId: dto.positionCode.branchId,
         zoneCode: dto.positionCode.zoneCode,
         firstLevelStorageType: dto.positionCode.firstLevelStorageType,
-        flsNumber: dto.positionCode.fLSNumber, // Обратите внимание на регистр (fLSNumber)
+        flsNumber: dto.positionCode.flsNumber, // Используем единое canonical-имя поля
         secondLevelStorage: dto.positionCode.secondLevelStorage,
         thirdLevelStorage: dto.positionCode.thirdLevelStorage,
       ),
