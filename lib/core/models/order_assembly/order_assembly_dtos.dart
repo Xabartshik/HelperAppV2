@@ -56,6 +56,7 @@ class PlacementLineDto with _$PlacementLineDto {
     required int itemId,
     String? itemName,
     String? barcode,
+    String? sourceCellCode,
     required int quantity,
     required int pickedQuantity,
     required OrderAssemblyLineStatus status,

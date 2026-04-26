@@ -555,6 +555,7 @@ mixin _$PlacementLineDto {
   int get itemId => throw _privateConstructorUsedError;
   String? get itemName => throw _privateConstructorUsedError;
   String? get barcode => throw _privateConstructorUsedError;
+  String? get sourceCellCode => throw _privateConstructorUsedError;
   int get quantity => throw _privateConstructorUsedError;
   int get pickedQuantity => throw _privateConstructorUsedError;
   OrderAssemblyLineStatus get status => throw _privateConstructorUsedError;
@@ -582,6 +583,7 @@ abstract class $PlacementLineDtoCopyWith<$Res> {
     int itemId,
     String? itemName,
     String? barcode,
+    String? sourceCellCode,
     int quantity,
     int pickedQuantity,
     OrderAssemblyLineStatus status,
@@ -608,6 +610,7 @@ class _$PlacementLineDtoCopyWithImpl<$Res, $Val extends PlacementLineDto>
     Object? itemId = null,
     Object? itemName = freezed,
     Object? barcode = freezed,
+    Object? sourceCellCode = freezed,
     Object? quantity = null,
     Object? pickedQuantity = null,
     Object? status = null,
@@ -633,6 +636,10 @@ class _$PlacementLineDtoCopyWithImpl<$Res, $Val extends PlacementLineDto>
             barcode: freezed == barcode
                 ? _value.barcode
                 : barcode // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            sourceCellCode: freezed == sourceCellCode
+                ? _value.sourceCellCode
+                : sourceCellCode // ignore: cast_nullable_to_non_nullable
                       as String?,
             quantity: null == quantity
                 ? _value.quantity
@@ -667,6 +674,7 @@ abstract class _$$PlacementLineDtoImplCopyWith<$Res>
     int itemId,
     String? itemName,
     String? barcode,
+    String? sourceCellCode,
     int quantity,
     int pickedQuantity,
     OrderAssemblyLineStatus status,
@@ -692,6 +700,7 @@ class __$$PlacementLineDtoImplCopyWithImpl<$Res>
     Object? itemId = null,
     Object? itemName = freezed,
     Object? barcode = freezed,
+    Object? sourceCellCode = freezed,
     Object? quantity = null,
     Object? pickedQuantity = null,
     Object? status = null,
@@ -717,6 +726,10 @@ class __$$PlacementLineDtoImplCopyWithImpl<$Res>
         barcode: freezed == barcode
             ? _value.barcode
             : barcode // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        sourceCellCode: freezed == sourceCellCode
+            ? _value.sourceCellCode
+            : sourceCellCode // ignore: cast_nullable_to_non_nullable
                   as String?,
         quantity: null == quantity
             ? _value.quantity
@@ -744,6 +757,7 @@ class _$PlacementLineDtoImpl implements _PlacementLineDto {
     required this.itemId,
     this.itemName,
     this.barcode,
+    this.sourceCellCode,
     required this.quantity,
     required this.pickedQuantity,
     required this.status,
@@ -763,6 +777,8 @@ class _$PlacementLineDtoImpl implements _PlacementLineDto {
   @override
   final String? barcode;
   @override
+  final String? sourceCellCode;
+  @override
   final int quantity;
   @override
   final int pickedQuantity;
@@ -771,7 +787,7 @@ class _$PlacementLineDtoImpl implements _PlacementLineDto {
 
   @override
   String toString() {
-    return 'PlacementLineDto(lineId: $lineId, itemPositionId: $itemPositionId, itemId: $itemId, itemName: $itemName, barcode: $barcode, quantity: $quantity, pickedQuantity: $pickedQuantity, status: $status)';
+    return 'PlacementLineDto(lineId: $lineId, itemPositionId: $itemPositionId, itemId: $itemId, itemName: $itemName, barcode: $barcode, sourceCellCode: $sourceCellCode, quantity: $quantity, pickedQuantity: $pickedQuantity, status: $status)';
   }
 
   @override
@@ -786,6 +802,8 @@ class _$PlacementLineDtoImpl implements _PlacementLineDto {
             (identical(other.itemName, itemName) ||
                 other.itemName == itemName) &&
             (identical(other.barcode, barcode) || other.barcode == barcode) &&
+            (identical(other.sourceCellCode, sourceCellCode) ||
+                other.sourceCellCode == sourceCellCode) &&
             (identical(other.quantity, quantity) ||
                 other.quantity == quantity) &&
             (identical(other.pickedQuantity, pickedQuantity) ||
@@ -802,6 +820,7 @@ class _$PlacementLineDtoImpl implements _PlacementLineDto {
     itemId,
     itemName,
     barcode,
+    sourceCellCode,
     quantity,
     pickedQuantity,
     status,
@@ -831,6 +850,7 @@ abstract class _PlacementLineDto implements PlacementLineDto {
     required final int itemId,
     final String? itemName,
     final String? barcode,
+    final String? sourceCellCode,
     required final int quantity,
     required final int pickedQuantity,
     required final OrderAssemblyLineStatus status,
@@ -849,6 +869,8 @@ abstract class _PlacementLineDto implements PlacementLineDto {
   String? get itemName;
   @override
   String? get barcode;
+  @override
+  String? get sourceCellCode;
   @override
   int get quantity;
   @override

@@ -27,6 +27,7 @@ class AssemblyItemVm {
   final int itemId;
   final String itemName;
   final String barcode;
+  final String sourceCellCode;
   final int quantity;
   int collectedQuantity;
   OrderAssemblyLineStatus status;
@@ -35,6 +36,7 @@ class AssemblyItemVm {
     required this.lineId,
     required this.itemId,
     required this.itemName,
+    required this.sourceCellCode,
     required this.barcode,
     required this.quantity,
     required this.collectedQuantity,
@@ -426,6 +428,7 @@ class OrderAssemblyViewModel
               itemId: item.itemId,
               itemName: item.itemName ?? '',
               barcode: item.barcode ?? '',
+              sourceCellCode: item.sourceCellCode ?? 'Неизвестная ячейка',
               quantity: item.quantity,
               collectedQuantity: item.pickedQuantity, 
               status: item.status,

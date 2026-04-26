@@ -457,10 +457,24 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   // Строка товара внутри ячейки
   // ---------------------------------------------------------------------------
 
-  Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
+Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final statusColor = item.isMissing
         ? Colors.redAccent
         : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
+
+    // Находим целевую ячейку, к которой привязан этот товар, 
+    // чтобы знать, куда его нужно будет положить в режиме размещения
+    final parentCell = state.cells.firstWhere(
+      (c) => c.items.any((i) => i.lineId == item.lineId),
+    );
+
+    final isPickMode = state.mode == AssemblyMode.pick;
+    
+    // Формируем текст и цвет в зависимости от режима
+    final cellText = isPickMode 
+        ? 'Забрать из: ${item.sourceCellCode}' 
+        : 'Положить в: ${parentCell.cellDisplayName}';
+    final cellTextColor = isPickMode ? Colors.orangeAccent : Colors.blueAccent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -492,6 +506,16 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                     decoration: item.isMissing ? TextDecoration.lineThrough : null,
                   ),
                 ),
+                const SizedBox(height: 4),
+                // Динамическая подсказка по ячейкам (забрать/положить)
+                Text(
+                  cellText,
+                  style: TextStyle(
+                    color: item.isDone && isPickMode ? Colors.white54 : cellTextColor, 
+                    fontSize: 12, 
+                    fontWeight: FontWeight.w600
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.',
@@ -501,7 +525,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
             ),
           ),
           // Кнопка «Отсутствует» (только в режиме Сбора для непроцессированных товаров)
-          if (state.mode == AssemblyMode.pick && !item.isDone)
+          if (isPickMode && !item.isDone)
             TextButton(
               onPressed: canEditTask ? () => _showReportMissingDialog(item, vm) : null,
               style: TextButton.styleFrom(
@@ -516,7 +540,6 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       ),
     );
   }
-
   // ---------------------------------------------------------------------------
   // Состояние «всё размещено» — можно завершить задачу
   // ---------------------------------------------------------------------------
