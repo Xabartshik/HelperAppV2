@@ -12,7 +12,7 @@ _$PositionCodeDtoImpl _$$PositionCodeDtoImplFromJson(
   branchId: (json['branchId'] as num).toInt(),
   zoneCode: json['zoneCode'] as String? ?? '',
   firstLevelStorageType: json['firstLevelStorageType'] as String? ?? '',
-  fLSNumber: json['fLSNumber'] as String? ?? '',
+  flsNumber: (json['flsNumber'] ?? json['fLSNumber']) as String? ?? '',
   secondLevelStorage: json['secondLevelStorage'] as String?,
   thirdLevelStorage: json['thirdLevelStorage'] as String?,
 );
@@ -23,7 +23,7 @@ Map<String, dynamic> _$$PositionCodeDtoImplToJson(
   'branchId': instance.branchId,
   'zoneCode': instance.zoneCode,
   'firstLevelStorageType': instance.firstLevelStorageType,
-  'fLSNumber': instance.fLSNumber,
+  'flsNumber': instance.flsNumber,
   'secondLevelStorage': instance.secondLevelStorage,
   'thirdLevelStorage': instance.thirdLevelStorage,
 };
@@ -65,7 +65,9 @@ _$$InventoryAssignmentDetailedWithItemDtoImplFromJson(
   id: (json['id'] as num).toInt(),
   taskNumber: json['taskNumber'] as String? ?? '',
   description: json['description'] as String? ?? '',
-  createdDate: json['createdDate'] as String?,
+  createdDate: json['createdDate'] == null
+      ? null
+      : DateTime.parse(json['createdDate'] as String),
   lines:
       (json['lines'] as List<dynamic>?)
           ?.map(
@@ -83,7 +85,7 @@ Map<String, dynamic> _$$InventoryAssignmentDetailedWithItemDtoImplToJson(
   'id': instance.id,
   'taskNumber': instance.taskNumber,
   'description': instance.description,
-  'createdDate': instance.createdDate,
+  'createdDate': instance.createdDate?.toIso8601String(),
   'lines': instance.lines,
 };
 

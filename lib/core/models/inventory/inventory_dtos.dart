@@ -9,10 +9,13 @@ class PositionCodeDto with _$PositionCodeDto {
     required int branchId,
     @Default('') String zoneCode,
     @Default('') String firstLevelStorageType,
-    @Default('') String fLSNumber,
+    @JsonKey(name: 'flsNumber', readValue: _readFlsNumber) @Default('') String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   }) = _PositionCodeDto;
+
+  static Object? _readFlsNumber(Map<dynamic, dynamic> json, String _) =>
+      json['flsNumber'] ?? json['fLSNumber'];
 
   factory PositionCodeDto.fromJson(Map<String, dynamic> json) => 
       _$PositionCodeDtoFromJson(json);
@@ -42,7 +45,7 @@ class InventoryAssignmentDetailedWithItemDto with _$InventoryAssignmentDetailedW
     required int id,
     @Default('') String taskNumber,
     @Default('') String description,
-    String? createdDate,
+    DateTime? createdDate,
     @Default([]) List<InventoryAssignmentLineWithItemDto> lines,
   }) = _InventoryAssignmentDetailedWithItemDto;
 

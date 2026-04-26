@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
+import '../models/tasks/mobile_base_task_dto.dart';
 import '../models/tasks/task_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
@@ -68,6 +69,8 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
           .whereType<InventoryLineItem>()
           .toList();
 
+      final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
+
       return InventoryTaskItem(
         taskId: dto.taskId,
         type: TaskType.inventory,
@@ -77,10 +80,10 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         status: _parseStatusFromInt(dto.status),
         deadline: dto.deadline,
         priority: dto.priority,
-        createdAt: dto.createdAt,
+        createdAt: createdAt,
         completedAt: null,
         assignedToEmployeeId: employeeId,
-        assignedAt: dto.createdAt,
+        assignedAt: createdAt,
         assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
         lines: lines,
       );
@@ -139,7 +142,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       'branchId': (rawCell['branchId'] as num?)?.toInt() ?? 0,
       'zoneCode': (rawCell['zoneCode'] ?? '').toString(),
       'firstLevelStorageType': (rawCell['firstLevelStorageType'] ?? '').toString(),
-      'fLSNumber': (rawCell['fLSNumber'] ?? rawCell['flsNumber'] ?? '').toString(),
+      'flsNumber': (rawCell['flsNumber'] ?? rawCell['fLSNumber'] ?? '').toString(),
       'secondLevelStorage': rawCell['secondLevelStorage'],
       'thirdLevelStorage': rawCell['thirdLevelStorage'],
     };
@@ -171,6 +174,8 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         )).toList(),
       )).toList();
 
+      final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
+
       return OrderAssemblyTaskItem(
         taskId: dto.taskId,
         type: TaskType.orderAssembly,
@@ -180,9 +185,9 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         status: _parseStatusFromInt(dto.status),
         priority: dto.priority,
         deadline: dto.deadline,
-        createdAt: dto.createdAt,
+        createdAt: createdAt,
         assignedToEmployeeId: employeeId,
-        assignedAt: dto.createdAt,
+        assignedAt: createdAt,
         assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
         orderId: dto.taskDetails['orderId'] ?? 0,
         totalLines: dto.taskDetails['totalLines'] ?? 0,
@@ -398,20 +403,17 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       branchId: dto.branchId,
       zoneCode: dto.zoneCode,
       firstLevelStorageType: dto.firstLevelStorageType,
-      flsNumber: dto.fLSNumber,
+      flsNumber: dto.flsNumber,
       secondLevelStorage: dto.secondLevelStorage,
       thirdLevelStorage: dto.thirdLevelStorage,
     );
   }
 
-  DateTime _parseCreatedDate(String? dateString) {
-    if (dateString == null || dateString.isEmpty) {
+  DateTime _parseCreatedDate(DateTime? createdDate) {
+    if (createdDate == null) {
       return DateTime.now().toUtc();
     }
-    final parsed = DateTime.tryParse(dateString);
-    if (parsed != null) return parsed;
-    Logger.w('Не удалось распарсить CreatedDate "$dateString"');
-    return DateTime.now().toUtc();
+    return createdDate.toUtc();
   }
 
   void dispose() {
