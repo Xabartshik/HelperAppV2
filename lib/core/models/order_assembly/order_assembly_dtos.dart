@@ -92,13 +92,3 @@ class WorkerAssemblyTaskDto with _$WorkerAssemblyTaskDto {
 
   factory WorkerAssemblyTaskDto.fromJson(Map<String, dynamic> json) => _$WorkerAssemblyTaskDtoFromJson(json);
 }
-
-@freezed
-class BulkPlaceResultDto with _$BulkPlaceResultDto {
-  const factory BulkPlaceResultDto({
-    required int placedCount,
-    required int remainingCells,
-  }) = _BulkPlaceResultDto;
-
-  factory BulkPlaceResultDto.fromJson(Map<String, dynamic> json) => _$BulkPlaceResultDtoFromJson(json);
-}

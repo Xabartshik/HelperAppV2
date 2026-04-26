@@ -135,17 +135,3 @@ const _$OrderAssemblyAssignmentStatusEnumMap = {
   OrderAssemblyAssignmentStatus.completed: 2,
   OrderAssemblyAssignmentStatus.cancelled: 3,
 };
-
-_$BulkPlaceResultDtoImpl _$$BulkPlaceResultDtoImplFromJson(
-  Map<String, dynamic> json,
-) => _$BulkPlaceResultDtoImpl(
-  placedCount: (json['placedCount'] as num).toInt(),
-  remainingCells: (json['remainingCells'] as num).toInt(),
-);
-
-Map<String, dynamic> _$$BulkPlaceResultDtoImplToJson(
-  _$BulkPlaceResultDtoImpl instance,
-) => <String, dynamic>{
-  'placedCount': instance.placedCount,
-  'remainingCells': instance.remainingCells,
-};
