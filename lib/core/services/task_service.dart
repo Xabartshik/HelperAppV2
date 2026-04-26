@@ -71,6 +71,9 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
 
       final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
 
+      final tDetails = dto.taskDetails;
+      final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
+      final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
       return InventoryTaskItem(
         taskId: dto.taskId,
         type: TaskType.inventory,
@@ -78,6 +81,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         title: dto.title,
         description: dto.description,
         status: _parseStatusFromInt(dto.status),
+        assignmentStatus: _parseAssignmentStatusFromInt(dto.assignmentStatus),
         deadline: dto.deadline,
         priority: dto.priority,
         createdAt: createdAt,
@@ -86,6 +90,8 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         assignedAt: createdAt,
         assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
         lines: lines,
+        totalLinesCount: totalLines,
+        completedLinesCount: completedLines,
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
@@ -160,6 +166,17 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     }
   }
 
+  AssignmentStatus _parseAssignmentStatusFromInt(int serverStatus) {
+    switch (serverStatus) {
+      case 0: return AssignmentStatus.assigned;
+      case 1: return AssignmentStatus.inProgress;
+      case 2: return AssignmentStatus.paused;
+      case 3: return AssignmentStatus.completed;
+      case 4: return AssignmentStatus.cancelled;
+      default: return AssignmentStatus.assigned;
+    }
+  }
+
   OrderAssemblyTaskItem? _mapToUnifiedOrderAssemblyTask(MobileBaseTaskDto dto, int employeeId) {
     try {
       final cellPlacementsJson = dto.taskDetails['cellPlacements'] as List<dynamic>? ?? [];
@@ -176,6 +193,10 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
 
       final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
 
+      final tDetails = dto.taskDetails;
+      final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
+      final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
+
       return OrderAssemblyTaskItem(
         taskId: dto.taskId,
         type: TaskType.orderAssembly,
@@ -183,6 +204,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         title: dto.title,
         description: dto.description,
         status: _parseStatusFromInt(dto.status),
+        assignmentStatus: _parseAssignmentStatusFromInt(dto.assignmentStatus),
         priority: dto.priority,
         deadline: dto.deadline,
         createdAt: createdAt,
@@ -190,7 +212,8 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         assignedAt: createdAt,
         assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
         orderId: dto.taskDetails['orderId'] ?? 0,
-        totalLines: dto.taskDetails['totalLines'] ?? 0,
+        totalLines: totalLines,
+        completedLinesCount: completedLines,
         cellPlacements: cellPlacements,
       );
     } catch (e, stack) {
@@ -302,6 +325,13 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         _                                         => TaskStatus.assigned,
       };
 
+      final assignmentStatus = switch (dto.status) {
+        OrderAssemblyAssignmentStatus.inProgress => AssignmentStatus.inProgress,
+        OrderAssemblyAssignmentStatus.completed  => AssignmentStatus.completed,
+        OrderAssemblyAssignmentStatus.cancelled  => AssignmentStatus.cancelled,
+        _                                         => AssignmentStatus.assigned,
+      };
+
       final cellPlacements = dto.cellPlacements.map((c) => CellPlacementInfo(
         targetPositionId: c.targetPositionId,
         items: c.items.map((i) => PlacementLineInfo(
@@ -319,6 +349,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         title: 'Сборка заказа #${dto.orderId}',
         description: null,
         status: taskStatus,
+        assignmentStatus: assignmentStatus,
         priority: 7,
         createdAt: now,
         assignedToEmployeeId: employeeId,

@@ -9,13 +9,10 @@ class PositionCodeDto with _$PositionCodeDto {
     required int branchId,
     @Default('') String zoneCode,
     @Default('') String firstLevelStorageType,
-    @JsonKey(name: 'flsNumber', readValue: _readFlsNumber) @Default('') String flsNumber,
+    @Default('') String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   }) = _PositionCodeDto;
-
-  static Object? _readFlsNumber(Map<dynamic, dynamic> json, String _) =>
-      json['flsNumber'] ?? json['fLSNumber'];
 
   factory PositionCodeDto.fromJson(Map<String, dynamic> json) => 
       _$PositionCodeDtoFromJson(json);

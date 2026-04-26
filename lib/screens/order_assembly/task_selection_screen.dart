@@ -192,6 +192,7 @@ class TaskSelectionScreen extends ConsumerWidget {
           final result = await context.push('/order-assembly/active', extra: {
             'assignmentId': task.assignmentId,
             'taskId': task.taskId,
+            'taskStatusIndex': task.status,
           });
           if (result == true) {
             ref.refresh(orderAssemblyTasksProvider(userId));

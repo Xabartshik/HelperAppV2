@@ -36,7 +36,7 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   @protected
   bool get canEditTask {
     final status = initialStatus;
-    if (status == null) return true;
+    if (status == null) return false;
     if (status == TaskStatus.inProgress || status == TaskStatus.completed) return true;
     return _isTaskStarted;
   }

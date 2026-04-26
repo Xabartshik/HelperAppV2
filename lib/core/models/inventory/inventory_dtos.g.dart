@@ -12,7 +12,7 @@ _$PositionCodeDtoImpl _$$PositionCodeDtoImplFromJson(
   branchId: (json['branchId'] as num).toInt(),
   zoneCode: json['zoneCode'] as String? ?? '',
   firstLevelStorageType: json['firstLevelStorageType'] as String? ?? '',
-  flsNumber: (json['flsNumber'] ?? json['fLSNumber']) as String? ?? '',
+  flsNumber: json['flsNumber'] as String? ?? '',
   secondLevelStorage: json['secondLevelStorage'] as String?,
   thirdLevelStorage: json['thirdLevelStorage'] as String?,
 );

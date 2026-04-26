@@ -10,6 +10,7 @@ class MobileBaseTaskDto with _$MobileBaseTaskDto {
     @Default(0) int branchId,
     @Default('') String taskType,
     @Default(0) int status,
+    @Default(0) int assignmentStatus,
     DateTime? deadline,
     @Default('Без названия') String title,
     String? description,

@@ -93,9 +93,15 @@ class TaskCardVm {
 
   static TaskCardVm _mapInventoryTaskToCard(InventoryTaskItem task) {
     final lines = task.lines;
-    final completedCount = lines.where((l) => l.actualQuantity != null).length;
-    final totalCount = lines.length;
-    final varianceCount = lines.where((l) => l.actualQuantity != null && l.actualQuantity != l.expectedQuantity).length;
+
+    final totalCount = lines.isNotEmpty ? lines.length : task.totalLinesCount;
+    final completedCount = lines.isNotEmpty 
+        ? lines.where((l) => l.actualQuantity != null).length 
+        : task.completedLinesCount;
+    
+    final varianceCount = lines.isNotEmpty 
+        ? lines.where((l) => l.actualQuantity != null && l.actualQuantity != l.expectedQuantity).length
+        : 0; // Расхождения на уровне списка не так важны, можно оставить 0
 
     final primaryMetric = totalCount > 0 ? '$completedCount/$totalCount позиций' : 'Нет позиций';
 
@@ -127,8 +133,12 @@ class TaskCardVm {
   }
 
   static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
-    final placedCount = task.cellPlacements.expand((c) => c.items).where((i) => i.status.toLowerCase() == 'placed').length;
     final totalItems = task.totalLines;
+    
+    // Если массив ячеек пуст, используем счетчик с бэкенда
+    final placedCount = task.cellPlacements.isNotEmpty
+        ? task.cellPlacements.expand((c) => c.items).where((i) => i.status.toLowerCase() == 'placed').length
+        : task.completedLinesCount;
 
     return TaskCardVm(
       kind: task.type.name,
