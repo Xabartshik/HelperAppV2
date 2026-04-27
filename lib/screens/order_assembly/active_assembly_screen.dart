@@ -3,16 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/logger.dart';
+import '../home/main_viewmodel.dart';
+import '../tasks/base_task_screen.dart';
 import 'order_assembly_viewmodel.dart';
 
 /// Основной рабочий экран сборки заказа.
 /// Визуально разделяет режимы «Сбор» (Pick) и «Размещение» (Place).
 class ActiveAssemblyScreen extends ConsumerStatefulWidget {
   final int assignmentId;
+  final int taskId;
+  final int? taskStatusIndex;
+  final int? assignmentStatusIndex;
 
   const ActiveAssemblyScreen({
     super.key,
     required this.assignmentId,
+    this.taskId = 0,
+    this.taskStatusIndex,
+    this.assignmentStatusIndex,
   });
 
   @override
@@ -20,7 +28,7 @@ class ActiveAssemblyScreen extends ConsumerStatefulWidget {
 }
 
 class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, BaseTaskScreenMixin<ActiveAssemblyScreen> {
   // Цвета в стиле приложения
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
@@ -37,6 +45,14 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   final TextEditingController _barcodeController = TextEditingController();
   final FocusNode _barcodeFocusNode = FocusNode();
 
+  @override
+  BaseTaskScreenArgs get baseTaskArgs => BaseTaskScreenArgs(
+        taskId: widget.taskId,
+        workerId: _args.userId,
+        taskStatusIndex: widget.taskStatusIndex,
+        assignmentStatusIndex: widget.assignmentStatusIndex,
+      );
+
   OrderAssemblyArgs get _args {
     final currentUser = ref.read(currentUserProvider);
     return (
@@ -48,6 +64,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   @override
   void initState() {
     super.initState();
+    initializeTaskStartState();
     _modeAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
@@ -64,6 +81,11 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     _barcodeController.dispose();
     _barcodeFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<void> onTaskStarted() async {
+    await ref.read(orderAssemblyViewModelProvider(_args).notifier).loadTask();
   }
 
   @override
@@ -92,6 +114,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                 _buildModeBanner(state, vm),
                 // Прогресс-бар
                 _buildProgressBar(state),
+                if (!canEditTask) _buildStartTaskBanner(),
                 // Список ячеек / товаров
                 Expanded(
                   child: RefreshIndicator(
@@ -434,10 +457,24 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   // Строка товара внутри ячейки
   // ---------------------------------------------------------------------------
 
-  Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
+Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final statusColor = item.isMissing
         ? Colors.redAccent
         : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
+
+    // Находим целевую ячейку, к которой привязан этот товар, 
+    // чтобы знать, куда его нужно будет положить в режиме размещения
+    final parentCell = state.cells.firstWhere(
+      (c) => c.items.any((i) => i.lineId == item.lineId),
+    );
+
+    final isPickMode = state.mode == AssemblyMode.pick;
+    
+    // Формируем текст и цвет в зависимости от режима
+    final cellText = isPickMode 
+        ? 'Забрать из: ${item.sourceCellCode}' 
+        : 'Положить в: ${parentCell.cellDisplayName}';
+    final cellTextColor = isPickMode ? Colors.orangeAccent : Colors.blueAccent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -469,6 +506,16 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                     decoration: item.isMissing ? TextDecoration.lineThrough : null,
                   ),
                 ),
+                const SizedBox(height: 4),
+                // Динамическая подсказка по ячейкам (забрать/положить)
+                Text(
+                  cellText,
+                  style: TextStyle(
+                    color: item.isDone && isPickMode ? Colors.white54 : cellTextColor, 
+                    fontSize: 12, 
+                    fontWeight: FontWeight.w600
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.',
@@ -478,9 +525,9 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
             ),
           ),
           // Кнопка «Отсутствует» (только в режиме Сбора для непроцессированных товаров)
-          if (state.mode == AssemblyMode.pick && !item.isDone)
+          if (isPickMode && !item.isDone)
             TextButton(
-              onPressed: () => _showReportMissingDialog(item, vm),
+              onPressed: canEditTask ? () => _showReportMissingDialog(item, vm) : null,
               style: TextButton.styleFrom(
                 foregroundColor: Colors.redAccent,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -493,7 +540,6 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       ),
     );
   }
-
   // ---------------------------------------------------------------------------
   // Состояние «всё размещено» — можно завершить задачу
   // ---------------------------------------------------------------------------
@@ -551,6 +597,15 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
+  Widget _buildStartTaskBanner() {
+    return buildTaskNotStartedBanner(
+      backgroundColor: _bgGray900,
+      actionColor: _primaryColor,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      subtitle: 'Доступен только просмотр деталей.',
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Поле ввода штрихкода
   // ---------------------------------------------------------------------------
@@ -570,7 +625,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         children: [
           // Кнопка сканера
           InkWell(
-            onTap: () => _openScanner(state, vm),
+            onTap: canEditTask ? () => _openScanner(state, vm) : null,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               width: 40,
@@ -609,13 +664,14 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                   borderSide: BorderSide(color: activeColor, width: 1.5),
                 ),
               ),
+              enabled: canEditTask,
               onSubmitted: (value) => _handleBarcodeSubmit(value, state, vm),
             ),
           ),
           const SizedBox(width: 10),
           // Кнопка подтверждения
           ElevatedButton(
-            onPressed: () => _handleBarcodeSubmit(_barcodeController.text, state, vm),
+            onPressed: canEditTask ? () => _handleBarcodeSubmit(_barcodeController.text, state, vm) : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: activeColor,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -635,6 +691,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
 
   /// Открывает экран сканера (как в инвентаризации)
   void _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    if (!canEditTask) return;
     Logger.i('ActiveAssemblyScreen: переход к сканеру');
     context.push('/order-assembly/scanner', extra: {
       'assignmentId': widget.assignmentId,
@@ -645,6 +702,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   /// Обрабатывает ввод штрихкода (товар или ячейка, в зависимости от режима)
   Future<void> _handleBarcodeSubmit(
       String value, OrderAssemblyState state, OrderAssemblyViewModel vm) async {
+    if (!canEditTask) return;
     final barcode = value.trim();
     if (barcode.isEmpty) return;
 
@@ -678,6 +736,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
 
   /// Диалог отметки товара как отсутствующего
   Future<void> _showReportMissingDialog(AssemblyItemVm item, OrderAssemblyViewModel vm) async {
+    if (!canEditTask) return;
     final reasonController = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -764,6 +823,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
+
   /// Завершение задачи с подтверждением
   Future<void> _handleCompleteTask(OrderAssemblyViewModel vm) async {
     final confirmed = await showDialog<bool>(
@@ -810,7 +870,8 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         ),
       );
       Logger.i('ActiveAssemblyScreen: задача завершена, возврат на список задач');
-      context.pop(); // Возврат на экран выбора задач
+      ref.read(mainViewModelProvider.notifier).refreshTasks();
+      context.pop(true); // Возврат на экран выбора задач
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

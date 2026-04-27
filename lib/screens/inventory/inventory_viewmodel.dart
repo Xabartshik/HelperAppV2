@@ -160,7 +160,7 @@ class InventoryViewModel extends AutoDisposeFamilyNotifier<InventoryState, Inven
 
     try {
       final client = ref.read(apiClientProvider);
-      final dto = await client.getInventoryTaskDetailsAsync(state.workerId, state.assignmentId);
+      final dto = await client.getInventoryTaskDetailsAsync(state.assignmentId);
 
       if (dto == null) {
         state = state.copyWith(errorMessage: 'Сервер вернул пустой ответ', isLoading: false);
@@ -249,11 +249,29 @@ class InventoryViewModel extends AutoDisposeFamilyNotifier<InventoryState, Inven
       }
     }
 
-    item.actualQuantity = (item.actualQuantity ?? 0) + 1;
-    Logger.i('Товар ${item.itemName} (ID: $itemId) учтен. Факт=${item.actualQuantity}');
-    _triggerRebuild();
+    final newQuantity = (item.actualQuantity ?? 0) + 1;
 
-    return (true, '✓ ${item.itemName}: ${item.actualQuantity}');
+    try {
+      if (item.lineId != null && item.lineId! > 0) {
+        final client = ref.read(apiClientProvider);
+        final dto = ProcessInventoryScanDto(
+          assignmentId: state.assignmentId,
+          lineId: item.lineId!,
+          actualQuantity: newQuantity,
+          userId: state.workerId,
+        );
+        await client.processInventoryScanAsync(dto);
+      }
+      
+      item.actualQuantity = newQuantity;
+      Logger.i('Товар ${item.itemName} (ID: $itemId) учтен. Факт=${item.actualQuantity}');
+      _triggerRebuild();
+
+      return (true, '✓ ${item.itemName}: ${item.actualQuantity}');
+    } catch (e) {
+      Logger.e('Ошибка при отправке сканирования на сервер', e);
+      return (false, 'Ошибка сети: $e');
+    }
   }
 
   void addUnexpectedItem(String positionCode, int itemId, String itemName) {

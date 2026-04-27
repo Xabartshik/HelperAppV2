@@ -79,7 +79,7 @@ class AvailableEmployeeDto with _$AvailableEmployeeDto {
 class CreateInventoryByZoneDto with _$CreateInventoryByZoneDto {
   const factory CreateInventoryByZoneDto({
     @Default([]) List<String> zonePrefixes,
-    @Default(3) int priority,
+    @Default(3) int priorityLevel,
     @Default(1) int workerCount,
     List<int>? workerIds,
     String? description,

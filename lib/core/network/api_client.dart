@@ -9,6 +9,45 @@ import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
 
+/// Единый реестр всех эндпоинтов API.
+/// Все пути гарантированно используют префикс v1/.
+class ApiEndpoints {
+  // Auth
+  static const String login = 'v1/mobileappuser/login';
+
+  // Worker Tasks (Aggregator)
+  static String workerTasksPending(int employeeId) => 'v1/WorkerTasks/$employeeId/pending';
+  static String workerTaskStart(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/start?workerId=$workerId';
+
+  // Boss Panel
+  static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
+  static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
+  static const String bossPanelAvailableEmployees = 'v1/bosspanel/employees/available';
+  static const String bossPanelPositions = 'v1/bosspanel/positions';
+  static String bossPanelAutoSelectEmployees(int count) => 'v1/bosspanel/employees/auto-select?count=$count';
+  static const String bossPanelCreateInventoryByZone = 'v1/bosspanel/inventory/create-by-zone';
+  static const String bossPanelAvailableOrders = 'v1/bosspanel/orders/available';
+  static const String bossPanelCreateOrderAssembly = 'v1/bosspanel/tasks/order-assembly/create';
+
+  // Inventory
+  static String inventoryTaskDetails(int assignmentId) => 'v1/Inventory/assignment/$assignmentId/details';
+  static const String inventoryCompleteAssignment = 'v1/Inventory/complete-assignment';
+  static const String inventoryProcessScan = 'v1/Inventory/scan';
+  static String itemInfo(int itemId) => 'v1/Item/$itemId';
+
+  // Order Assembly
+  static String orderAssemblyTasks(int userId) => 'v1/OrderAssembly/worker/$userId/assignments';
+  static String orderAssemblyDetails(int id) => 'v1/OrderAssembly/assignment/$id/details';
+  static String orderAssemblyStart(int id) => 'v1/OrderAssembly/assignment/$id/start';
+  static String orderAssemblyPause(int id) => 'v1/OrderAssembly/assignment/$id/pause';
+  static String orderAssemblyCancel(int id) => 'v1/OrderAssembly/assignment/$id/cancel';
+  
+  static const String orderAssemblyScanPick = 'v1/OrderAssembly/scan-pick';
+  static const String orderAssemblyScanPlaceBulk = 'v1/OrderAssembly/scan-place-bulk';
+  static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
+  static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
+}
+
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
 
@@ -17,7 +56,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(ref);
 });
 
-/// Замена ApiClient.cs с использованием Dio
 class ApiClient {
   final Ref ref;
   late final Dio _dio;
@@ -74,9 +112,6 @@ class ApiClient {
 
   static String? _cachedBaseUrl;
 
-  /// Метод для получения Base URL. 
-  /// В Flutter initState или конструкторы не могут быть async, 
-  /// поэтому мы используем этот метод, который инициализирует URL при первом запросе.
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) return _cachedBaseUrl!;
 
@@ -151,91 +186,150 @@ class ApiClient {
 
   // Boss Panel API Endpoints
   Future<List<BossPanelTaskCardDto>> getBossPanelActiveTasksAsync() async {
-    final response = await getAsync('v1/bosspanel/tasks/active');
+    final response = await getAsync(ApiEndpoints.bossPanelActiveTasks);
     return (response as List).map((x) => BossPanelTaskCardDto.fromJson(x)).toList();
   }
 
   Future<List<EmployeeWorkloadDto>> getBossPanelEmployeeWorkloadAsync() async {
-    final response = await getAsync('v1/bosspanel/employees/workload');
+    final response = await getAsync(ApiEndpoints.bossPanelEmployeeWorkload);
     return (response as List).map((x) => EmployeeWorkloadDto.fromJson(x)).toList();
   }
 
   Future<List<AvailableEmployeeDto>> getBossPanelAvailableEmployeesAsync() async {
-    final response = await getAsync('v1/bosspanel/employees/available');
+    final response = await getAsync(ApiEndpoints.bossPanelAvailableEmployees);
     return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
   }
 
   Future<List<PositionCellDto>> getBossPanelPositionsAsync() async {
-    final response = await getAsync('v1/bosspanel/positions');
+    final response = await getAsync(ApiEndpoints.bossPanelPositions);
     return (response as List).map((x) => PositionCellDto.fromJson(x)).toList();
   }
 
   Future<List<int>> getBossPanelAutoSelectedEmployeesAsync(int count) async {
-    final response = await getAsync('v1/bosspanel/employees/auto-select?count=$count');
+    final response = await getAsync(ApiEndpoints.bossPanelAutoSelectEmployees(count));
     return List<int>.from(response);
   }
 
-  Future<dynamic> createBossPanelInventoryTaskByZoneAsync(CreateInventoryByZoneDto dto) async {
-    return await postAsync('v1/bosspanel/inventory/create-by-zone', data: dto.toJson());
+  Future<dynamic> createBossPanelInventoryTaskByZoneAsync(
+    CreateInventoryByZoneDto dto, {
+    int? branchId,
+    List<int>? itemPositionIds,
+  }) async {
+    final payload = Map<String, dynamic>.from(dto.toJson());
+    if (branchId != null) {
+      payload['branchId'] = branchId;
+    }
+    if (itemPositionIds != null) {
+      payload['itemPositionsIds'] = itemPositionIds;
+      payload['divisionStrategy'] = 'ByQuantity';
+    }
+
+    return await postAsync(
+      ApiEndpoints.bossPanelCreateInventoryByZone,
+      data: payload,
+    );
   }
 
   Future<List<AvailableOrderDto>> getBossPanelAvailableOrdersAsync() async {
-    final response = await getAsync('v1/bosspanel/orders/available');
+    final response = await getAsync(ApiEndpoints.bossPanelAvailableOrders);
     return (response as List).map((x) => AvailableOrderDto.fromJson(x)).toList();
   }
 
   Future<int> createBossPanelOrderAssemblyTaskAsync(CreateOrderAssemblyTaskDto dto) async {
-    return await postAsync('v1/bosspanel/tasks/order-assembly/create', data: dto.toJson());
+    return await postAsync(ApiEndpoints.bossPanelCreateOrderAssembly, data: dto.toJson());
   }
 
   // Inventory API Endpoints
-  Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int workerId, int assignmentId) async {
-    final response = await getAsync('v1/Inventory/worker/$workerId/tasks/$assignmentId/details');
-    if (response == null) return null;
-    return InventoryTaskDetailsDto.fromJson(response);
+  Future<InventoryTaskDetailsDto?> getInventoryTaskDetailsAsync(int assignmentId) async {
+    final response = await getAsync(ApiEndpoints.inventoryTaskDetails(assignmentId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return _mapInventoryAssignmentDetails(response);
+  }
+
+  InventoryTaskDetailsDto _mapInventoryAssignmentDetails(Map<String, dynamic> json) {
+    final createdDateRaw = json['createdDate']?.toString();
+    final createdDate = DateTime.tryParse(createdDateRaw ?? '') ?? DateTime.now();
+
+    final cellInventoriesRaw = (json['cellInventories'] as List?) ?? const [];
+    final items = <InventoryItemDto>[];
+
+    for (final cell in cellInventoriesRaw) {
+      if (cell is! Map<String, dynamic>) continue;
+
+      final positionId = (cell['positionId'] as num?)?.toInt() ?? 0;
+      final positionCode = (cell['cellDisplayName'] ?? cell['cellCode'] ?? '').toString();
+      final cellItemsRaw = (cell['items'] as List?) ?? const [];
+
+      for (final item in cellItemsRaw) {
+        if (item is! Map<String, dynamic>) continue;
+
+        items.add(InventoryItemDto(
+          itemId: (item['itemId'] as num?)?.toInt() ?? 0,
+          lineId: (item['lineId'] as num?)?.toInt(),
+          itemName: (item['itemName'] ?? '').toString(),
+          positionCode: positionCode,
+          positionId: positionId,
+          expectedQuantity: (item['expectedQuantity'] as num?)?.toInt() ?? 0,
+        ));
+      }
+    }
+
+    return InventoryTaskDetailsDto(
+      taskId: (json['taskId'] as num?)?.toInt() ?? 0,
+      zoneCode: '',
+      items: items,
+      totalExpectedCount: (json['totalLines'] as num?)?.toInt() ?? items.length,
+      initiatedAt: createdDate,
+    );
   }
 
   Future<CompleteAssignmentResultDto?> completeInventoryAssignmentAsync(CompleteAssignmentDto dto) async {
-    final response = await postAsync('v1/Inventory/complete-assignment', data: dto.toJson());
+    final response = await postAsync(ApiEndpoints.inventoryCompleteAssignment, data: dto.toJson());
     if (response == null) return null;
     return CompleteAssignmentResultDto.fromJson(response);
   }
 
   Future<ItemInfoDto?> getItemInfoAsync(int itemId) async {
-    final response = await getAsync('v1/Item/$itemId');
+    final response = await getAsync(ApiEndpoints.itemInfo(itemId));
     if (response == null) return null;
     return ItemInfoDto.fromJson(response);
   }
 
-  // Order Assembly API Endpoints
+  Future<InventoryStatisticsDto?> processInventoryScanAsync(ProcessInventoryScanDto dto) async {
+    final response = await postAsync(ApiEndpoints.inventoryProcessScan, data: dto.toJson());
+    if (response == null) return null;
+    return InventoryStatisticsDto.fromJson(response);
+  }
 
-  /// Получает список задач сборки для сотрудника
+  // Order Assembly API Endpoints
   Future<List<WorkerAssemblyTaskDto>> getOrderAssemblyTasksAsync(int userId) async {
-    final response = await getAsync('OrderAssembly/tasks/$userId');
+    final response = await getAsync(ApiEndpoints.orderAssemblyTasks(userId));
     if (response == null || response is! List) return [];
     return (response).map((x) => WorkerAssemblyTaskDto.fromJson(x)).toList();
   }
 
-  /// Сканирует штрихкод товара в режиме Сбора
+  Future<WorkerAssemblyTaskDto?> getOrderAssemblyTaskDetailsAsync(int assignmentId) async {
+    final response = await getAsync(ApiEndpoints.orderAssemblyDetails(assignmentId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return WorkerAssemblyTaskDto.fromJson(response);
+  }
+
   Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
     final request = ScanPickRequest(lineId: lineId, barcode: barcode);
-    await postAsync('OrderAssembly/scan-pick', data: request.toJson());
+    await postAsync(ApiEndpoints.orderAssemblyScanPick, data: request.toJson());
   }
 
-  /// Массово переводит товары ячейки в статус «Размещено»
   Future<void> orderAssemblyScanPlaceBulkAsync(int assignmentId, String cellCode) async {
     final request = ScanPlaceBulkRequest(assignmentId: assignmentId, cellCode: cellCode);
-    await postAsync('OrderAssembly/scan-place-bulk', data: request.toJson());
+    await postAsync(ApiEndpoints.orderAssemblyScanPlaceBulk, data: request.toJson());
   }
 
-  /// Фиксирует отсутствие товара
   Future<void> orderAssemblyReportMissingAsync(int lineId, String reason) async {
     final request = ReportMissingRequest(lineId: lineId, reason: reason);
-    await postAsync('OrderAssembly/report-missing', data: request.toJson());
+    await postAsync(ApiEndpoints.orderAssemblyReportMissing, data: request.toJson());
   }
 
-  /// Завершает задачу сборки
   Future<void> orderAssemblyCompleteAsync(int assignmentId) async {
-    await postAsync('OrderAssembly/complete/$assignmentId', data: null);
+    await postAsync(ApiEndpoints.orderAssemblyComplete(assignmentId), data: null);
   }
 }

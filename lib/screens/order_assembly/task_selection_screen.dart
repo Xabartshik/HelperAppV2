@@ -67,7 +67,7 @@ class TaskSelectionScreen extends ConsumerWidget {
         error: (error, _) => _buildErrorState(context, ref, userId, error),
         data: (tasks) => tasks.isEmpty
             ? _buildEmptyState(context, ref, userId)
-            : _buildTaskList(context, tasks),
+            : _buildTaskList(context, ref, userId, tasks),
       ),
     );
   }
@@ -154,7 +154,7 @@ class TaskSelectionScreen extends ConsumerWidget {
   // Список задач
   // ---------------------------------------------------------------------------
 
-  Widget _buildTaskList(BuildContext context, List<WorkerAssemblyTaskDto> tasks) {
+  Widget _buildTaskList(BuildContext context, WidgetRef ref, int userId, List<WorkerAssemblyTaskDto> tasks) {
     return RefreshIndicator(
       color: _primaryColor,
       backgroundColor: _bgGray900,
@@ -165,12 +165,12 @@ class TaskSelectionScreen extends ConsumerWidget {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: tasks.length,
-        itemBuilder: (context, index) => _buildTaskCard(context, tasks[index]),
+        itemBuilder: (context, index) => _buildTaskCard(context, ref, userId, tasks[index]),
       ),
     );
   }
 
-  Widget _buildTaskCard(BuildContext context, WorkerAssemblyTaskDto task) {
+  Widget _buildTaskCard(BuildContext context, WidgetRef ref, int userId, WorkerAssemblyTaskDto task) {
     // Подсчёт статистики задачи
     final totalItems = task.cellPlacements.fold(0, (s, c) => s + c.items.length);
     final totalCells = task.cellPlacements.length;
@@ -187,11 +187,16 @@ class TaskSelectionScreen extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () {
+        onTap: () async {
           Logger.i('TaskSelectionScreen: выбрана задача ${task.assignmentId}');
-          context.push('/order-assembly/active', extra: {
+          final result = await context.push('/order-assembly/active', extra: {
             'assignmentId': task.assignmentId,
+            'taskId': task.taskId,
+            'taskStatusIndex': task.status,
           });
+          if (result == true) {
+            ref.refresh(orderAssemblyTasksProvider(userId));
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),

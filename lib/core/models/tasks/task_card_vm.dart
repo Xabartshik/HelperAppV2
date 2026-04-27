@@ -1,11 +1,75 @@
 import 'task_models.dart';
 
+String taskStatusToRussian(TaskStatus status) {
+  switch (status) {
+    case TaskStatus.newStatus:
+      return 'Новая';
+    case TaskStatus.assigned:
+      return 'Назначена';
+    case TaskStatus.inProgress:
+      return 'В работе';
+    case TaskStatus.completed:
+      return 'Завершена';
+    case TaskStatus.cancelled:
+      return 'Отменена';
+    case TaskStatus.paused:
+      return 'На паузе';
+    case TaskStatus.blocked:
+      return 'Заблокирована';
+  }
+}
+
+String assignmentStatusToRussian(AssignmentStatus status) {
+  switch (status) {
+    case AssignmentStatus.assigned:
+      return 'Назначена';
+    case AssignmentStatus.inProgress:
+      return 'В работе';
+    case AssignmentStatus.paused:
+      return 'На паузе';
+    case AssignmentStatus.completed:
+      return 'Завершена';
+    case AssignmentStatus.cancelled:
+      return 'Отменена';
+  }
+}
+
+String taskTypeToRussian(TaskType type) {
+  switch (type) {
+    case TaskType.inventory:
+      return 'Инвентаризация';
+    case TaskType.orderAssembly:
+      return 'Подготовка заказа к выдаче';
+    case TaskType.receipt:
+      return 'Приёмка';
+    case TaskType.movement:
+      return 'Перемещение';
+    case TaskType.shipping:
+      return 'Отгрузка';
+    case TaskType.packing:
+      return 'Упаковка';
+    case TaskType.audit:
+      return 'Аудит';
+    case TaskType.labeling:
+      return 'Маркировка';
+    case TaskType.loading:
+      return 'Погрузка';
+  }
+}
+
 class TaskCardVm {
   final String kind;
   final int navigationId;
   final String title;
   final String? subtitle;
+
+  final TaskStatus status;
   final String statusText;
+  final int priority;
+  final DateTime? deadline;
+  final int completedSteps;
+  final int totalSteps;
+
   final String? primaryMetric;
   final DateTime createdAt;
   final Map<String, String> badges;
@@ -16,12 +80,21 @@ class TaskCardVm {
     required this.navigationId,
     required this.title,
     this.subtitle,
+    required this.status,
     required this.statusText,
+    required this.priority,
+    this.deadline,
+    this.completedSteps = 0,
+    this.totalSteps = 0,
     this.primaryMetric,
     required this.createdAt,
     required this.badges,
     this.rawTask,
   });
+
+  bool get isOverdue => deadline != null && deadline!.isBefore(DateTime.now().toUtc()) && status != TaskStatus.completed;
+
+  double get progressFraction => totalSteps > 0 ? (completedSteps / totalSteps).clamp(0.0, 1.0) : 0.0;
 
   static TaskCardVm fromTask(TaskItemBase task) {
     if (task is InventoryTaskItem) {
@@ -35,20 +108,25 @@ class TaskCardVm {
 
   static TaskCardVm _mapInventoryTaskToCard(InventoryTaskItem task) {
     final lines = task.lines;
-    final completedCount = lines.where((l) => l.actualQuantity != null).length;
-    final totalCount = lines.length;
-    final varianceCount = lines.where((l) => l.actualQuantity != null && l.actualQuantity != l.expectedQuantity).length;
+
+    final totalCount = lines.isNotEmpty ? lines.length : task.totalLinesCount;
+    final completedCount = lines.isNotEmpty 
+        ? lines.where((l) => l.actualQuantity != null).length 
+        : task.completedLinesCount;
+    
+    final varianceCount = lines.isNotEmpty 
+        ? lines.where((l) => l.actualQuantity != null && l.actualQuantity != l.expectedQuantity).length
+        : 0; // Расхождения на уровне списка не так важны, можно оставить 0
 
     final primaryMetric = totalCount > 0 ? '$completedCount/$totalCount позиций' : 'Нет позиций';
 
     final firstPosition = lines.isNotEmpty ? lines.first.positionCode : null;
     final positionText = firstPosition?.shortDescription ?? firstPosition?.fullDescription ?? '—';
 
-    // В Dart enum.name выдает имя значения в camelCase. Можно улучшить отображение при желании.
     final badges = <String, String>{
       'Позиция': positionText,
-      'Статус задачи': task.status.name, 
-      'Расхождений': varianceCount.toString(),
+      'Статус': assignmentStatusToRussian(task.assignmentStatus),
+      'Расхождения': varianceCount.toString(),
     };
 
     return TaskCardVm(
@@ -56,10 +134,46 @@ class TaskCardVm {
       navigationId: task.assignmentId,
       title: task.title,
       subtitle: task.description,
-      statusText: task.status.name,
+      status: task.status,
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
+      priority: task.priority,
+      deadline: task.deadline,
+      completedSteps: completedCount,
+      totalSteps: totalCount,
       primaryMetric: primaryMetric,
       createdAt: task.createdAt,
       badges: badges,
+      rawTask: task,
+    );
+  }
+
+  static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
+    final totalItems = task.totalLines;
+    
+    // Если массив ячеек пуст, используем счетчик с бэкенда
+    final placedCount = task.cellPlacements.isNotEmpty
+        ? task.cellPlacements.expand((c) => c.items).where((i) => i.status.toLowerCase() == 'placed').length
+        : task.completedLinesCount;
+
+    return TaskCardVm(
+      kind: task.type.name,
+      navigationId: task.assignmentId,
+      title: task.title,
+      subtitle: task.description,
+      status: task.status,
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
+      priority: task.priority,
+      deadline: task.deadline,
+      completedSteps: placedCount,
+      totalSteps: totalItems,
+      primaryMetric: totalItems > 0 ? '$placedCount/$totalItems позиций' : 'Нет позиций',
+      createdAt: task.createdAt,
+      badges: {
+        'Тип': 'Подготовка заказа',
+        'Заказ': '#${task.orderId}',
+        'Статус': assignmentStatusToRussian(task.assignmentStatus),
+        'Ячейки': '${task.cellPlacements.length}',
+      },
       rawTask: task,
     );
   }
@@ -70,38 +184,17 @@ class TaskCardVm {
       navigationId: task.taskId,
       title: task.title,
       subtitle: task.description,
-      statusText: task.status.name,
+      status: task.status,
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
+      priority: task.priority,
+      deadline: task.deadline,
+      completedSteps: 0,
+      totalSteps: 0,
       primaryMetric: 'Приоритет: ${task.priority}',
       createdAt: task.createdAt,
       badges: {
-        'Тип': task.type.name,
-        'Статус': task.status.name,
-      },
-      rawTask: task,
-    );
-  }
-
-  static TaskCardVm _mapOrderAssemblyTaskToCard(OrderAssemblyTaskItem task) {
-    // Подсчитываем количество уже размещённых товаров
-    final placedCount = task.cellPlacements
-        .expand((c) => c.items)
-        .where((i) => i.status.toLowerCase() == 'placed')
-        .length;
-    final totalItems = task.totalLines;
-
-    return TaskCardVm(
-      kind: task.type.name,          // 'orderAssembly'
-      navigationId: task.assignmentId,
-      title: task.title,
-      subtitle: task.description ?? 'Сборка заказа #${task.orderId}',
-      statusText: task.status.name,
-      primaryMetric: totalItems > 0 ? '$placedCount/$totalItems позиций' : 'Нет позиций',
-      createdAt: task.createdAt,
-      badges: {
-        'Тип': 'Сборка',
-        'Заказ': '#${task.orderId}',
-        'Статус': task.status.name,
-        'Ячеек': '${task.cellPlacements.length}',
+        'Тип': taskTypeToRussian(task.type),
+        'Статус': assignmentStatusToRussian(task.assignmentStatus),
       },
       rawTask: task,
     );

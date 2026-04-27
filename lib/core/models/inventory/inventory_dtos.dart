@@ -9,7 +9,7 @@ class PositionCodeDto with _$PositionCodeDto {
     required int branchId,
     @Default('') String zoneCode,
     @Default('') String firstLevelStorageType,
-    @Default('') String fLSNumber,
+    @Default('') String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   }) = _PositionCodeDto;
@@ -34,33 +34,6 @@ class InventoryAssignmentLineWithItemDto with _$InventoryAssignmentLineWithItemD
 
   factory InventoryAssignmentLineWithItemDto.fromJson(Map<String, dynamic> json) => 
       _$InventoryAssignmentLineWithItemDtoFromJson(json);
-}
-
-@freezed
-class InventoryAssignmentDetailedWithItemDto with _$InventoryAssignmentDetailedWithItemDto {
-  const factory InventoryAssignmentDetailedWithItemDto({
-    required int id,
-    @Default('') String taskNumber,
-    @Default('') String description,
-    String? createdDate,
-    @Default([]) List<InventoryAssignmentLineWithItemDto> lines,
-  }) = _InventoryAssignmentDetailedWithItemDto;
-
-  factory InventoryAssignmentDetailedWithItemDto.fromJson(Map<String, dynamic> json) => 
-      _$InventoryAssignmentDetailedWithItemDtoFromJson(json);
-}
-
-@freezed
-class TaskCheckResponse with _$TaskCheckResponse {
-  const factory TaskCheckResponse({
-    required bool hasNewTasks,
-    required int newTaskCount,
-    DateTime? latestTaskTime,
-    required DateTime lastChecked,
-  }) = _TaskCheckResponse;
-
-  factory TaskCheckResponse.fromJson(Map<String, dynamic> json) => 
-      _$TaskCheckResponseFromJson(json);
 }
 
 @freezed
@@ -165,4 +138,18 @@ class ItemInfoDto with _$ItemInfoDto {
 
   factory ItemInfoDto.fromJson(Map<String, dynamic> json) => 
       _$ItemInfoDtoFromJson(json);
+}
+
+@freezed
+class ProcessInventoryScanDto with _$ProcessInventoryScanDto {
+  const factory ProcessInventoryScanDto({
+    required int assignmentId,
+    required int lineId,
+    required int actualQuantity,
+    required int userId,
+    String? note,
+  }) = _ProcessInventoryScanDto;
+
+  factory ProcessInventoryScanDto.fromJson(Map<String, dynamic> json) => 
+      _$ProcessInventoryScanDtoFromJson(json);
 }

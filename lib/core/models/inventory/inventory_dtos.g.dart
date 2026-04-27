@@ -12,7 +12,7 @@ _$PositionCodeDtoImpl _$$PositionCodeDtoImplFromJson(
   branchId: (json['branchId'] as num).toInt(),
   zoneCode: json['zoneCode'] as String? ?? '',
   firstLevelStorageType: json['firstLevelStorageType'] as String? ?? '',
-  fLSNumber: json['fLSNumber'] as String? ?? '',
+  flsNumber: json['flsNumber'] as String? ?? '',
   secondLevelStorage: json['secondLevelStorage'] as String?,
   thirdLevelStorage: json['thirdLevelStorage'] as String?,
 );
@@ -23,7 +23,7 @@ Map<String, dynamic> _$$PositionCodeDtoImplToJson(
   'branchId': instance.branchId,
   'zoneCode': instance.zoneCode,
   'firstLevelStorageType': instance.firstLevelStorageType,
-  'fLSNumber': instance.fLSNumber,
+  'flsNumber': instance.flsNumber,
   'secondLevelStorage': instance.secondLevelStorage,
   'thirdLevelStorage': instance.thirdLevelStorage,
 };
@@ -56,55 +56,6 @@ Map<String, dynamic> _$$InventoryAssignmentLineWithItemDtoImplToJson(
   'itemName': instance.itemName,
   'displayName': instance.displayName,
   'positionCode': instance.positionCode,
-};
-
-_$InventoryAssignmentDetailedWithItemDtoImpl
-_$$InventoryAssignmentDetailedWithItemDtoImplFromJson(
-  Map<String, dynamic> json,
-) => _$InventoryAssignmentDetailedWithItemDtoImpl(
-  id: (json['id'] as num).toInt(),
-  taskNumber: json['taskNumber'] as String? ?? '',
-  description: json['description'] as String? ?? '',
-  createdDate: json['createdDate'] as String?,
-  lines:
-      (json['lines'] as List<dynamic>?)
-          ?.map(
-            (e) => InventoryAssignmentLineWithItemDto.fromJson(
-              e as Map<String, dynamic>,
-            ),
-          )
-          .toList() ??
-      const [],
-);
-
-Map<String, dynamic> _$$InventoryAssignmentDetailedWithItemDtoImplToJson(
-  _$InventoryAssignmentDetailedWithItemDtoImpl instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'taskNumber': instance.taskNumber,
-  'description': instance.description,
-  'createdDate': instance.createdDate,
-  'lines': instance.lines,
-};
-
-_$TaskCheckResponseImpl _$$TaskCheckResponseImplFromJson(
-  Map<String, dynamic> json,
-) => _$TaskCheckResponseImpl(
-  hasNewTasks: json['hasNewTasks'] as bool,
-  newTaskCount: (json['newTaskCount'] as num).toInt(),
-  latestTaskTime: json['latestTaskTime'] == null
-      ? null
-      : DateTime.parse(json['latestTaskTime'] as String),
-  lastChecked: DateTime.parse(json['lastChecked'] as String),
-);
-
-Map<String, dynamic> _$$TaskCheckResponseImplToJson(
-  _$TaskCheckResponseImpl instance,
-) => <String, dynamic>{
-  'hasNewTasks': instance.hasNewTasks,
-  'newTaskCount': instance.newTaskCount,
-  'latestTaskTime': instance.latestTaskTime?.toIso8601String(),
-  'lastChecked': instance.lastChecked.toIso8601String(),
 };
 
 _$InventoryItemDtoImpl _$$InventoryItemDtoImplFromJson(
@@ -275,3 +226,23 @@ _$ItemInfoDtoImpl _$$ItemInfoDtoImplFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$$ItemInfoDtoImplToJson(_$ItemInfoDtoImpl instance) =>
     <String, dynamic>{'itemId': instance.itemId, 'name': instance.name};
+
+_$ProcessInventoryScanDtoImpl _$$ProcessInventoryScanDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$ProcessInventoryScanDtoImpl(
+  assignmentId: (json['assignmentId'] as num).toInt(),
+  lineId: (json['lineId'] as num).toInt(),
+  actualQuantity: (json['actualQuantity'] as num).toInt(),
+  userId: (json['userId'] as num).toInt(),
+  note: json['note'] as String?,
+);
+
+Map<String, dynamic> _$$ProcessInventoryScanDtoImplToJson(
+  _$ProcessInventoryScanDtoImpl instance,
+) => <String, dynamic>{
+  'assignmentId': instance.assignmentId,
+  'lineId': instance.lineId,
+  'actualQuantity': instance.actualQuantity,
+  'userId': instance.userId,
+  'note': instance.note,
+};

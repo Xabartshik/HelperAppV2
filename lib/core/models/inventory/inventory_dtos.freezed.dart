@@ -24,7 +24,7 @@ mixin _$PositionCodeDto {
   int get branchId => throw _privateConstructorUsedError;
   String get zoneCode => throw _privateConstructorUsedError;
   String get firstLevelStorageType => throw _privateConstructorUsedError;
-  String get fLSNumber => throw _privateConstructorUsedError;
+  String get flsNumber => throw _privateConstructorUsedError;
   String? get secondLevelStorage => throw _privateConstructorUsedError;
   String? get thirdLevelStorage => throw _privateConstructorUsedError;
 
@@ -49,7 +49,7 @@ abstract class $PositionCodeDtoCopyWith<$Res> {
     int branchId,
     String zoneCode,
     String firstLevelStorageType,
-    String fLSNumber,
+    String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   });
@@ -73,7 +73,7 @@ class _$PositionCodeDtoCopyWithImpl<$Res, $Val extends PositionCodeDto>
     Object? branchId = null,
     Object? zoneCode = null,
     Object? firstLevelStorageType = null,
-    Object? fLSNumber = null,
+    Object? flsNumber = null,
     Object? secondLevelStorage = freezed,
     Object? thirdLevelStorage = freezed,
   }) {
@@ -91,9 +91,9 @@ class _$PositionCodeDtoCopyWithImpl<$Res, $Val extends PositionCodeDto>
                 ? _value.firstLevelStorageType
                 : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
                       as String,
-            fLSNumber: null == fLSNumber
-                ? _value.fLSNumber
-                : fLSNumber // ignore: cast_nullable_to_non_nullable
+            flsNumber: null == flsNumber
+                ? _value.flsNumber
+                : flsNumber // ignore: cast_nullable_to_non_nullable
                       as String,
             secondLevelStorage: freezed == secondLevelStorage
                 ? _value.secondLevelStorage
@@ -122,7 +122,7 @@ abstract class _$$PositionCodeDtoImplCopyWith<$Res>
     int branchId,
     String zoneCode,
     String firstLevelStorageType,
-    String fLSNumber,
+    String flsNumber,
     String? secondLevelStorage,
     String? thirdLevelStorage,
   });
@@ -145,7 +145,7 @@ class __$$PositionCodeDtoImplCopyWithImpl<$Res>
     Object? branchId = null,
     Object? zoneCode = null,
     Object? firstLevelStorageType = null,
-    Object? fLSNumber = null,
+    Object? flsNumber = null,
     Object? secondLevelStorage = freezed,
     Object? thirdLevelStorage = freezed,
   }) {
@@ -163,9 +163,9 @@ class __$$PositionCodeDtoImplCopyWithImpl<$Res>
             ? _value.firstLevelStorageType
             : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
                   as String,
-        fLSNumber: null == fLSNumber
-            ? _value.fLSNumber
-            : fLSNumber // ignore: cast_nullable_to_non_nullable
+        flsNumber: null == flsNumber
+            ? _value.flsNumber
+            : flsNumber // ignore: cast_nullable_to_non_nullable
                   as String,
         secondLevelStorage: freezed == secondLevelStorage
             ? _value.secondLevelStorage
@@ -187,7 +187,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
     required this.branchId,
     this.zoneCode = '',
     this.firstLevelStorageType = '',
-    this.fLSNumber = '',
+    this.flsNumber = '',
     this.secondLevelStorage,
     this.thirdLevelStorage,
   });
@@ -205,7 +205,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
   final String firstLevelStorageType;
   @override
   @JsonKey()
-  final String fLSNumber;
+  final String flsNumber;
   @override
   final String? secondLevelStorage;
   @override
@@ -213,7 +213,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
 
   @override
   String toString() {
-    return 'PositionCodeDto(branchId: $branchId, zoneCode: $zoneCode, firstLevelStorageType: $firstLevelStorageType, fLSNumber: $fLSNumber, secondLevelStorage: $secondLevelStorage, thirdLevelStorage: $thirdLevelStorage)';
+    return 'PositionCodeDto(branchId: $branchId, zoneCode: $zoneCode, firstLevelStorageType: $firstLevelStorageType, flsNumber: $flsNumber, secondLevelStorage: $secondLevelStorage, thirdLevelStorage: $thirdLevelStorage)';
   }
 
   @override
@@ -227,8 +227,8 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
                 other.zoneCode == zoneCode) &&
             (identical(other.firstLevelStorageType, firstLevelStorageType) ||
                 other.firstLevelStorageType == firstLevelStorageType) &&
-            (identical(other.fLSNumber, fLSNumber) ||
-                other.fLSNumber == fLSNumber) &&
+            (identical(other.flsNumber, flsNumber) ||
+                other.flsNumber == flsNumber) &&
             (identical(other.secondLevelStorage, secondLevelStorage) ||
                 other.secondLevelStorage == secondLevelStorage) &&
             (identical(other.thirdLevelStorage, thirdLevelStorage) ||
@@ -242,7 +242,7 @@ class _$PositionCodeDtoImpl implements _PositionCodeDto {
     branchId,
     zoneCode,
     firstLevelStorageType,
-    fLSNumber,
+    flsNumber,
     secondLevelStorage,
     thirdLevelStorage,
   );
@@ -269,7 +269,7 @@ abstract class _PositionCodeDto implements PositionCodeDto {
     required final int branchId,
     final String zoneCode,
     final String firstLevelStorageType,
-    final String fLSNumber,
+    final String flsNumber,
     final String? secondLevelStorage,
     final String? thirdLevelStorage,
   }) = _$PositionCodeDtoImpl;
@@ -284,7 +284,7 @@ abstract class _PositionCodeDto implements PositionCodeDto {
   @override
   String get firstLevelStorageType;
   @override
-  String get fLSNumber;
+  String get flsNumber;
   @override
   String? get secondLevelStorage;
   @override
@@ -680,529 +680,6 @@ abstract class _InventoryAssignmentLineWithItemDto
     _$InventoryAssignmentLineWithItemDtoImpl
   >
   get copyWith => throw _privateConstructorUsedError;
-}
-
-InventoryAssignmentDetailedWithItemDto
-_$InventoryAssignmentDetailedWithItemDtoFromJson(Map<String, dynamic> json) {
-  return _InventoryAssignmentDetailedWithItemDto.fromJson(json);
-}
-
-/// @nodoc
-mixin _$InventoryAssignmentDetailedWithItemDto {
-  int get id => throw _privateConstructorUsedError;
-  String get taskNumber => throw _privateConstructorUsedError;
-  String get description => throw _privateConstructorUsedError;
-  String? get createdDate => throw _privateConstructorUsedError;
-  List<InventoryAssignmentLineWithItemDto> get lines =>
-      throw _privateConstructorUsedError;
-
-  /// Serializes this InventoryAssignmentDetailedWithItemDto to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of InventoryAssignmentDetailedWithItemDto
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $InventoryAssignmentDetailedWithItemDtoCopyWith<
-    InventoryAssignmentDetailedWithItemDto
-  >
-  get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $InventoryAssignmentDetailedWithItemDtoCopyWith<$Res> {
-  factory $InventoryAssignmentDetailedWithItemDtoCopyWith(
-    InventoryAssignmentDetailedWithItemDto value,
-    $Res Function(InventoryAssignmentDetailedWithItemDto) then,
-  ) =
-      _$InventoryAssignmentDetailedWithItemDtoCopyWithImpl<
-        $Res,
-        InventoryAssignmentDetailedWithItemDto
-      >;
-  @useResult
-  $Res call({
-    int id,
-    String taskNumber,
-    String description,
-    String? createdDate,
-    List<InventoryAssignmentLineWithItemDto> lines,
-  });
-}
-
-/// @nodoc
-class _$InventoryAssignmentDetailedWithItemDtoCopyWithImpl<
-  $Res,
-  $Val extends InventoryAssignmentDetailedWithItemDto
->
-    implements $InventoryAssignmentDetailedWithItemDtoCopyWith<$Res> {
-  _$InventoryAssignmentDetailedWithItemDtoCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of InventoryAssignmentDetailedWithItemDto
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? taskNumber = null,
-    Object? description = null,
-    Object? createdDate = freezed,
-    Object? lines = null,
-  }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as int,
-            taskNumber: null == taskNumber
-                ? _value.taskNumber
-                : taskNumber // ignore: cast_nullable_to_non_nullable
-                      as String,
-            description: null == description
-                ? _value.description
-                : description // ignore: cast_nullable_to_non_nullable
-                      as String,
-            createdDate: freezed == createdDate
-                ? _value.createdDate
-                : createdDate // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            lines: null == lines
-                ? _value.lines
-                : lines // ignore: cast_nullable_to_non_nullable
-                      as List<InventoryAssignmentLineWithItemDto>,
-          )
-          as $Val,
-    );
-  }
-}
-
-/// @nodoc
-abstract class _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith<$Res>
-    implements $InventoryAssignmentDetailedWithItemDtoCopyWith<$Res> {
-  factory _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith(
-    _$InventoryAssignmentDetailedWithItemDtoImpl value,
-    $Res Function(_$InventoryAssignmentDetailedWithItemDtoImpl) then,
-  ) = __$$InventoryAssignmentDetailedWithItemDtoImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({
-    int id,
-    String taskNumber,
-    String description,
-    String? createdDate,
-    List<InventoryAssignmentLineWithItemDto> lines,
-  });
-}
-
-/// @nodoc
-class __$$InventoryAssignmentDetailedWithItemDtoImplCopyWithImpl<$Res>
-    extends
-        _$InventoryAssignmentDetailedWithItemDtoCopyWithImpl<
-          $Res,
-          _$InventoryAssignmentDetailedWithItemDtoImpl
-        >
-    implements _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith<$Res> {
-  __$$InventoryAssignmentDetailedWithItemDtoImplCopyWithImpl(
-    _$InventoryAssignmentDetailedWithItemDtoImpl _value,
-    $Res Function(_$InventoryAssignmentDetailedWithItemDtoImpl) _then,
-  ) : super(_value, _then);
-
-  /// Create a copy of InventoryAssignmentDetailedWithItemDto
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? taskNumber = null,
-    Object? description = null,
-    Object? createdDate = freezed,
-    Object? lines = null,
-  }) {
-    return _then(
-      _$InventoryAssignmentDetailedWithItemDtoImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as int,
-        taskNumber: null == taskNumber
-            ? _value.taskNumber
-            : taskNumber // ignore: cast_nullable_to_non_nullable
-                  as String,
-        description: null == description
-            ? _value.description
-            : description // ignore: cast_nullable_to_non_nullable
-                  as String,
-        createdDate: freezed == createdDate
-            ? _value.createdDate
-            : createdDate // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        lines: null == lines
-            ? _value._lines
-            : lines // ignore: cast_nullable_to_non_nullable
-                  as List<InventoryAssignmentLineWithItemDto>,
-      ),
-    );
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$InventoryAssignmentDetailedWithItemDtoImpl
-    implements _InventoryAssignmentDetailedWithItemDto {
-  const _$InventoryAssignmentDetailedWithItemDtoImpl({
-    required this.id,
-    this.taskNumber = '',
-    this.description = '',
-    this.createdDate,
-    final List<InventoryAssignmentLineWithItemDto> lines = const [],
-  }) : _lines = lines;
-
-  factory _$InventoryAssignmentDetailedWithItemDtoImpl.fromJson(
-    Map<String, dynamic> json,
-  ) => _$$InventoryAssignmentDetailedWithItemDtoImplFromJson(json);
-
-  @override
-  final int id;
-  @override
-  @JsonKey()
-  final String taskNumber;
-  @override
-  @JsonKey()
-  final String description;
-  @override
-  final String? createdDate;
-  final List<InventoryAssignmentLineWithItemDto> _lines;
-  @override
-  @JsonKey()
-  List<InventoryAssignmentLineWithItemDto> get lines {
-    if (_lines is EqualUnmodifiableListView) return _lines;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_lines);
-  }
-
-  @override
-  String toString() {
-    return 'InventoryAssignmentDetailedWithItemDto(id: $id, taskNumber: $taskNumber, description: $description, createdDate: $createdDate, lines: $lines)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$InventoryAssignmentDetailedWithItemDtoImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.taskNumber, taskNumber) ||
-                other.taskNumber == taskNumber) &&
-            (identical(other.description, description) ||
-                other.description == description) &&
-            (identical(other.createdDate, createdDate) ||
-                other.createdDate == createdDate) &&
-            const DeepCollectionEquality().equals(other._lines, _lines));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    taskNumber,
-    description,
-    createdDate,
-    const DeepCollectionEquality().hash(_lines),
-  );
-
-  /// Create a copy of InventoryAssignmentDetailedWithItemDto
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith<
-    _$InventoryAssignmentDetailedWithItemDtoImpl
-  >
-  get copyWith =>
-      __$$InventoryAssignmentDetailedWithItemDtoImplCopyWithImpl<
-        _$InventoryAssignmentDetailedWithItemDtoImpl
-      >(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$InventoryAssignmentDetailedWithItemDtoImplToJson(this);
-  }
-}
-
-abstract class _InventoryAssignmentDetailedWithItemDto
-    implements InventoryAssignmentDetailedWithItemDto {
-  const factory _InventoryAssignmentDetailedWithItemDto({
-    required final int id,
-    final String taskNumber,
-    final String description,
-    final String? createdDate,
-    final List<InventoryAssignmentLineWithItemDto> lines,
-  }) = _$InventoryAssignmentDetailedWithItemDtoImpl;
-
-  factory _InventoryAssignmentDetailedWithItemDto.fromJson(
-    Map<String, dynamic> json,
-  ) = _$InventoryAssignmentDetailedWithItemDtoImpl.fromJson;
-
-  @override
-  int get id;
-  @override
-  String get taskNumber;
-  @override
-  String get description;
-  @override
-  String? get createdDate;
-  @override
-  List<InventoryAssignmentLineWithItemDto> get lines;
-
-  /// Create a copy of InventoryAssignmentDetailedWithItemDto
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$InventoryAssignmentDetailedWithItemDtoImplCopyWith<
-    _$InventoryAssignmentDetailedWithItemDtoImpl
-  >
-  get copyWith => throw _privateConstructorUsedError;
-}
-
-TaskCheckResponse _$TaskCheckResponseFromJson(Map<String, dynamic> json) {
-  return _TaskCheckResponse.fromJson(json);
-}
-
-/// @nodoc
-mixin _$TaskCheckResponse {
-  bool get hasNewTasks => throw _privateConstructorUsedError;
-  int get newTaskCount => throw _privateConstructorUsedError;
-  DateTime? get latestTaskTime => throw _privateConstructorUsedError;
-  DateTime get lastChecked => throw _privateConstructorUsedError;
-
-  /// Serializes this TaskCheckResponse to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of TaskCheckResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TaskCheckResponseCopyWith<TaskCheckResponse> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $TaskCheckResponseCopyWith<$Res> {
-  factory $TaskCheckResponseCopyWith(
-    TaskCheckResponse value,
-    $Res Function(TaskCheckResponse) then,
-  ) = _$TaskCheckResponseCopyWithImpl<$Res, TaskCheckResponse>;
-  @useResult
-  $Res call({
-    bool hasNewTasks,
-    int newTaskCount,
-    DateTime? latestTaskTime,
-    DateTime lastChecked,
-  });
-}
-
-/// @nodoc
-class _$TaskCheckResponseCopyWithImpl<$Res, $Val extends TaskCheckResponse>
-    implements $TaskCheckResponseCopyWith<$Res> {
-  _$TaskCheckResponseCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of TaskCheckResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? hasNewTasks = null,
-    Object? newTaskCount = null,
-    Object? latestTaskTime = freezed,
-    Object? lastChecked = null,
-  }) {
-    return _then(
-      _value.copyWith(
-            hasNewTasks: null == hasNewTasks
-                ? _value.hasNewTasks
-                : hasNewTasks // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            newTaskCount: null == newTaskCount
-                ? _value.newTaskCount
-                : newTaskCount // ignore: cast_nullable_to_non_nullable
-                      as int,
-            latestTaskTime: freezed == latestTaskTime
-                ? _value.latestTaskTime
-                : latestTaskTime // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            lastChecked: null == lastChecked
-                ? _value.lastChecked
-                : lastChecked // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-          )
-          as $Val,
-    );
-  }
-}
-
-/// @nodoc
-abstract class _$$TaskCheckResponseImplCopyWith<$Res>
-    implements $TaskCheckResponseCopyWith<$Res> {
-  factory _$$TaskCheckResponseImplCopyWith(
-    _$TaskCheckResponseImpl value,
-    $Res Function(_$TaskCheckResponseImpl) then,
-  ) = __$$TaskCheckResponseImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({
-    bool hasNewTasks,
-    int newTaskCount,
-    DateTime? latestTaskTime,
-    DateTime lastChecked,
-  });
-}
-
-/// @nodoc
-class __$$TaskCheckResponseImplCopyWithImpl<$Res>
-    extends _$TaskCheckResponseCopyWithImpl<$Res, _$TaskCheckResponseImpl>
-    implements _$$TaskCheckResponseImplCopyWith<$Res> {
-  __$$TaskCheckResponseImplCopyWithImpl(
-    _$TaskCheckResponseImpl _value,
-    $Res Function(_$TaskCheckResponseImpl) _then,
-  ) : super(_value, _then);
-
-  /// Create a copy of TaskCheckResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? hasNewTasks = null,
-    Object? newTaskCount = null,
-    Object? latestTaskTime = freezed,
-    Object? lastChecked = null,
-  }) {
-    return _then(
-      _$TaskCheckResponseImpl(
-        hasNewTasks: null == hasNewTasks
-            ? _value.hasNewTasks
-            : hasNewTasks // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        newTaskCount: null == newTaskCount
-            ? _value.newTaskCount
-            : newTaskCount // ignore: cast_nullable_to_non_nullable
-                  as int,
-        latestTaskTime: freezed == latestTaskTime
-            ? _value.latestTaskTime
-            : latestTaskTime // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        lastChecked: null == lastChecked
-            ? _value.lastChecked
-            : lastChecked // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-      ),
-    );
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$TaskCheckResponseImpl implements _TaskCheckResponse {
-  const _$TaskCheckResponseImpl({
-    required this.hasNewTasks,
-    required this.newTaskCount,
-    this.latestTaskTime,
-    required this.lastChecked,
-  });
-
-  factory _$TaskCheckResponseImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TaskCheckResponseImplFromJson(json);
-
-  @override
-  final bool hasNewTasks;
-  @override
-  final int newTaskCount;
-  @override
-  final DateTime? latestTaskTime;
-  @override
-  final DateTime lastChecked;
-
-  @override
-  String toString() {
-    return 'TaskCheckResponse(hasNewTasks: $hasNewTasks, newTaskCount: $newTaskCount, latestTaskTime: $latestTaskTime, lastChecked: $lastChecked)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TaskCheckResponseImpl &&
-            (identical(other.hasNewTasks, hasNewTasks) ||
-                other.hasNewTasks == hasNewTasks) &&
-            (identical(other.newTaskCount, newTaskCount) ||
-                other.newTaskCount == newTaskCount) &&
-            (identical(other.latestTaskTime, latestTaskTime) ||
-                other.latestTaskTime == latestTaskTime) &&
-            (identical(other.lastChecked, lastChecked) ||
-                other.lastChecked == lastChecked));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    hasNewTasks,
-    newTaskCount,
-    latestTaskTime,
-    lastChecked,
-  );
-
-  /// Create a copy of TaskCheckResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TaskCheckResponseImplCopyWith<_$TaskCheckResponseImpl> get copyWith =>
-      __$$TaskCheckResponseImplCopyWithImpl<_$TaskCheckResponseImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TaskCheckResponseImplToJson(this);
-  }
-}
-
-abstract class _TaskCheckResponse implements TaskCheckResponse {
-  const factory _TaskCheckResponse({
-    required final bool hasNewTasks,
-    required final int newTaskCount,
-    final DateTime? latestTaskTime,
-    required final DateTime lastChecked,
-  }) = _$TaskCheckResponseImpl;
-
-  factory _TaskCheckResponse.fromJson(Map<String, dynamic> json) =
-      _$TaskCheckResponseImpl.fromJson;
-
-  @override
-  bool get hasNewTasks;
-  @override
-  int get newTaskCount;
-  @override
-  DateTime? get latestTaskTime;
-  @override
-  DateTime get lastChecked;
-
-  /// Create a copy of TaskCheckResponse
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TaskCheckResponseImplCopyWith<_$TaskCheckResponseImpl> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 InventoryItemDto _$InventoryItemDtoFromJson(Map<String, dynamic> json) {
@@ -3194,4 +2671,268 @@ abstract class _ItemInfoDto implements ItemInfoDto {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ItemInfoDtoImplCopyWith<_$ItemInfoDtoImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+ProcessInventoryScanDto _$ProcessInventoryScanDtoFromJson(
+  Map<String, dynamic> json,
+) {
+  return _ProcessInventoryScanDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProcessInventoryScanDto {
+  int get assignmentId => throw _privateConstructorUsedError;
+  int get lineId => throw _privateConstructorUsedError;
+  int get actualQuantity => throw _privateConstructorUsedError;
+  int get userId => throw _privateConstructorUsedError;
+  String? get note => throw _privateConstructorUsedError;
+
+  /// Serializes this ProcessInventoryScanDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProcessInventoryScanDtoCopyWith<ProcessInventoryScanDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProcessInventoryScanDtoCopyWith<$Res> {
+  factory $ProcessInventoryScanDtoCopyWith(
+    ProcessInventoryScanDto value,
+    $Res Function(ProcessInventoryScanDto) then,
+  ) = _$ProcessInventoryScanDtoCopyWithImpl<$Res, ProcessInventoryScanDto>;
+  @useResult
+  $Res call({
+    int assignmentId,
+    int lineId,
+    int actualQuantity,
+    int userId,
+    String? note,
+  });
+}
+
+/// @nodoc
+class _$ProcessInventoryScanDtoCopyWithImpl<
+  $Res,
+  $Val extends ProcessInventoryScanDto
+>
+    implements $ProcessInventoryScanDtoCopyWith<$Res> {
+  _$ProcessInventoryScanDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? assignmentId = null,
+    Object? lineId = null,
+    Object? actualQuantity = null,
+    Object? userId = null,
+    Object? note = freezed,
+  }) {
+    return _then(
+      _value.copyWith(
+            assignmentId: null == assignmentId
+                ? _value.assignmentId
+                : assignmentId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            lineId: null == lineId
+                ? _value.lineId
+                : lineId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            actualQuantity: null == actualQuantity
+                ? _value.actualQuantity
+                : actualQuantity // ignore: cast_nullable_to_non_nullable
+                      as int,
+            userId: null == userId
+                ? _value.userId
+                : userId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            note: freezed == note
+                ? _value.note
+                : note // ignore: cast_nullable_to_non_nullable
+                      as String?,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$ProcessInventoryScanDtoImplCopyWith<$Res>
+    implements $ProcessInventoryScanDtoCopyWith<$Res> {
+  factory _$$ProcessInventoryScanDtoImplCopyWith(
+    _$ProcessInventoryScanDtoImpl value,
+    $Res Function(_$ProcessInventoryScanDtoImpl) then,
+  ) = __$$ProcessInventoryScanDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({
+    int assignmentId,
+    int lineId,
+    int actualQuantity,
+    int userId,
+    String? note,
+  });
+}
+
+/// @nodoc
+class __$$ProcessInventoryScanDtoImplCopyWithImpl<$Res>
+    extends
+        _$ProcessInventoryScanDtoCopyWithImpl<
+          $Res,
+          _$ProcessInventoryScanDtoImpl
+        >
+    implements _$$ProcessInventoryScanDtoImplCopyWith<$Res> {
+  __$$ProcessInventoryScanDtoImplCopyWithImpl(
+    _$ProcessInventoryScanDtoImpl _value,
+    $Res Function(_$ProcessInventoryScanDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? assignmentId = null,
+    Object? lineId = null,
+    Object? actualQuantity = null,
+    Object? userId = null,
+    Object? note = freezed,
+  }) {
+    return _then(
+      _$ProcessInventoryScanDtoImpl(
+        assignmentId: null == assignmentId
+            ? _value.assignmentId
+            : assignmentId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        lineId: null == lineId
+            ? _value.lineId
+            : lineId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        actualQuantity: null == actualQuantity
+            ? _value.actualQuantity
+            : actualQuantity // ignore: cast_nullable_to_non_nullable
+                  as int,
+        userId: null == userId
+            ? _value.userId
+            : userId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        note: freezed == note
+            ? _value.note
+            : note // ignore: cast_nullable_to_non_nullable
+                  as String?,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ProcessInventoryScanDtoImpl implements _ProcessInventoryScanDto {
+  const _$ProcessInventoryScanDtoImpl({
+    required this.assignmentId,
+    required this.lineId,
+    required this.actualQuantity,
+    required this.userId,
+    this.note,
+  });
+
+  factory _$ProcessInventoryScanDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProcessInventoryScanDtoImplFromJson(json);
+
+  @override
+  final int assignmentId;
+  @override
+  final int lineId;
+  @override
+  final int actualQuantity;
+  @override
+  final int userId;
+  @override
+  final String? note;
+
+  @override
+  String toString() {
+    return 'ProcessInventoryScanDto(assignmentId: $assignmentId, lineId: $lineId, actualQuantity: $actualQuantity, userId: $userId, note: $note)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProcessInventoryScanDtoImpl &&
+            (identical(other.assignmentId, assignmentId) ||
+                other.assignmentId == assignmentId) &&
+            (identical(other.lineId, lineId) || other.lineId == lineId) &&
+            (identical(other.actualQuantity, actualQuantity) ||
+                other.actualQuantity == actualQuantity) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.note, note) || other.note == note));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+    runtimeType,
+    assignmentId,
+    lineId,
+    actualQuantity,
+    userId,
+    note,
+  );
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProcessInventoryScanDtoImplCopyWith<_$ProcessInventoryScanDtoImpl>
+  get copyWith =>
+      __$$ProcessInventoryScanDtoImplCopyWithImpl<
+        _$ProcessInventoryScanDtoImpl
+      >(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProcessInventoryScanDtoImplToJson(this);
+  }
+}
+
+abstract class _ProcessInventoryScanDto implements ProcessInventoryScanDto {
+  const factory _ProcessInventoryScanDto({
+    required final int assignmentId,
+    required final int lineId,
+    required final int actualQuantity,
+    required final int userId,
+    final String? note,
+  }) = _$ProcessInventoryScanDtoImpl;
+
+  factory _ProcessInventoryScanDto.fromJson(Map<String, dynamic> json) =
+      _$ProcessInventoryScanDtoImpl.fromJson;
+
+  @override
+  int get assignmentId;
+  @override
+  int get lineId;
+  @override
+  int get actualQuantity;
+  @override
+  int get userId;
+  @override
+  String? get note;
+
+  /// Create a copy of ProcessInventoryScanDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProcessInventoryScanDtoImplCopyWith<_$ProcessInventoryScanDtoImpl>
+  get copyWith => throw _privateConstructorUsedError;
 }

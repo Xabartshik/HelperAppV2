@@ -1,28 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/screens/home/main_viewmodel.dart';
+import '../tasks/base_task_screen.dart';
 import 'inventory_viewmodel.dart';
 
 class InventoryDetailsPage extends ConsumerStatefulWidget {
   final int workerId;
   final int assignmentId;
+  final int taskId;
+  final int? taskStatusIndex;
+  final int? assignmentStatusIndex;
 
   const InventoryDetailsPage({
     super.key,
     required this.workerId,
     required this.assignmentId,
+    this.taskId = 0,
+    this.taskStatusIndex,
+    this.assignmentStatusIndex,
   });
 
   @override
   ConsumerState<InventoryDetailsPage> createState() => _InventoryDetailsPageState();
 }
 
-class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
+class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
+    with BaseTaskScreenMixin<InventoryDetailsPage> {
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _bgGray950 = const Color(0xFF1C1C1E);
   final Color _bgGray900 = const Color(0xFF2C2C2E);
   final Color _primaryColor = const Color(0xFF7C3AED);
   final Color _textColor = Colors.white;
+
+  @override
+  BaseTaskScreenArgs get baseTaskArgs => BaseTaskScreenArgs(
+        taskId: widget.taskId,
+        workerId: widget.workerId,
+        taskStatusIndex: widget.taskStatusIndex,
+        assignmentStatusIndex: widget.assignmentStatusIndex,
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    initializeTaskStartState();
+  }
+
+  @override
+  Future<void> onTaskStarted() async {
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    await ref.read(provider.notifier).loadDetailsAsync();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +77,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               child: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(child: _buildHeader(state, vm)),
+                  if (!canEditTask) SliverToBoxAdapter(child: _buildStartTaskBanner()),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -106,7 +136,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => _handleComplete(vm),
+                  onPressed: canEditTask ? () => _handleComplete(vm) : null,
                   icon: const Icon(Icons.check, size: 16, color: Colors.white),
                   label: const Text('Завершить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
@@ -178,6 +208,15 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
     );
   }
 
+  Widget _buildStartTaskBanner() {
+    return buildTaskNotStartedBanner(
+      backgroundColor: _bgGray900,
+      actionColor: _primaryColor,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      subtitle: 'Доступен только просмотр деталей.',
+    );
+  }
+
   Widget _buildGroupMenu(InventoryGroupVm group, InventoryViewModel vm) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -211,7 +250,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
           if (group.isExpanded) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}),
+              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}) : null,
               icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
               label: const Text('Сканировать', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
@@ -273,7 +312,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => vm.markAsAbsent(item),
+                    onPressed: canEditTask ? () => vm.markAsAbsent(item) : null,
                     icon: const Icon(Icons.close, size: 14, color: Colors.white),
                     label: const Text('Отсутствует', style: TextStyle(color: Colors.white, fontSize: 11)),
                     style: ElevatedButton.styleFrom(
@@ -286,7 +325,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _showManualEntryDialog(item, vm),
+                    onPressed: canEditTask ? () => _showManualEntryDialog(item, vm) : null,
                     icon: const Icon(Icons.edit, size: 14, color: Colors.white),
                     label: const Text('Ввести', style: TextStyle(color: Colors.white, fontSize: 11)),
                     style: ElevatedButton.styleFrom(
@@ -394,34 +433,13 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage> {
     }
 
     final result = await vm.completeInventoryAsync();
-    
+
     if (result != null && mounted) {
-      var report = "✅ Инвентаризация завершена\n\n"
-          "Всего позиций: ${result.statistics?.totalPositions ?? 0}\n"
-          "Проверено: ${result.statistics?.countedPositions ?? 0}\n"
-          "Прогресс: ${result.statistics?.completionPercentage.toStringAsFixed(1) ?? '0'}%\n\n"
-          "Расхождений: ${result.statistics?.discrepancyCount ?? 0}\n";
-
-      if ((result.statistics?.discrepancyCount ?? 0) > 0) {
-        report += "  ├ Излишков: ${result.statistics?.surplusCount} (+${result.statistics?.totalSurplusQuantity} шт.)\n"
-                  "  └ Недостач: ${result.statistics?.shortageCount} (-${result.statistics?.totalShortageQuantity} шт.)\n\n";
-      }
-      report += result.message;
-
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: _bgGray950,
-          title: const Text('Отчёт', style: TextStyle(color: Colors.white)),
-          content: Text(report, style: const TextStyle(color: Colors.white70)),
-          actions: [
-            ElevatedButton(onPressed: () {
-              Navigator.pop(context); // закрываем диалог
-              context.go('/home'); // на главную
-            }, style: ElevatedButton.styleFrom(backgroundColor: _primaryColor), child: const Text('OK', style: TextStyle(color: Colors.white))),
-          ],
-        ),
+      ref.read(mainViewModelProvider.notifier).refreshTasks();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message.isNotEmpty ? result.message : 'Инвентаризация завершена')),
       );
+      context.pop(true);
     }
   }
 }

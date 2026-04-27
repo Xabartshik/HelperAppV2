@@ -1,3 +1,5 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
 enum TaskType {
   inventory,
   orderAssembly,
@@ -16,8 +18,16 @@ enum TaskStatus {
   inProgress,
   completed,
   cancelled,
-  onHold,
+  paused,
   blocked
+}
+
+enum AssignmentStatus{
+    @JsonValue(0) assigned,
+    @JsonValue(1) inProgress,
+    @JsonValue(2) paused,
+    @JsonValue(3) completed,
+    @JsonValue(4) cancelled
 }
 
 class PositionCodeInfo {
@@ -58,8 +68,10 @@ abstract class TaskItemBase {
   String title;
   String? description;
   TaskStatus status;
-  int priority;
+  AssignmentStatus assignmentStatus;
+  int priority;      // Уровень приоритета (уже был, убедимся в использовании)
   DateTime createdAt;
+  DateTime? deadline;
   DateTime? completedAt;
   int assignedToEmployeeId;
   DateTime assignedAt;
@@ -71,7 +83,9 @@ abstract class TaskItemBase {
     required this.title,
     this.description,
     required this.status,
+    required this.assignmentStatus,
     required this.priority,
+    this.deadline,
     required this.createdAt,
     this.completedAt,
     required this.assignedToEmployeeId,
@@ -92,27 +106,6 @@ class InventoryLineItem {
     required this.expectedQuantity,
     this.actualQuantity,
     this.positionCode,
-  });
-}
-
-class InventoryTaskItem extends TaskItemBase {
-  final int assignmentId;
-  final List<InventoryLineItem> lines;
-
-  InventoryTaskItem({
-    required super.taskId,
-    required super.type,
-    required super.branchId,
-    required super.title,
-    super.description,
-    required super.status,
-    required super.priority,
-    required super.createdAt,
-    super.completedAt,
-    required super.assignedToEmployeeId,
-    required super.assignedAt,
-    required this.assignmentId,
-    required this.lines,
   });
 }
 
@@ -143,10 +136,39 @@ class CellPlacementInfo {
 }
 
 /// Задача сборки заказа — отображается рядом с задачами инвентаризации
+class InventoryTaskItem extends TaskItemBase {
+  final int assignmentId;
+  final List<InventoryLineItem> lines;
+  final int totalLinesCount;      
+  final int completedLinesCount;
+
+  InventoryTaskItem({
+    required super.taskId,
+    required super.type,
+    required super.branchId,
+    required super.title,
+    super.description,
+    required super.status,
+    required super.assignmentStatus,
+    required super.priority,
+    super.deadline,
+    required super.createdAt,
+    super.completedAt,
+    required super.assignedToEmployeeId,
+    required super.assignedAt,
+    required this.assignmentId,
+    required this.lines,
+    this.totalLinesCount = 0,
+    this.completedLinesCount = 0,
+  });
+}
+
+/// Задача сборки заказа — отображается рядом с задачами инвентаризации
 class OrderAssemblyTaskItem extends TaskItemBase {
   final int assignmentId;
   final int orderId;
   final int totalLines;
+  final int completedLinesCount;
   final List<CellPlacementInfo> cellPlacements;
 
   OrderAssemblyTaskItem({
@@ -156,7 +178,9 @@ class OrderAssemblyTaskItem extends TaskItemBase {
     required super.title,
     super.description,
     required super.status,
+    required super.assignmentStatus,
     required super.priority,
+    super.deadline,
     required super.createdAt,
     super.completedAt,
     required super.assignedToEmployeeId,
@@ -164,6 +188,9 @@ class OrderAssemblyTaskItem extends TaskItemBase {
     required this.assignmentId,
     required this.orderId,
     required this.totalLines,
+    this.completedLinesCount = 0,
     required this.cellPlacements,
   });
+
+  
 }

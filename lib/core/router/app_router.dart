@@ -42,8 +42,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final args = state.extra as Map<String, dynamic>? ?? {};
           return InventoryDetailsPage(
-            workerId: args['workerId'] as int? ?? 0, 
+            workerId: args['workerId'] as int? ?? 0,
             assignmentId: args['assignmentId'] as int? ?? 0,
+            taskId: args['taskId'] as int? ?? 0,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
+            assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
       ),
@@ -67,6 +70,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           final args = state.extra as Map<String, dynamic>? ?? {};
           return ActiveAssemblyScreen(
             assignmentId: args['assignmentId'] as int? ?? 0,
+            taskId: args['taskId'] as int? ?? 0,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
+            assignmentStatusIndex: args['assignmentStatus'] as int?,
           );
         },
       ),

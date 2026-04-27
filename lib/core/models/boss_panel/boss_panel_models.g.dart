@@ -129,7 +129,7 @@ _$CreateInventoryByZoneDtoImpl _$$CreateInventoryByZoneDtoImplFromJson(
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  priority: (json['priority'] as num?)?.toInt() ?? 3,
+  priorityLevel: (json['priorityLevel'] as num?)?.toInt() ?? 3,
   workerCount: (json['workerCount'] as num?)?.toInt() ?? 1,
   workerIds: (json['workerIds'] as List<dynamic>?)
       ?.map((e) => (e as num).toInt())
@@ -144,7 +144,7 @@ Map<String, dynamic> _$$CreateInventoryByZoneDtoImplToJson(
   _$CreateInventoryByZoneDtoImpl instance,
 ) => <String, dynamic>{
   'zonePrefixes': instance.zonePrefixes,
-  'priority': instance.priority,
+  'priorityLevel': instance.priorityLevel,
   'workerCount': instance.workerCount,
   'workerIds': instance.workerIds,
   'description': instance.description,
