@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
 import 'package:helper_app/screens/login/register_page.dart';
+import 'package:helper_app/screens/create_order/create_order_page.dart';
 import '../services/auth_service.dart';
 
 // Импорты существующих экранов
@@ -44,6 +45,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/customer-home',
         name: 'customer_home',
         builder: (context, state) => const CustomerHomePage(),
+      ),
+      GoRoute(
+        path: '/customer/orders/create',
+        name: 'customer_orders_create',
+        builder: (context, state) => const CreateOrderPage(),
       ),
       
       // Маршруты сотрудников
@@ -125,6 +131,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return (user.role == MobileUserRole.customer) ? '/customer-home' : '/home';
       }
 
+<<<<<<< HEAD
       // 3. Защита маршрутов: не пускать покупателя в складскую часть
       // Если это покупатель и путь НЕ начинается с /customer
       if (user.role != MobileUserRole.customer) {
@@ -133,6 +140,16 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя (опционально)
       if (user.role != MobileUserRole.customer) {
+=======
+      // 3. Защита маршрутов: не пускать покупателя в складскую часть.
+      // Но маршруты /customer/* разрешаем.
+      if (user.role == MobileUserRole.customer && !state.uri.path.startsWith('/customer')) {
+        return '/customer-home';
+      }
+
+      // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя.
+      if (user.role != MobileUserRole.customer && state.uri.path.startsWith('/customer')) {
+>>>>>>> 0bbc2bc8efc0a420e0a7514efe3fc717d244b3d1
         return '/home';
       }
 
