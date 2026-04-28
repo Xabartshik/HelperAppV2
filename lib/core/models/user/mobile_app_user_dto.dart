@@ -8,7 +8,9 @@ part 'mobile_app_user_dto.g.dart';
 class MobileAppUserDto with _$MobileAppUserDto {
   const factory MobileAppUserDto({
     required int id,
-    required int employeeId,
+    int? employeeId,
+    int? customerId, // Добавьте это поле
+    int? branchId,
     required String firstName,
     required String lastName,
     required String role,

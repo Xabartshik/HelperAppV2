@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 
-// Импорты экранов
+// Импорты существующих экранов
 import '../../screens/login/login_page.dart';
 import '../../screens/home/main_page.dart';
 import '../../screens/boss_panel/boss_panel_page.dart';
@@ -14,18 +14,36 @@ import '../../screens/order_assembly/assembly_barcode_scanner_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   // Следим за состоянием текущего пользователя
-  final currentUser = ref.watch(currentUserProvider);
+  final user = ref.watch(currentUserProvider);
 
   return GoRouter(
-    initialLocation: currentUser != null ? '/home' : '/login',
-    // Включаем логирование маршрутов
+    // Начальная точка зависит от роли
+    initialLocation: user == null 
+        ? '/login' 
+        : (user.role == 'Customer' ? '/customer-home' : '/home'),
+    
     debugLogDiagnostics: true,
+    
     routes: [
       GoRoute(
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginPage(),
       ),
+      // --- НОВОЕ: Маршрут регистрации ---
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        builder: (context, state) => const RegisterPage(),
+      ),
+      // --- НОВОЕ: Главная для покупателя ---
+      GoRoute(
+        path: '/customer-home',
+        name: 'customer_home',
+        builder: (context, state) => const CustomerHomePage(),
+      ),
+      
+      // Маршруты сотрудников
       GoRoute(
         path: '/home',
         name: 'home',
@@ -88,17 +106,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
     ],
+
     redirect: (context, state) {
-      final isLoggedIn = currentUser != null;
-      final isLoggingIn = state.uri.path == '/login';
+      final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/register';
 
-      // Если не залогинен и не на странице логина - на логин
-      if (!isLoggedIn && !isLoggingIn) return '/login';
-      
-      // Если залогинен и пытается открыть логин - на главную
-      if (isLoggedIn && isLoggingIn) return '/home';
+      // 1. Если пользователь не авторизован
+      if (user == null) {
+        // Если он и так идет логиниться или регистрироваться — не мешаем
+        return isLoggingIn ? null : '/login';
+      }
 
-      return null; // Ничего не делаем
+      // 2. Если пользователь авторизован и пытается зайти на Login/Register
+      if (isLoggingIn) {
+        // Редиректим на соответствующую главную в зависимости от роли
+        return (user.role == 'Customer') ? '/customer-home' : '/home';
+      }
+
+      // 3. Защита маршрутов: не пускать покупателя в складскую часть
+      // Если это покупатель и путь НЕ начинается с /customer
+      if (user.role == 'Customer' && !state.uri.path.startsWith('/customer')) {
+        return '/customer-home';
+      }
+
+      // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя (опционально)
+      if (user.role != 'Customer' && state.uri.path.startsWith('/customer')) {
+        return '/home';
+      }
+
+      return null;
     },
   );
 });

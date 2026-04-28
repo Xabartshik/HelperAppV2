@@ -11,7 +11,8 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _employeeIdController = TextEditingController();
+  // Переименовали контроллер для универсальности (ID или Логин)
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
   final _backgroundColor = const Color(0xFF141414);
@@ -25,22 +26,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   void dispose() {
-    _employeeIdController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    // Убираем фокус с клавиатуры
     FocusScope.of(context).unfocus();
     
     final success = await ref.read(loginViewModelProvider.notifier).login(
-      _employeeIdController.text,
+      _identifierController.text,
       _passwordController.text,
     );
 
     if (success && mounted) {
-      // Идет перенаправление благодаря router config
       context.go('/home');
     }
   }
@@ -59,7 +58,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Логотип / Заголовок
                 Text(
                   'HelperApp',
                   textAlign: TextAlign.center,
@@ -71,22 +69,59 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // EmployeeId Input
+                // --- НОВОЕ: Переключатель режимов ---
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false, 
+                      label: Text('Сотрудник'), 
+                      icon: Icon(Icons.badge, size: 18),
+                    ),
+                    ButtonSegment(
+                      value: true, 
+                      label: Text('Покупатель'), 
+                      icon: Icon(Icons.person, size: 18),
+                    ),
+                  ],
+                  selected: {state.isCustomerMode},
+                  onSelectionChanged: (Set<bool> newSelection) {
+                    ref.read(loginViewModelProvider.notifier).toggleMode(newSelection.first);
+                  },
+                  style: SegmentedButton.styleFrom(
+                    backgroundColor: _inputBgColor,
+                    selectedBackgroundColor: _primaryColor,
+                    selectedForegroundColor: Colors.white,
+                    foregroundColor: _labelColor,
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // Логин / ID Input
                 Text(
-                  'EmployeeId',
+                  state.isCustomerMode ? 'Логин' : 'ID сотрудника',
                   style: TextStyle(color: _labelColor, fontSize: 14),
                 ),
                 const SizedBox(height: 5),
                 TextField(
-                  controller: _employeeIdController,
-                  keyboardType: TextInputType.number,
+                  controller: _identifierController,
+                  // Меняем тип клавиатуры: для сотрудников — цифры, для клиентов — текст/email
+                  keyboardType: state.isCustomerMode 
+                      ? TextInputType.emailAddress 
+                      : TextInputType.number,
                   style: TextStyle(color: _textColor, fontSize: 16),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: _inputBgColor,
-                    hintText: 'Введите EmployeeId',
+                    hintText: state.isCustomerMode 
+                        ? 'Введите Email или Телефон' 
+                        : 'Введите ваш ID',
                     hintStyle: const TextStyle(color: Colors.white54),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4), 
+                      borderSide: BorderSide.none,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
                   ),
                 ),
@@ -107,14 +142,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     fillColor: _inputBgColor,
                     hintText: 'Введите пароль',
                     hintStyle: const TextStyle(color: Colors.white54),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(4), 
+                      borderSide: BorderSide.none,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
                   ),
                 ),
                 
                 const SizedBox(height: 10),
 
-                // Error Message
+                // Error & Warning Messages
                 if (state.errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
@@ -124,7 +162,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
 
-                // No Network Message
                 if (!state.hasNetwork)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
@@ -137,11 +174,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 const SizedBox(height: 30),
 
-                // Login Button
+                // Кнопка входа
                 if (state.isBusy)
-                  Center(
-                    child: CircularProgressIndicator(color: _primaryColor),
-                  )
+                  Center(child: CircularProgressIndicator(color: _primaryColor))
                 else
                   ElevatedButton(
                     onPressed: _login,
@@ -149,18 +184,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       backgroundColor: _primaryColor,
                       foregroundColor: _textColor,
                       padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text(
                       'Войти',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
+
+                // --- НОВОЕ: Ссылка на регистрацию ---
+                if (state.isCustomerMode) ...[
+                  const SizedBox(height: 15),
+                  TextButton(
+                    onPressed: () => context.push('/register'),
+                    child: Text(
+                      'Нет аккаунта? Зарегистрироваться',
+                      style: TextStyle(color: _primaryColor),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

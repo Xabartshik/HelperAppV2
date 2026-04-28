@@ -22,7 +22,10 @@ MobileAppUserDto _$MobileAppUserDtoFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MobileAppUserDto {
   int get id => throw _privateConstructorUsedError;
-  int get employeeId => throw _privateConstructorUsedError;
+  int? get employeeId => throw _privateConstructorUsedError;
+  int? get customerId =>
+      throw _privateConstructorUsedError; // Добавьте это поле
+  int? get branchId => throw _privateConstructorUsedError;
   String get firstName => throw _privateConstructorUsedError;
   String get lastName => throw _privateConstructorUsedError;
   String get role => throw _privateConstructorUsedError;
@@ -49,7 +52,9 @@ abstract class $MobileAppUserDtoCopyWith<$Res> {
   @useResult
   $Res call({
     int id,
-    int employeeId,
+    int? employeeId,
+    int? customerId,
+    int? branchId,
     String firstName,
     String lastName,
     String role,
@@ -75,7 +80,9 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
   @override
   $Res call({
     Object? id = null,
-    Object? employeeId = null,
+    Object? employeeId = freezed,
+    Object? customerId = freezed,
+    Object? branchId = freezed,
     Object? firstName = null,
     Object? lastName = null,
     Object? role = null,
@@ -89,10 +96,18 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
                       as int,
-            employeeId: null == employeeId
+            employeeId: freezed == employeeId
                 ? _value.employeeId
                 : employeeId // ignore: cast_nullable_to_non_nullable
-                      as int,
+                      as int?,
+            customerId: freezed == customerId
+                ? _value.customerId
+                : customerId // ignore: cast_nullable_to_non_nullable
+                      as int?,
+            branchId: freezed == branchId
+                ? _value.branchId
+                : branchId // ignore: cast_nullable_to_non_nullable
+                      as int?,
             firstName: null == firstName
                 ? _value.firstName
                 : firstName // ignore: cast_nullable_to_non_nullable
@@ -134,7 +149,9 @@ abstract class _$$MobileAppUserDtoImplCopyWith<$Res>
   @useResult
   $Res call({
     int id,
-    int employeeId,
+    int? employeeId,
+    int? customerId,
+    int? branchId,
     String firstName,
     String lastName,
     String role,
@@ -159,7 +176,9 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? employeeId = null,
+    Object? employeeId = freezed,
+    Object? customerId = freezed,
+    Object? branchId = freezed,
     Object? firstName = null,
     Object? lastName = null,
     Object? role = null,
@@ -173,10 +192,18 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
                   as int,
-        employeeId: null == employeeId
+        employeeId: freezed == employeeId
             ? _value.employeeId
             : employeeId // ignore: cast_nullable_to_non_nullable
-                  as int,
+                  as int?,
+        customerId: freezed == customerId
+            ? _value.customerId
+            : customerId // ignore: cast_nullable_to_non_nullable
+                  as int?,
+        branchId: freezed == branchId
+            ? _value.branchId
+            : branchId // ignore: cast_nullable_to_non_nullable
+                  as int?,
         firstName: null == firstName
             ? _value.firstName
             : firstName // ignore: cast_nullable_to_non_nullable
@@ -211,7 +238,9 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
 class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   const _$MobileAppUserDtoImpl({
     required this.id,
-    required this.employeeId,
+    this.employeeId,
+    this.customerId,
+    this.branchId,
     required this.firstName,
     required this.lastName,
     required this.role,
@@ -226,7 +255,12 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   @override
   final int id;
   @override
-  final int employeeId;
+  final int? employeeId;
+  @override
+  final int? customerId;
+  // Добавьте это поле
+  @override
+  final int? branchId;
   @override
   final String firstName;
   @override
@@ -242,7 +276,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
 
   @override
   String toString() {
-    return 'MobileAppUserDto(id: $id, employeeId: $employeeId, firstName: $firstName, lastName: $lastName, role: $role, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MobileAppUserDto(id: $id, employeeId: $employeeId, customerId: $customerId, branchId: $branchId, firstName: $firstName, lastName: $lastName, role: $role, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -253,6 +287,10 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
             (identical(other.id, id) || other.id == id) &&
             (identical(other.employeeId, employeeId) ||
                 other.employeeId == employeeId) &&
+            (identical(other.customerId, customerId) ||
+                other.customerId == customerId) &&
+            (identical(other.branchId, branchId) ||
+                other.branchId == branchId) &&
             (identical(other.firstName, firstName) ||
                 other.firstName == firstName) &&
             (identical(other.lastName, lastName) ||
@@ -272,6 +310,8 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
     runtimeType,
     id,
     employeeId,
+    customerId,
+    branchId,
     firstName,
     lastName,
     role,
@@ -300,7 +340,9 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
 abstract class _MobileAppUserDto implements MobileAppUserDto {
   const factory _MobileAppUserDto({
     required final int id,
-    required final int employeeId,
+    final int? employeeId,
+    final int? customerId,
+    final int? branchId,
     required final String firstName,
     required final String lastName,
     required final String role,
@@ -315,7 +357,11 @@ abstract class _MobileAppUserDto implements MobileAppUserDto {
   @override
   int get id;
   @override
-  int get employeeId;
+  int? get employeeId;
+  @override
+  int? get customerId; // Добавьте это поле
+  @override
+  int? get branchId;
   @override
   String get firstName;
   @override

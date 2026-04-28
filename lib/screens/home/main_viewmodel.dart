@@ -77,7 +77,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
       }
 
       final taskService = ref.read(taskServiceProvider);
-      final tasks = await taskService.getTasksForCurrentUserAsync(currentUser.employeeId);
+      final tasks = await taskService.getTasksForCurrentUserAsync(currentUser.employeeId!);
 
       final taskCards = tasks.map(TaskCardVm.fromTask).toList();
 
@@ -88,7 +88,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         isBusy: false,
       );
 
-      taskService.setEmployeeIdForPeriodicSync(currentUser.employeeId);
+      taskService.setEmployeeIdForPeriodicSync(currentUser.employeeId!);
       if (!taskService.isPeriodicSyncActive) {
         taskService.startPeriodicSync((updatedTasks) {
           final updatedCards = updatedTasks.map(TaskCardVm.fromTask).toList();

@@ -10,7 +10,9 @@ _$MobileAppUserDtoImpl _$$MobileAppUserDtoImplFromJson(
   Map<String, dynamic> json,
 ) => _$MobileAppUserDtoImpl(
   id: (json['id'] as num).toInt(),
-  employeeId: (json['employeeId'] as num).toInt(),
+  employeeId: (json['employeeId'] as num?)?.toInt(),
+  customerId: (json['customerId'] as num?)?.toInt(),
+  branchId: (json['branchId'] as num?)?.toInt(),
   firstName: json['firstName'] as String,
   lastName: json['lastName'] as String,
   role: json['role'] as String,
@@ -26,6 +28,8 @@ Map<String, dynamic> _$$MobileAppUserDtoImplToJson(
 ) => <String, dynamic>{
   'id': instance.id,
   'employeeId': instance.employeeId,
+  'customerId': instance.customerId,
+  'branchId': instance.branchId,
   'firstName': instance.firstName,
   'lastName': instance.lastName,
   'role': instance.role,
