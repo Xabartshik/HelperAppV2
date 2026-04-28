@@ -7,7 +7,8 @@ import 'create_order_viewmodel.dart';
 
 final createOrderViewModelProvider = ChangeNotifierProvider.autoDispose<CreateOrderViewModel>((ref) {
   final vm = CreateOrderViewModel(ref.read(apiClientProvider));
-  vm.initialize();
+  // Оборачиваем вызов в Future.microtask, чтобы дождаться окончания отрисовки виджета
+  Future.microtask(() => vm.initialize());
   return vm;
 });
 
