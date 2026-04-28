@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/auth/register_request.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/core/models/user/worker_role.dart';
+import 'package:helper_app/core/network/api_endpoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user/current_user.dart';
 import '../models/auth/login_request.dart';
