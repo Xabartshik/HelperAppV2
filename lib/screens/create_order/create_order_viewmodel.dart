@@ -5,6 +5,21 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/utils/logger.dart';
 
+class DeliverySlot {
+  final int id;
+  final String name;
+  final int startHour;
+  final int endHour;
+
+  DeliverySlot(this.id, this.name, this.startHour, this.endHour);
+}
+
+final List<DeliverySlot> defaultSlots = [
+  DeliverySlot(1, 'Утро (10:00 - 14:00)', 10, 14),
+  DeliverySlot(2, 'День (14:00 - 18:00)', 14, 18),
+  DeliverySlot(3, 'Вечер (18:00 - 22:00)', 18, 22),
+];
+
 enum DeliveryType {
   pickup('Самовывоз'),
   express('Экспресс-доставка'),
@@ -123,6 +138,10 @@ class CreateOrderViewModel extends ChangeNotifier {
   DateTime? deliveryDate;
   String destinationAddress = '';
   bool prepayNow = false; // true = Prepaid, false = Postpaid
+  DeliverySlot? selectedSlot;
+  List<DeliverySlot> availableSlots = [];
+
+
 
   // --- Step 4: Проверка ---
   bool isCheckingPostamatCapacity = false;
@@ -148,24 +167,23 @@ class CreateOrderViewModel extends ChangeNotifier {
     }
   }
 
-  bool canProceedToNextStep() {
+bool canProceedToNextStep() {
     switch (currentStep) {
-      case 0: // Локация
-        return selectedBranch != null;
-      case 1: // Витрина
-        return cart.isNotEmpty;
-      case 2: // Логистика
+      case 0: return selectedBranch != null;
+      case 1: return cart.isNotEmpty;
+      case 2:
         if (selectedDeliveryType == DeliveryType.postamat) {
-          return selectedPostamat != null;
+          return selectedPostamat != null && selectedSlot != null;
         }
-        if (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) {
-          return destinationAddress.isNotEmpty;
+        if (selectedDeliveryType == DeliveryType.courier) {
+          return destinationAddress.isNotEmpty && selectedSlot != null;
         }
-        return true; // pickup
-      case 3: // Подтверждение (здесь логика отправки)
-        return canSubmitOrder;
-      default:
-        return false;
+        if (selectedDeliveryType == DeliveryType.pickup) {
+          return deliveryDate != null; // Обязательно указать время
+        }
+        return true; // Express
+      case 3: return canSubmitOrder;
+      default: return false;
     }
   }
 
@@ -261,17 +279,6 @@ Future<void> _fetchPostamats() async {
 
   // --- Logistics ---
 
-  void setDeliveryType(DeliveryType type) {
-    selectedDeliveryType = type;
-    if (type == DeliveryType.postamat) {
-      _fetchPostamats();
-    }
-    // Сбрасываем результат проверки постамата
-    postamatCapacityOk = null;
-    postamatCapacityError = null;
-    notifyListeners();
-  }
-
   void setPostamat(Postamat postamat) {
     selectedPostamat = postamat;
     postamatCapacityOk = null;
@@ -279,9 +286,67 @@ Future<void> _fetchPostamats() async {
     notifyListeners();
   }
   
+  // Метод для вычисления доступных слотов для Курьера/Постамата
+  void _calculateAvailableSlots() {
+    if (deliveryDate == null) {
+      availableSlots = [];
+      selectedSlot = null;
+      return;
+    }
+
+    final now = DateTime.now();
+    final isToday = deliveryDate!.year == now.year && 
+                    deliveryDate!.month == now.month && 
+                    deliveryDate!.day == now.day;
+
+    if (isToday) {
+      // Требование: до окна доставки должен быть минимум 1 час на сборку
+      final minRequiredHour = now.hour + 1;
+      availableSlots = defaultSlots.where((slot) => slot.startHour >= minRequiredHour).toList();
+    } else {
+      availableSlots = List.from(defaultSlots); // Завтра и далее доступны все слоты
+    }
+
+    // Если текущий выбранный слот недоступен в новый день, сбрасываем его
+    if (selectedSlot != null && !availableSlots.contains(selectedSlot)) {
+      selectedSlot = null;
+    }
+  }
+
   void setDeliveryDate(DateTime date) {
-      deliveryDate = date;
-      notifyListeners();
+    deliveryDate = date;
+    _calculateAvailableSlots();
+    notifyListeners();
+  }
+
+  void setDeliverySlot(DeliverySlot slot) {
+    selectedSlot = slot;
+    // Устанавливаем время доставки в соответствии с началом слота
+    if (deliveryDate != null) {
+      deliveryDate = DateTime(deliveryDate!.year, deliveryDate!.month, deliveryDate!.day, slot.startHour, 0);
+    }
+    notifyListeners();
+  }
+
+  void setDeliveryType(DeliveryType type) {
+    selectedDeliveryType = type;
+    deliveryDate = null; // Сбрасываем дату при смене типа
+    selectedSlot = null;
+    
+    if (type == DeliveryType.postamat) {
+      _fetchPostamats();
+    }
+    
+    // Для самовывоза и экспресса адрес берется из филиала автоматически
+    if (type == DeliveryType.pickup || type == DeliveryType.express) {
+       destinationAddress = selectedBranch?.address ?? '';
+    } else {
+       destinationAddress = '';
+    }
+
+    postamatCapacityOk = null;
+    postamatCapacityError = null;
+    notifyListeners();
   }
   
   void setDestinationAddress(String address) {

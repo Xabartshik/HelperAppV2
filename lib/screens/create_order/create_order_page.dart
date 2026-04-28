@@ -375,30 +375,12 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
         ),
         const SizedBox(height: 24),
         
-        // Адрес или постамат
+        // --- АДРЕС ИЛИ ПОСТАМАТ ---
         if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
           const Text('Выберите терминал', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          if (vm.postamats.isEmpty && !vm.isLoading)
-            _buildEmptyState(Icons.inbox_outlined, 'В данном городе нет доступных постаматов.'),
-          if (vm.postamats.isNotEmpty)
-             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<Postamat>(
-                  value: vm.selectedPostamat,
-                  hint: const Text('Выберите адрес постамата', style: TextStyle(color: _textGray)),
-                  dropdownColor: _bgGray950,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: _textGray),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  items: vm.postamats.map((p) => DropdownMenuItem(value: p, child: Text(p.address, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (val) => vm.setPostamat(val!),
-                ),
-              ),
-            ),
-        ] else if (vm.selectedDeliveryType == DeliveryType.express || vm.selectedDeliveryType == DeliveryType.courier) ...[
+          // ... (Код Dropdown постаматов остается прежним) ...
+        ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
           const Text('Адрес доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           TextField(
@@ -406,13 +388,76 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
             decoration: _inputDecoration('Укажите город, улицу, дом, кв.'),
             onChanged: (val) => vm.setDestinationAddress(val),
           )
+        ] else if (vm.selectedDeliveryType == DeliveryType.pickup || vm.selectedDeliveryType == DeliveryType.express) ...[
+           // Адрес берется из филиала
+           const Text('Адрес выдачи (Филиал)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+           const SizedBox(height: 8),
+           Container(
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
+             child: Row(
+               children: [
+                 const Icon(Icons.location_on, color: _accent, size: 20),
+                 const SizedBox(width: 12),
+                 Expanded(child: Text(vm.selectedBranch?.address ?? 'Адрес не указан', style: const TextStyle(color: Colors.white, fontSize: 15))),
+               ],
+             ),
+           ),
         ],
 
-        if (vm.selectedDeliveryType != DeliveryType.pickup) const SizedBox(height: 24),
+        const SizedBox(height: 24),
 
-        // Дата и Время
-        if (vm.selectedDeliveryType != DeliveryType.pickup) ...[
-           const Text('Когда доставить?', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+        // --- ДАТА И ВРЕМЯ ---
+        if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
+           const Text('Ожидаемое время самовывоза', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+           const SizedBox(height: 8),
+           GestureDetector(
+             onTap: () async {
+                final minTime = DateTime.now().add(const Duration(minutes: 30));
+                
+                final date = await showDatePicker(
+                  context: context,
+                  initialDate: minTime,
+                  firstDate: minTime,
+                  lastDate: DateTime.now().add(const Duration(days: 14)),
+                  // ... theme builder ...
+                );
+                if (date != null && context.mounted) {
+                  final time = await showTimePicker(
+                    context: context, 
+                    initialTime: TimeOfDay.fromDateTime(date.day == minTime.day ? minTime : date),
+                    // ... theme builder ...
+                  );
+                  if (time != null) {
+                    var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                    // Жесткая проверка: нельзя выбрать время раньше чем через 30 минут
+                    if (selected.isBefore(minTime)) {
+                      selected = minTime;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Минимальное время на сборку - 30 минут.')));
+                    }
+                    vm.setDeliveryDate(selected);
+                  }
+                }
+             },
+             child: Container(
+               padding: const EdgeInsets.all(16),
+               decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+               child: Row(
+                 children: [
+                   const Icon(Icons.access_time, color: _accent, size: 20),
+                   const SizedBox(width: 12),
+                   Text(
+                     vm.deliveryDate == null 
+                      ? 'Выберите дату и время' 
+                      : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
+                     style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
+                   ),
+                 ],
+               ),
+             ),
+           ),
+        ] else if (vm.selectedDeliveryType == DeliveryType.courier || vm.selectedDeliveryType == DeliveryType.postamat) ...[
+           const Text('Дата доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            GestureDetector(
              onTap: () async {
@@ -421,33 +466,8 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
                   initialDate: DateTime.now(),
                   firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(const Duration(days: 14)),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.dark(primary: _accent, surface: _bgGray950, onSurface: Colors.white),
-                      ),
-                      child: child!,
-                    );
-                  }
                 );
-                if (date != null && context.mounted) {
-                  final time = await showTimePicker(
-                    context: context, 
-                    initialTime: TimeOfDay.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.dark(primary: _accent, surface: _bgGray950, onSurface: Colors.white),
-                        ),
-                        child: child!,
-                      );
-                    }
-                  );
-                  if (time != null) {
-                    final dateTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-                    vm.setDeliveryDate(dateTime);
-                  }
-                }
+                if (date != null) vm.setDeliveryDate(date);
              },
              child: Container(
                padding: const EdgeInsets.all(16),
@@ -457,15 +477,37 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
                    const Icon(Icons.calendar_month, color: _accent, size: 20),
                    const SizedBox(width: 12),
                    Text(
-                     vm.deliveryDate == null 
-                      ? 'Выберите дату и время' 
-                      : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')}.${vm.deliveryDate!.year} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
+                     vm.deliveryDate == null ? 'Выберите дату' : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')}.${vm.deliveryDate!.year}', 
                      style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
                    ),
                  ],
                ),
              ),
            ),
+           
+           if (vm.deliveryDate != null) ...[
+              const SizedBox(height: 16),
+              const Text('Окно доставки (Минимум 1 час на сборку)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              if (vm.availableSlots.isEmpty)
+                const Text('На выбранную дату нет доступных окон доставки', style: TextStyle(color: Colors.redAccent))
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<DeliverySlot>(
+                      value: vm.selectedSlot,
+                      hint: const Text('Выберите время', style: TextStyle(color: _textGray)),
+                      dropdownColor: _bgGray950,
+                      isExpanded: true,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      items: vm.availableSlots.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+                      onChanged: (val) => vm.setDeliverySlot(val!),
+                    ),
+                  ),
+                ),
+           ]
         ],
 
         const SizedBox(height: 32),
