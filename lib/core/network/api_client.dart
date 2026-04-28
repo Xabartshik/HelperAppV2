@@ -5,48 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
+import 'api_endpoints.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
-
-/// Единый реестр всех эндпоинтов API.
-/// Все пути гарантированно используют префикс v1/.
-class ApiEndpoints {
-  // Auth
-  static const String login = 'v1/mobileappuser/login';
-  static const String register = 'v1/mobileappuser/register';
-  // Worker Tasks (Aggregator)
-  static String workerTasksPending(int employeeId) => 'v1/WorkerTasks/$employeeId/pending';
-  static String workerTaskStart(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/start?workerId=$workerId';
-
-  // Boss Panel
-  static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
-  static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
-  static const String bossPanelAvailableEmployees = 'v1/bosspanel/employees/available';
-  static const String bossPanelPositions = 'v1/bosspanel/positions';
-  static String bossPanelAutoSelectEmployees(int count) => 'v1/bosspanel/employees/auto-select?count=$count';
-  static const String bossPanelCreateInventoryByZone = 'v1/bosspanel/inventory/create-by-zone';
-  static const String bossPanelAvailableOrders = 'v1/bosspanel/orders/available';
-  static const String bossPanelCreateOrderAssembly = 'v1/bosspanel/tasks/order-assembly/create';
-
-  // Inventory
-  static String inventoryTaskDetails(int assignmentId) => 'v1/Inventory/assignment/$assignmentId/details';
-  static const String inventoryCompleteAssignment = 'v1/Inventory/complete-assignment';
-  static const String inventoryProcessScan = 'v1/Inventory/scan';
-  static String itemInfo(int itemId) => 'v1/Item/$itemId';
-
-  // Order Assembly
-  static String orderAssemblyTasks(int userId) => 'v1/OrderAssembly/worker/$userId/assignments';
-  static String orderAssemblyDetails(int id) => 'v1/OrderAssembly/assignment/$id/details';
-  static String orderAssemblyStart(int id) => 'v1/OrderAssembly/assignment/$id/start';
-  static String orderAssemblyPause(int id) => 'v1/OrderAssembly/assignment/$id/pause';
-  static String orderAssemblyCancel(int id) => 'v1/OrderAssembly/assignment/$id/cancel';
-  
-  static const String orderAssemblyScanPick = 'v1/OrderAssembly/scan-pick';
-  static const String orderAssemblyScanPlaceBulk = 'v1/OrderAssembly/scan-place-bulk';
-  static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
-  static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
-}
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
