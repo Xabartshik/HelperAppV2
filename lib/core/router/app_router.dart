@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
 import 'package:helper_app/screens/login/register_page.dart';
 import '../services/auth_service.dart';
@@ -22,7 +23,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Начальная точка зависит от роли
     initialLocation: user == null 
         ? '/login' 
-        : (user.role.toString().toLowerCase() == 'customer' ? '/customer-home' : '/'),
+        : (user.role == MobileUserRole.customer ? '/customer-home' : '/'),
     
     debugLogDiagnostics: true,
     
@@ -121,17 +122,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       // 2. Если пользователь авторизован и пытается зайти на Login/Register
       if (isLoggingIn) {
         // Редиректим на соответствующую главную в зависимости от роли
-        return (user.role == 'Customer') ? '/customer-home' : '/home';
+        return (user.role == MobileUserRole.customer) ? '/customer-home' : '/home';
       }
 
       // 3. Защита маршрутов: не пускать покупателя в складскую часть
       // Если это покупатель и путь НЕ начинается с /customer
-      if (user.role == 'Customer' && !state.uri.path.startsWith('/customer')) {
+      if (user.role == MobileUserRole.customer) {
         return '/customer-home';
       }
 
       // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя (опционально)
-      if (user.role != 'Customer' && state.uri.path.startsWith('/customer')) {
+      if (user.role != 'Customer') {
         return '/home';
       }
 
