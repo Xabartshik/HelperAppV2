@@ -23,12 +23,15 @@ MobileAppUserDto _$MobileAppUserDtoFromJson(Map<String, dynamic> json) {
 mixin _$MobileAppUserDto {
   int get id => throw _privateConstructorUsedError;
   int? get employeeId => throw _privateConstructorUsedError;
-  int? get customerId =>
-      throw _privateConstructorUsedError; // Добавьте это поле
+  int? get customerId => throw _privateConstructorUsedError;
   int? get branchId => throw _privateConstructorUsedError;
   String get firstName => throw _privateConstructorUsedError;
-  String get lastName => throw _privateConstructorUsedError;
-  String get role => throw _privateConstructorUsedError;
+  String get lastName =>
+      throw _privateConstructorUsedError; // Используем Enum с указанием фолбэк-значения
+  @JsonKey(unknownEnumValue: MobileUserRole.unknown)
+  MobileUserRole get role => throw _privateConstructorUsedError;
+  @JsonKey(unknownEnumValue: WorkerRole.unknown)
+  WorkerRole? get workerRole => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
@@ -57,7 +60,8 @@ abstract class $MobileAppUserDtoCopyWith<$Res> {
     int? branchId,
     String firstName,
     String lastName,
-    String role,
+    @JsonKey(unknownEnumValue: MobileUserRole.unknown) MobileUserRole role,
+    @JsonKey(unknownEnumValue: WorkerRole.unknown) WorkerRole? workerRole,
     bool isActive,
     DateTime createdAt,
     DateTime? updatedAt,
@@ -86,6 +90,7 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
     Object? firstName = null,
     Object? lastName = null,
     Object? role = null,
+    Object? workerRole = freezed,
     Object? isActive = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
@@ -119,7 +124,11 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
             role: null == role
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as MobileUserRole,
+            workerRole: freezed == workerRole
+                ? _value.workerRole
+                : workerRole // ignore: cast_nullable_to_non_nullable
+                      as WorkerRole?,
             isActive: null == isActive
                 ? _value.isActive
                 : isActive // ignore: cast_nullable_to_non_nullable
@@ -154,7 +163,8 @@ abstract class _$$MobileAppUserDtoImplCopyWith<$Res>
     int? branchId,
     String firstName,
     String lastName,
-    String role,
+    @JsonKey(unknownEnumValue: MobileUserRole.unknown) MobileUserRole role,
+    @JsonKey(unknownEnumValue: WorkerRole.unknown) WorkerRole? workerRole,
     bool isActive,
     DateTime createdAt,
     DateTime? updatedAt,
@@ -182,6 +192,7 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
     Object? firstName = null,
     Object? lastName = null,
     Object? role = null,
+    Object? workerRole = freezed,
     Object? isActive = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
@@ -215,7 +226,11 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
         role: null == role
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as MobileUserRole,
+        workerRole: freezed == workerRole
+            ? _value.workerRole
+            : workerRole // ignore: cast_nullable_to_non_nullable
+                  as WorkerRole?,
         isActive: null == isActive
             ? _value.isActive
             : isActive // ignore: cast_nullable_to_non_nullable
@@ -243,7 +258,8 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
     this.branchId,
     required this.firstName,
     required this.lastName,
-    required this.role,
+    @JsonKey(unknownEnumValue: MobileUserRole.unknown) required this.role,
+    @JsonKey(unknownEnumValue: WorkerRole.unknown) this.workerRole,
     required this.isActive,
     required this.createdAt,
     this.updatedAt,
@@ -258,15 +274,19 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   final int? employeeId;
   @override
   final int? customerId;
-  // Добавьте это поле
   @override
   final int? branchId;
   @override
   final String firstName;
   @override
   final String lastName;
+  // Используем Enum с указанием фолбэк-значения
   @override
-  final String role;
+  @JsonKey(unknownEnumValue: MobileUserRole.unknown)
+  final MobileUserRole role;
+  @override
+  @JsonKey(unknownEnumValue: WorkerRole.unknown)
+  final WorkerRole? workerRole;
   @override
   final bool isActive;
   @override
@@ -276,7 +296,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
 
   @override
   String toString() {
-    return 'MobileAppUserDto(id: $id, employeeId: $employeeId, customerId: $customerId, branchId: $branchId, firstName: $firstName, lastName: $lastName, role: $role, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MobileAppUserDto(id: $id, employeeId: $employeeId, customerId: $customerId, branchId: $branchId, firstName: $firstName, lastName: $lastName, role: $role, workerRole: $workerRole, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -296,6 +316,8 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
             (identical(other.lastName, lastName) ||
                 other.lastName == lastName) &&
             (identical(other.role, role) || other.role == role) &&
+            (identical(other.workerRole, workerRole) ||
+                other.workerRole == workerRole) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
             (identical(other.createdAt, createdAt) ||
@@ -315,6 +337,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
     firstName,
     lastName,
     role,
+    workerRole,
     isActive,
     createdAt,
     updatedAt,
@@ -345,7 +368,9 @@ abstract class _MobileAppUserDto implements MobileAppUserDto {
     final int? branchId,
     required final String firstName,
     required final String lastName,
-    required final String role,
+    @JsonKey(unknownEnumValue: MobileUserRole.unknown)
+    required final MobileUserRole role,
+    @JsonKey(unknownEnumValue: WorkerRole.unknown) final WorkerRole? workerRole,
     required final bool isActive,
     required final DateTime createdAt,
     final DateTime? updatedAt,
@@ -359,15 +384,19 @@ abstract class _MobileAppUserDto implements MobileAppUserDto {
   @override
   int? get employeeId;
   @override
-  int? get customerId; // Добавьте это поле
+  int? get customerId;
   @override
   int? get branchId;
   @override
   String get firstName;
   @override
-  String get lastName;
+  String get lastName; // Используем Enum с указанием фолбэк-значения
   @override
-  String get role;
+  @JsonKey(unknownEnumValue: MobileUserRole.unknown)
+  MobileUserRole get role;
+  @override
+  @JsonKey(unknownEnumValue: WorkerRole.unknown)
+  WorkerRole? get workerRole;
   @override
   bool get isActive;
   @override

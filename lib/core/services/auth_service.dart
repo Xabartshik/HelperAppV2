@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/auth/register_request.dart';
+import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/core/models/user/worker_role.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user/current_user.dart';
 import '../models/auth/login_request.dart';
@@ -27,6 +29,7 @@ class AuthService {
   static const String _firstNameKey = 'first_name';
   static const String _lastNameKey = 'last_name';
   static const String _userIdKey = 'user_id';
+  static const String _workerRoleKey = 'worker_role';
 
   AuthService(this._apiClient, this._ref);
 
@@ -51,6 +54,7 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
       customerId: response.user.customerId,
       firstName: response.user.firstName,
       lastName: response.user.lastName,
+      workerRole: response.user.workerRole,
       role: response.user.role,
       accessToken: token,
       tokenExpiresAt: expiresAt,
@@ -60,10 +64,12 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
     await prefs.setInt(_userIdKey, user.id);
-    await prefs.setString(_roleKey, user.role);
+    await prefs.setString(_roleKey, user.role.name);
     await prefs.setString(_firstNameKey, user.firstName);
     await prefs.setString(_lastNameKey, user.lastName);
-    
+    if (user.workerRole != null) {
+      await prefs.setString(_workerRoleKey, user.workerRole!.name);
+    }
     if (user.employeeId != null) {
       await prefs.setInt(_employeeIdKey, user.employeeId!);
     }
@@ -136,13 +142,27 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
         return null;
       }
 
+      final roleName = prefs.getString(_roleKey);   
+      
+      // 2. Преобразуем строку обратно в Enum MobileUserRole
+      // Если в кэше пусто или имя не совпадает, ставим фолбэк (например, unknown)
+      final role = MobileUserRole.values.firstWhere(
+        (e) => e.name == roleName,
+        orElse: () => MobileUserRole.unknown,
+      );
+      final workerRoleName = prefs.getString(_workerRoleKey);
+      final workerRole = WorkerRole.values.firstWhere(
+        (e) => e.name == workerRoleName,
+        orElse: () => WorkerRole.unknown,
+      );
       final user = CurrentUser(
         id: prefs.getInt(_userIdKey) ?? 0,
         employeeId: prefs.getInt(_employeeIdKey),
         customerId: prefs.getInt(_customerIdKey), // Загружаем customerId
         firstName: prefs.getString(_firstNameKey) ?? '',
         lastName: prefs.getString(_lastNameKey) ?? '',
-        role: prefs.getString(_roleKey) ?? '',
+        role: role,
+        workerRole: workerRole,
         accessToken: token,
         tokenExpiresAt: expiresAt,
       );

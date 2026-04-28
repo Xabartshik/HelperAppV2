@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/core/models/user/worker_role.dart';
 import 'main_viewmodel.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/models/tasks/task_card_vm.dart';
@@ -20,7 +22,8 @@ class MainPage extends ConsumerWidget {
     final viewModel = ref.read(mainViewModelProvider.notifier);
     final currentUser = ref.watch(currentUserProvider);
 
-    final isBoss = currentUser?.role == 'Admin' || currentUser?.role == 'Supervisor';
+final isBoss = currentUser?.role == MobileUserRole.admin || 
+               currentUser?.role == MobileUserRole.supervisor;
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
@@ -41,7 +44,7 @@ class MainPage extends ConsumerWidget {
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         Text(
-                          'Должность: ${currentUser?.role ?? ''}',
+                          'Должность: ${currentUser?.workerRole?.displayName ?? 'Не указана'}',
                           style: const TextStyle(fontSize: 14, color: Colors.white70),
                         ),
                       ],
@@ -312,7 +315,7 @@ class MainPage extends ConsumerWidget {
 
   (String, Color)? _deadlineInfo(DateTime? deadlineUtc, TaskStatus status) {
     if (deadlineUtc == null) return null;
-    final now = DateTime.now().toUtc();
+    final now = DateTime.now().toLocal();
     final left = deadlineUtc.difference(now);
     final dateText = _formatDate(deadlineUtc);
 

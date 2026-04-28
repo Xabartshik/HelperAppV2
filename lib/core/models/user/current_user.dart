@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:helper_app/core/models/user/worker_role.dart';
 import 'mobile_app_user_dto.dart';
 
 /// Текущий пользователь системы (хранит данные сессии)
@@ -10,7 +11,10 @@ class CurrentUser {
   final int? customerId;
   final String firstName;
   final String lastName;
-  final String role;
+  
+  // 1. ИЗМЕНЕНО: теперь используем Enum вместо String
+  final MobileUserRole role; 
+  final WorkerRole? workerRole;
   final String accessToken;
   final DateTime tokenExpiresAt;
 
@@ -20,7 +24,11 @@ class CurrentUser {
     this.customerId,
     required this.firstName,
     required this.lastName,
-    required this.role,
+    
+    // Оставляем required
+    required this.role, 
+    this.workerRole,
+    
     required this.accessToken,
     required this.tokenExpiresAt,
   });
@@ -35,7 +43,11 @@ class CurrentUser {
       customerId: dto.customerId,
       firstName: dto.firstName, 
       lastName: dto.lastName,
-      role: dto.role,
+      
+      // 2. ИЗМЕНЕНО: теперь типы совпадают (MobileUserRole в MobileUserRole)
+      role: dto.role, 
+      workerRole: dto.workerRole,
+
       accessToken: token,
       tokenExpiresAt: expiresAt ?? DateTime.now().add(const Duration(hours: 24)),
     );
