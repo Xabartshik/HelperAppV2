@@ -93,7 +93,7 @@ class LoginViewModel extends AutoDisposeNotifier<LoginState> {
   }
 
   /// Регистрация покупателя
-  Future<bool> register(RegisterRequest data) async {
+Future<bool> register(RegisterRequest data) async {
     state = state.copyWith(isBusy: true, errorMessage: '', hasNetwork: true);
     
     try {
@@ -105,11 +105,18 @@ class LoginViewModel extends AutoDisposeNotifier<LoginState> {
         return true;
       }
       return false;
+    } on ConflictException catch (e) {
+      // --- НОВОЕ: Показываем красивую ошибку, если телефон/логин занят ---
+      state = state.copyWith(errorMessage: e.message, isBusy: false);
+      Logger.w('Конфликт при регистрации: ${e.message}');
+      return false;
     } on NoNetworkException {
       state = state.copyWith(errorMessage: 'Нет подключения к сети', hasNetwork: false, isBusy: false);
       return false;
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Ошибка регистрации', isBusy: false);
+      // Можно также выводить текст ошибки с бэкенда для ApiException
+      final msg = e is ApiException ? e.toString() : 'Ошибка регистрации';
+      state = state.copyWith(errorMessage: msg, isBusy: false);
       Logger.e('Ошибка при регистрации', e);
       return false;
     }

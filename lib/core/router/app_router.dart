@@ -22,7 +22,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Начальная точка зависит от роли
     initialLocation: user == null 
         ? '/login' 
-        : (user.role == 'Customer' ? '/customer-home' : '/home'),
+        : (user.role.toString().toLowerCase() == 'customer' ? '/customer-home' : '/'),
     
     debugLogDiagnostics: true,
     

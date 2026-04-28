@@ -14,7 +14,7 @@ import '../models/order_assembly/order_assembly_dtos.dart';
 class ApiEndpoints {
   // Auth
   static const String login = 'v1/mobileappuser/login';
-
+  static const String register = 'v1/mobileappuser/register';
   // Worker Tasks (Aggregator)
   static String workerTasksPending(int employeeId) => 'v1/WorkerTasks/$employeeId/pending';
   static String workerTaskStart(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/start?workerId=$workerId';
@@ -108,6 +108,16 @@ class ApiClient {
     if (response.statusCode != null && response.statusCode! >= 400) {
       throw ApiException('HTTP ошибка: ${response.statusCode}');
     }
+    if (response.statusCode == 409) {
+      // Пытаемся достать текст ошибки ('error': '...'), который мы отправляем из C#
+      final errorMessage = (response.data is Map && response.data['error'] != null) 
+          ? response.data['error'].toString() 
+          : 'Пользователь с такими данными уже существует';
+      throw ConflictException(errorMessage);
+    }
+    if (response.statusCode != null && response.statusCode! >= 400) {
+      throw ApiException('HTTP ошибка: ${response.statusCode}');
+    }
   }
 
   static String? _cachedBaseUrl;
@@ -163,12 +173,17 @@ class ApiClient {
       final response = await _dio.get(endpoint, queryParameters: queryParameters);
       return response.data;
     } on DioException catch (e) {
-      if (e.error is UnauthorizedException || e.error is NotFoundException) {
-        throw e.error!; // Пробрасываем кастомные ошибки
+        // Пропускаем все наши кастомные бизнес-ошибки дальше
+        if (e.error is UnauthorizedException || 
+            e.error is NotFoundException || 
+            e.error is ConflictException || 
+            e.error is ApiException) {
+          throw e.error!; 
+        }
+        throw NoNetworkException('Нет подключения к сети', e);
       }
-      throw NoNetworkException('Нет подключения к сети', e);
     }
-  }
+  
 
   Future<dynamic> postAsync(String endpoint, {dynamic data}) async {
     try {
@@ -176,12 +191,16 @@ class ApiClient {
       await _resolveBaseUrl();
       final response = await _dio.post(endpoint, data: data);
       return response.data;
-    } on DioException catch (e) {
-      if (e.error is UnauthorizedException || e.error is NotFoundException) {
-        throw e.error!;
-      }
-      throw NoNetworkException('Нет подключения к сети', e);
-    }
+      } on DioException catch (e) {
+          // Пропускаем все наши кастомные бизнес-ошибки дальше
+          if (e.error is UnauthorizedException || 
+              e.error is NotFoundException || 
+              e.error is ConflictException || 
+              e.error is ApiException) {
+            throw e.error!; 
+          }
+          throw NoNetworkException('Нет подключения к сети', e);
+        }
   }
 
   // Boss Panel API Endpoints

@@ -26,7 +26,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _inputBgColor = const Color(0xFF1C1C1E);
   final _textColor = Colors.white;
   final _errorColor = const Color(0xFFFF6B6B);
-  final _warningColor = const Color(0xFFFFD93D);
 
   @override
   void dispose() {
@@ -39,39 +38,73 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     super.dispose();
   }
 
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: _errorColor,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _register() async {
     FocusScope.of(context).unfocus();
 
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final login = _loginController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // 1. Проверка обязательных полей (логика как в C# сервисе)
+    if (login.isEmpty || password.isEmpty) {
+      _showError('Логин и пароль обязательны для заполнения.');
+      return;
+    }
+    if (firstName.isEmpty || lastName.isEmpty) {
+      _showError('Имя и Фамилия обязательны для заполнения.');
+      return;
+    }
+
+    // 2. Проверка: хотя бы телефон или Email
+    if (phone.isEmpty && email.isEmpty) {
+      _showError('Укажите хотя бы номер телефона или Email.');
+      return;
+    }
+
+    // 3. Валидация Email (RegExp из MobileAppUserService.cs)
+    if (email.isNotEmpty) {
+      final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+      if (!emailRegExp.hasMatch(email)) {
+        _showError('Введите корректный Email адрес.');
+        return;
+      }
+    }
+
+    // 4. Валидация Телефона (RegExp из MobileAppUserService.cs)
+    if (phone.isNotEmpty) {
+      final phoneRegExp = RegExp(r'^\+?[\d\s\-\(\)]{10,20}$');
+      if (!phoneRegExp.hasMatch(phone)) {
+        _showError('Введите корректный номер телефона (10-20 цифр).');
+        return;
+      }
+    }
+
     final request = RegisterRequest(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      login: _loginController.text.trim(),
-      phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-      email: _emailController.text.trim().isEmpty ? null : _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+      firstName: firstName,
+      lastName: lastName,
+      login: login,
+      phone: phone.isEmpty ? null : phone,
+      email: email.isEmpty ? null : email,
+      password: password,
     );
-
-    // Валидация на стороне UI перед отправкой
-    if (request.firstName.isEmpty || request.lastName.isEmpty || 
-        request.login.isEmpty || request.password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заполните обязательные поля: Имя, Фамилия, Логин и Пароль')),
-      );
-      return;
-    }
-
-    if (request.phone == null && request.email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Укажите хотя бы Email или Телефон')),
-      );
-      return;
-    }
 
     final success = await ref.read(loginViewModelProvider.notifier).register(request);
 
     if (success && mounted) {
-      // При успешной регистрации роутер сам перенаправит на главную, 
-      // так как состояние currentUser изменится.
+      // Состояние currentUser обновится, роутер перекинет на главную
     }
   }
 
@@ -114,7 +147,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 ),
                 const SizedBox(height: 32),
 
-                // Поля ввода
                 _buildTextField(
                   controller: _firstNameController,
                   label: 'Имя',
@@ -135,14 +167,14 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _phoneController,
-                  label: 'Телефон (опционально)',
+                  label: 'Телефон',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _emailController,
-                  label: 'Email (опционально)',
+                  label: 'Email',
                   icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -156,7 +188,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
                 const SizedBox(height: 24),
 
-                // Ошибки
                 if (state.errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -167,9 +198,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                     ),
                   ),
 
-                // Кнопка регистрации
                 if (state.isBusy)
-                  Center(child: CircularProgressIndicator(color: _primaryColor))
+                  const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
                 else
                   ElevatedButton(
                     onPressed: _register,

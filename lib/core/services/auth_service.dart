@@ -109,8 +109,8 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
   /// РЕГИСТРАЦИЯ КЛИЕНТА
   Future<CurrentUser?> registerCustomerAsync(RegisterRequest request) async {
     try {
-      final responseData = await _apiClient.postAsync(
-        '/api/v1/MobileAppUser/register',
+final responseData = await _apiClient.postAsync(
+        ApiEndpoints.register,
         data: request.toJson(),
       );
 
