@@ -16,23 +16,29 @@ enum DeliveryType {
   final String label;
 }
 
-/// Заглушка модели филиала.
 class Branch {
-  const Branch({
-    required this.id,
-    required this.city,
-    required this.name,
-  });
+  final int branchId;       // Было id
+  final String branchName;  // Было name
+  final String? branchType; // Добавляем новые поля (опционально)
+  final String? address;
 
-  final int id;
-  final String city;
-  final String name;
+  Branch({
+    required this.branchId,
+    required this.branchName,
+    this.branchType,
+    this.address,
+  });
 
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
-      id: json['id'] as int,
-      city: (json['city'] ?? '').toString(),
-      name: (json['name'] ?? '').toString(),
+      // Ищем строго branchId, если придет null - ставим 0
+      branchId: json['branchId'] as int? ?? 0, 
+      
+      // Ищем строго branchName
+      branchName: json['branchName'] as String? ?? 'Неизвестный филиал', 
+      
+      branchType: json['branchType'] as String?,
+      address: json['address'] as String?,
     );
   }
 }
@@ -63,10 +69,7 @@ class AvailableItem {
 
 /// Заглушка модели постамата.
 class Postamat {
-  const Postamat({
-    required this.id,
-    required this.address,
-  });
+  const Postamat({required this.id, required this.address});
 
   final int id;
   final String address;
@@ -112,13 +115,19 @@ class CreateOrderViewModel extends ChangeNotifier {
   List<Postamat> get postamats => List.unmodifiable(_postamats);
 
   List<String> get availableCities {
-    final cities = _branches.map((b) => b.city.trim()).where((c) => c.isNotEmpty).toSet().toList();
+    final cities = _branches
+        .map((b) => (b.address ?? '').trim())
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList();
     cities.sort();
     return cities;
   }
 
   List<Branch> branchesByCity(String city) {
-    return _branches.where((b) => b.city.toLowerCase() == city.toLowerCase()).toList();
+    return _branches
+        .where((b) => (b.address ?? '').toLowerCase() == city.toLowerCase())
+        .toList();
   }
 
   double get totalAmount {
@@ -156,11 +165,11 @@ class CreateOrderViewModel extends ChangeNotifier {
     if (selectedBranch == null) return;
     await _withLoading(() async {
       Logger.i(
-        'CreateOrderViewModel: loading items for branchId=${selectedBranch!.id}, '
+        'CreateOrderViewModel: loading items for branchId=${selectedBranch!.branchId}, '
         'query="$itemSearchQuery"',
       );
       final endpoint = ApiEndpoints.getAvailableItems(
-        selectedBranch!.id,
+        selectedBranch!.branchId,
         query: itemSearchQuery,
       );
       final response = await _apiClient.getAsync(endpoint);
@@ -219,7 +228,9 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   void selectBranch(Branch? branch) {
-    Logger.i('CreateOrderViewModel: selectBranch branchId=${branch?.id}, city=${branch?.city}');
+    Logger.i(
+      'CreateOrderViewModel: selectBranch branchId=${branch?.branchId}, address=${branch?.address}',
+    );
     selectedBranch = branch;
     _availableItems.clear();
     cart.clear();
@@ -282,7 +293,9 @@ class CreateOrderViewModel extends ChangeNotifier {
     final parsed = int.tryParse(rawValue);
     if (parsed == null) return 'Введите целое число';
     if (parsed < 0) return 'Количество не может быть < 0';
-    if (parsed > item.availableQuantity) return 'Макс: ${item.availableQuantity}';
+    if (parsed > item.availableQuantity) {
+      return 'Макс: ${item.availableQuantity}';
+    }
     _setCartQuantity(item.itemId, parsed, max: item.availableQuantity);
     return null;
   }
@@ -325,10 +338,15 @@ class CreateOrderViewModel extends ChangeNotifier {
             .map((e) => {'itemId': e.key, 'quantity': e.value})
             .toList(),
       };
-      final response = await _apiClient.postAsync(ApiEndpoints.checkPostamatCapacity, data: payload);
+      final response = await _apiClient.postAsync(
+        ApiEndpoints.checkPostamatCapacity,
+        data: payload,
+      );
       final ok = response is bool
           ? response
-          : (response is Map<String, dynamic> ? (response['fits'] as bool? ?? false) : false);
+          : (response is Map<String, dynamic>
+                ? (response['fits'] as bool? ?? false)
+                : false);
 
       postamatCapacityOk = ok;
       postamatCapacityError = ok
@@ -336,7 +354,8 @@ class CreateOrderViewModel extends ChangeNotifier {
           : 'Габариты/объем заказа не подходят для выбранного постамата. Вернитесь назад и выберите курьера.';
     } catch (_) {
       postamatCapacityOk = false;
-      postamatCapacityError = 'Не удалось проверить вместимость постамата. Попробуйте позже.';
+      postamatCapacityError =
+          'Не удалось проверить вместимость постамата. Попробуйте позже.';
     } finally {
       isCheckingPostamatCapacity = false;
       notifyListeners();
@@ -346,7 +365,9 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool get canSubmitOrder {
     if (cart.isEmpty || selectedBranch == null) return false;
     if (selectedDeliveryType == DeliveryType.postamat) {
-      return selectedPostamat != null && postamatCapacityOk == true && !isCheckingPostamatCapacity;
+      return selectedPostamat != null &&
+          postamatCapacityOk == true &&
+          !isCheckingPostamatCapacity;
     }
     return true;
   }
@@ -356,7 +377,7 @@ class CreateOrderViewModel extends ChangeNotifier {
 
     return _withLoading<bool>(() async {
       final payload = {
-        'branchId': selectedBranch!.id,
+        'branchId': selectedBranch!.branchId,
         'deliveryType': selectedDeliveryType.name,
         'postamatId': selectedPostamat?.id,
         'prepayNow': prepayNow,

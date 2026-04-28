@@ -37,7 +37,7 @@ class ApiEndpoints {
   static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
 
   // Create Order (Customer simulator)
-  static const String getBranches = 'Branch'; // GET /api/Branch
+  static const String getBranches = 'Branches'; // GET /api/Branch
   static String getAvailableItems(int branchId, {String query = ''}) =>
       'ItemPosition/available/$branchId?search=${Uri.encodeQueryComponent(query)}';
   static const String getPostamats = 'Postamat'; // GET /api/Postamat

@@ -130,7 +130,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
   Widget _stepLocation(CreateOrderViewModel vm) {
     final cities = vm.availableCities;
-    final selectedCity = vm.selectedBranch?.city;
+    final selectedCity = vm.selectedBranch?.address;
     final branches = selectedCity == null ? <Branch>[] : vm.branchesByCity(selectedCity);
 
     return Padding(
@@ -138,7 +138,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Выберите город и филиал', style: TextStyle(color: Colors.white, fontSize: 18)),
+          const Text('Выберите локацию и филиал', style: TextStyle(color: Colors.white, fontSize: 18)),
           const SizedBox(height: 12),
           Autocomplete<String>(
             optionsBuilder: (value) {
@@ -159,7 +159,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                 controller: textEditingController,
                 focusNode: focusNode,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Поиск города'),
+                decoration: _inputDecoration('Поиск адреса/города'),
                 onSubmitted: (_) => onSubmit(),
               );
             },
@@ -170,7 +170,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
               itemCount: branches.length,
               itemBuilder: (context, index) {
                 final b = branches[index];
-                final selected = vm.selectedBranch?.id == b.id;
+                final selected = vm.selectedBranch?.branchId == b.branchId;
                 return Card(
                   color: _card,
                   shape: RoundedRectangleBorder(
@@ -178,12 +178,12 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                     side: BorderSide(color: selected ? _accent : Colors.transparent),
                   ),
                   child: RadioListTile<int>(
-                    value: b.id,
-                    groupValue: vm.selectedBranch?.id,
+                    value: b.branchId,
+                    groupValue: vm.selectedBranch?.branchId,
                     activeColor: _accent,
                     onChanged: (_) => vm.selectBranch(b),
-                    title: Text(b.name, style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(b.city, style: const TextStyle(color: _subtitle)),
+                    title: Text(b.branchName, style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(b.address ?? '', style: const TextStyle(color: _subtitle)),
                   ),
                 );
               },
@@ -306,7 +306,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
         const Text('Логистика', style: TextStyle(color: Colors.white, fontSize: 18)),
         const SizedBox(height: 12),
         DropdownButtonFormField<DeliveryType>(
-          value: vm.selectedDeliveryType,
+          initialValue: vm.selectedDeliveryType,
           dropdownColor: _card,
           style: const TextStyle(color: Colors.white),
           decoration: _inputDecoration('Тип доставки'),
@@ -320,7 +320,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
         const SizedBox(height: 12),
         if (vm.selectedDeliveryType == DeliveryType.postamat)
           DropdownButtonFormField<Postamat>(
-            value: vm.selectedPostamat,
+            initialValue: vm.selectedPostamat,
             dropdownColor: _card,
             style: const TextStyle(color: Colors.white),
             decoration: _inputDecoration('Адрес постамата'),
@@ -340,7 +340,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
               const SizedBox(height: 8),
               Text('Итого: ${vm.totalAmount.toStringAsFixed(0)} ₽', style: const TextStyle(color: Colors.white70)),
               SwitchListTile(
-                activeColor: _accent,
+                activeTrackColor: _accent,
                 title: const Text('Оплатить сейчас (Предоплата)', style: TextStyle(color: Colors.white)),
                 value: vm.prepayNow,
                 onChanged: vm.setPrepayNow,
@@ -358,7 +358,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
       children: [
         const Text('Проверка перед подтверждением', style: TextStyle(color: Colors.white, fontSize: 18)),
         const SizedBox(height: 12),
-        _summaryTile('Филиал', vm.selectedBranch?.name ?? 'Не выбран'),
+        _summaryTile('Филиал', vm.selectedBranch?.branchName ?? 'Не выбран'),
         _summaryTile('Доставка', vm.selectedDeliveryType.label),
         if (vm.selectedDeliveryType == DeliveryType.postamat)
           _summaryTile('Постамат', vm.selectedPostamat?.address ?? 'Не выбран'),
