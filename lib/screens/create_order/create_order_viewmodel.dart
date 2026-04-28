@@ -5,21 +5,34 @@ import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/utils/logger.dart';
 
-/// Варианты доставки для оформления заказа.
 enum DeliveryType {
   pickup('Самовывоз'),
-  express('Экспресс'),
-  courier('Курьер'),
-  postamat('В постамат');
+  express('Экспресс-доставка'),
+  courier('Курьерская доставка'),
+  postamat('Доставка в постамат');
 
   const DeliveryType(this.label);
   final String label;
+
+  // Метод для конвертации enum в строку, которую ожидает сервер C#
+  String toServerString() {
+    switch (this) {
+      case DeliveryType.pickup:
+        return 'Pickup';
+      case DeliveryType.express:
+        return 'Express';
+      case DeliveryType.courier:
+        return 'Delivery';
+      case DeliveryType.postamat:
+        return 'Postamat';
+    }
+  }
 }
 
 class Branch {
-  final int branchId;       // Было id
-  final String branchName;  // Было name
-  final String? branchType; // Добавляем новые поля (опционально)
+  final int branchId;
+  final String branchName;
+  final String? branchType;
   final String? address;
 
   Branch({
@@ -31,192 +44,100 @@ class Branch {
 
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
-      // Ищем строго branchId, если придет null - ставим 0
-      branchId: json['branchId'] as int? ?? 0, 
-      
-      // Ищем строго branchName
-      branchName: json['branchName'] as String? ?? 'Неизвестный филиал', 
-      
+      branchId: json['branchId'] as int? ?? 0,
+      branchName: json['branchName'] as String? ?? 'Неизвестный филиал',
       branchType: json['branchType'] as String?,
       address: json['address'] as String?,
     );
   }
 }
 
-/// Заглушка модели товара в наличии.
 class AvailableItem {
-  const AvailableItem({
-    required this.itemId,
-    required this.name,
-    required this.price,
-    required this.availableQuantity,
-  });
-
   final int itemId;
   final String name;
   final double price;
   final int availableQuantity;
+  final double length;
+  final double width;
+  final double height;
+
+  AvailableItem({
+    required this.itemId,
+    required this.name,
+    required this.price,
+    required this.availableQuantity,
+    this.length = 100, // Значения по умолчанию, если сервер их не пришлет
+    this.width = 100,
+    this.height = 100,
+  });
 
   factory AvailableItem.fromJson(Map<String, dynamic> json) {
     return AvailableItem(
-      itemId: json['itemId'] as int,
-      name: (json['name'] ?? '').toString(),
-      price: (json['price'] as num?)?.toDouble() ?? 0,
-      availableQuantity: (json['availableQuantity'] as num?)?.toInt() ?? 0,
+      itemId: json['itemId'] as int? ?? 0,
+      name: json['name'] as String? ?? 'Без названия',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      availableQuantity: json['availableQuantity'] as int? ?? 0,
+      length: (json['length'] as num?)?.toDouble() ?? 100,
+      width: (json['width'] as num?)?.toDouble() ?? 100,
+      height: (json['height'] as num?)?.toDouble() ?? 100,
     );
   }
 }
 
-/// Заглушка модели постамата.
 class Postamat {
-  const Postamat({required this.id, required this.address});
-
   final int id;
   final String address;
 
+  Postamat({required this.id, required this.address});
+
   factory Postamat.fromJson(Map<String, dynamic> json) {
     return Postamat(
-      id: json['id'] as int,
-      address: (json['address'] ?? '').toString(),
+      id: json['postamatId'] as int? ?? 0,
+      address: json['address'] as String? ?? 'Неизвестный адрес',
     );
   }
 }
 
 class CreateOrderViewModel extends ChangeNotifier {
-  CreateOrderViewModel(this._apiClient);
-
   final ApiClient _apiClient;
 
+  CreateOrderViewModel(this._apiClient);
+
+  int currentStep = 0;
   bool isLoading = false;
   String? errorMessage;
 
-  int currentStep = 0;
-
-  final List<Branch> _branches = [];
-  final List<AvailableItem> _availableItems = [];
-  final List<Postamat> _postamats = [];
-
+  // --- Step 1: Филиалы ---
+  List<Branch> branches = [];
   Branch? selectedBranch;
+
+  // --- Step 2: Товары ---
+  List<AvailableItem> availableItems = [];
+  // Корзина: itemId -> количество
+  Map<int, int> cart = {};
+
+  // --- Step 3: Логистика ---
   DeliveryType selectedDeliveryType = DeliveryType.pickup;
+  List<Postamat> postamats = [];
   Postamat? selectedPostamat;
-  bool prepayNow = false;
+  DateTime? deliveryDate;
+  String destinationAddress = '';
+  bool prepayNow = false; // true = Prepaid, false = Postpaid
 
-  /// Корзина: itemId -> quantity.
-  final Map<int, int> cart = <int, int>{};
-
-  String itemSearchQuery = '';
-
+  // --- Step 4: Проверка ---
   bool isCheckingPostamatCapacity = false;
   bool? postamatCapacityOk;
   String? postamatCapacityError;
 
-  List<Branch> get branches => List.unmodifiable(_branches);
-  List<AvailableItem> get availableItems => List.unmodifiable(_availableItems);
-  List<Postamat> get postamats => List.unmodifiable(_postamats);
-
-  List<String> get availableCities {
-    final cities = _branches
-        .map((b) => (b.address ?? '').trim())
-        .where((c) => c.isNotEmpty)
-        .toSet()
-        .toList();
-    cities.sort();
-    return cities;
-  }
-
-  List<Branch> branchesByCity(String city) {
-    return _branches
-        .where((b) => (b.address ?? '').toLowerCase() == city.toLowerCase())
-        .toList();
-  }
-
-  double get totalAmount {
-    var total = 0.0;
-    for (final item in _availableItems) {
-      final qty = cart[item.itemId] ?? 0;
-      if (qty > 0) {
-        total += item.price * qty;
-      }
-    }
-    return total;
-  }
-
   Future<void> initialize() async {
-    Logger.i('CreateOrderViewModel: initialize start');
-    await Future.wait([loadBranches(), loadPostamats()]);
-    Logger.i(
-      'CreateOrderViewModel: initialize done, '
-      'branches=${_branches.length}, postamats=${_postamats.length}',
-    );
+    await _fetchBranches();
   }
 
-  Future<void> loadBranches() async {
-    await _withLoading(() async {
-      Logger.i('CreateOrderViewModel: loading branches');
-      final response = await _apiClient.getAsync(ApiEndpoints.getBranches);
-      final rows = (response as List<dynamic>).cast<Map<String, dynamic>>();
-      _branches
-        ..clear()
-        ..addAll(rows.map(Branch.fromJson));
-    });
-  }
-
-  Future<void> loadAvailableItems() async {
-    if (selectedBranch == null) return;
-    await _withLoading(() async {
-      Logger.i(
-        'CreateOrderViewModel: loading items for branchId=${selectedBranch!.branchId}, '
-        'query="$itemSearchQuery"',
-      );
-      final endpoint = ApiEndpoints.getAvailableItems(
-        selectedBranch!.branchId,
-        query: itemSearchQuery,
-      );
-      final response = await _apiClient.getAsync(endpoint);
-      final rows = (response as List<dynamic>).cast<Map<String, dynamic>>();
-      _availableItems
-        ..clear()
-        ..addAll(rows.map(AvailableItem.fromJson));
-
-      // Если на сервере остатки изменились, синхронизируем корзину.
-      final validIds = _availableItems.map((e) => e.itemId).toSet();
-      cart.removeWhere((itemId, _) => !validIds.contains(itemId));
-      for (final item in _availableItems) {
-        final currentQty = cart[item.itemId] ?? 0;
-        if (currentQty > item.availableQuantity) {
-          cart[item.itemId] = item.availableQuantity;
-        }
-      }
-      cart.removeWhere((_, qty) => qty <= 0);
-    });
-  }
-
-  Future<void> loadPostamats() async {
-    await _withLoading(() async {
-      Logger.i('CreateOrderViewModel: loading postamats');
-      final response = await _apiClient.getAsync(ApiEndpoints.getPostamats);
-      final rows = (response as List<dynamic>).cast<Map<String, dynamic>>();
-      _postamats
-        ..clear()
-        ..addAll(rows.map(Postamat.fromJson));
-    });
-  }
-
-  void setStep(int step) {
-    currentStep = step.clamp(0, 3);
-    notifyListeners();
-  }
-
-  Future<void> nextStep() async {
-    if (currentStep == 1 && selectedBranch != null && _availableItems.isEmpty) {
-      await loadAvailableItems();
-    }
-    if (currentStep < 3) {
+  // --- Навигация и валидация ---
+  void nextStep() {
+    if (canProceedToNextStep()) {
       currentStep++;
       notifyListeners();
-      if (currentStep == 3) {
-        unawaited(runPostamatCapacityCheckIfNeeded());
-      }
     }
   }
 
@@ -227,135 +148,205 @@ class CreateOrderViewModel extends ChangeNotifier {
     }
   }
 
-  void selectBranch(Branch? branch) {
-    Logger.i(
-      'CreateOrderViewModel: selectBranch branchId=${branch?.branchId}, address=${branch?.address}',
-    );
-    selectedBranch = branch;
-    _availableItems.clear();
-    cart.clear();
-    notifyListeners();
-    if (branch != null) {
-      unawaited(loadAvailableItems());
+  bool canProceedToNextStep() {
+    switch (currentStep) {
+      case 0: // Локация
+        return selectedBranch != null;
+      case 1: // Витрина
+        return cart.isNotEmpty;
+      case 2: // Логистика
+        if (selectedDeliveryType == DeliveryType.postamat) {
+          return selectedPostamat != null;
+        }
+        if (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) {
+          return destinationAddress.isNotEmpty;
+        }
+        return true; // pickup
+      case 3: // Подтверждение (здесь логика отправки)
+        return canSubmitOrder;
+      default:
+        return false;
     }
   }
+
+  // --- Data Fetching ---
+
+Future<void> _fetchBranches() async {
+    await _withLoading(() async {
+      final response = await _apiClient.getAsync(ApiEndpoints.getBranches);
+      // Проверяем сам response, так как он и является списком
+      if (response is List) {
+        branches = response.map((json) => Branch.fromJson(json)).toList();
+      }
+    });
+  }
+
+  void selectBranch(Branch branch) {
+    if (selectedBranch?.branchId == branch.branchId) return;
+    selectedBranch = branch;
+    cart.clear(); // Очищаем корзину при смене филиала
+    _fetchItems();
+  }
+
+Future<void> _fetchItems([String query = '']) async {
+    if (selectedBranch == null) return;
+    await _withLoading(() async {
+      final endpoint = ApiEndpoints.getAvailableItems(selectedBranch!.branchId, query: query);
+      final response = await _apiClient.getAsync(endpoint);
+      // Проверяем сам response
+      if (response is List) {
+        availableItems = response.map((json) => AvailableItem.fromJson(json)).toList();
+      }
+    });
+  }
+
+  Future<void> searchItems(String query) async {
+    await _fetchItems(query);
+  }
+
+Future<void> _fetchPostamats() async {
+    if (postamats.isNotEmpty) return;
+    await _withLoading(() async {
+      final response = await _apiClient.getAsync(ApiEndpoints.getPostamats);
+      // Проверяем сам response
+      if (response is List) {
+        postamats = response.map((json) => Postamat.fromJson(json)).toList();
+      }
+    });
+  }
+
+  // --- Cart Management ---
+
+  void updateCartQuantity(int itemId, int delta, int maxQuantity) {
+    int current = cart[itemId] ?? 0;
+    int newVal = current + delta;
+    
+    if (newVal < 0) return;
+    if (newVal > maxQuantity) newVal = maxQuantity;
+
+    if (newVal == 0) {
+      cart.remove(itemId);
+    } else {
+      cart[itemId] = newVal;
+    }
+    notifyListeners();
+  }
+
+  void setManualQuantity(int itemId, int value, int maxQuantity) {
+    if (value < 0) return;
+    int finalValue = value > maxQuantity ? maxQuantity : value;
+
+    if (finalValue == 0) {
+      cart.remove(itemId);
+    } else {
+      cart[itemId] = finalValue;
+    }
+    notifyListeners();
+  }
+
+  double get cartTotalPrice {
+    double total = 0;
+    for (var entry in cart.entries) {
+      final item = availableItems.firstWhere((i) => i.itemId == entry.key, orElse: () => availableItems.first);
+      total += item.price * entry.value;
+    }
+    return total;
+  }
+  
+  int get totalItemsCount {
+      int count = 0;
+      for (var qty in cart.values) { count += qty; }
+      return count;
+  }
+
+  // --- Logistics ---
 
   void setDeliveryType(DeliveryType type) {
     selectedDeliveryType = type;
-    if (type != DeliveryType.postamat) {
-      selectedPostamat = null;
-      postamatCapacityOk = null;
-      postamatCapacityError = null;
-      isCheckingPostamatCapacity = false;
+    if (type == DeliveryType.postamat) {
+      _fetchPostamats();
     }
+    // Сбрасываем результат проверки постамата
+    postamatCapacityOk = null;
+    postamatCapacityError = null;
     notifyListeners();
   }
 
-  void setSelectedPostamat(Postamat? postamat) {
+  void setPostamat(Postamat postamat) {
     selectedPostamat = postamat;
     postamatCapacityOk = null;
     postamatCapacityError = null;
     notifyListeners();
   }
-
-  void setPrepayNow(bool value) {
-    prepayNow = value;
-    notifyListeners();
-  }
-
-  Future<void> applyItemSearch(String query) async {
-    itemSearchQuery = query.trim();
-    await loadAvailableItems();
-  }
-
-  Future<void> clearItemSearch() async {
-    itemSearchQuery = '';
-    await loadAvailableItems();
-  }
-
-  int quantityFor(int itemId) => cart[itemId] ?? 0;
-
-  void addToCart(int itemId) {
-    _setCartQuantity(itemId, 1);
-  }
-
-  void increaseQuantity(AvailableItem item) {
-    final next = (cart[item.itemId] ?? 0) + 1;
-    _setCartQuantity(item.itemId, next, max: item.availableQuantity);
-  }
-
-  void decreaseQuantity(AvailableItem item) {
-    final next = (cart[item.itemId] ?? 0) - 1;
-    _setCartQuantity(item.itemId, next, max: item.availableQuantity);
-  }
-
-  String? setQuantityFromInput(AvailableItem item, String rawValue) {
-    final parsed = int.tryParse(rawValue);
-    if (parsed == null) return 'Введите целое число';
-    if (parsed < 0) return 'Количество не может быть < 0';
-    if (parsed > item.availableQuantity) {
-      return 'Макс: ${item.availableQuantity}';
-    }
-    _setCartQuantity(item.itemId, parsed, max: item.availableQuantity);
-    return null;
-  }
-
-  void _setCartQuantity(int itemId, int value, {int? max}) {
-    final safeMax = max ?? 1 << 31;
-    final normalized = value.clamp(0, safeMax);
-    if (normalized == 0) {
-      cart.remove(itemId);
-    } else {
-      cart[itemId] = normalized;
-    }
-    notifyListeners();
-  }
-
-  Future<void> runPostamatCapacityCheckIfNeeded() async {
-    if (selectedDeliveryType != DeliveryType.postamat) {
-      postamatCapacityOk = true;
-      postamatCapacityError = null;
+  
+  void setDeliveryDate(DateTime date) {
+      deliveryDate = date;
       notifyListeners();
-      return;
-    }
-
-    if (selectedPostamat == null) {
-      postamatCapacityOk = false;
-      postamatCapacityError = 'Выберите постамат на шаге логистики.';
+  }
+  
+  void setDestinationAddress(String address) {
+      destinationAddress = address;
       notifyListeners();
-      return;
+  }
+  
+  void togglePrepay(bool value) {
+      prepayNow = value;
+      notifyListeners();
+  }
+
+  // --- Submission ---
+
+  Future<void> checkCapacityAndSubmit() async {
+    if (selectedDeliveryType == DeliveryType.postamat) {
+      await _checkPostamatCapacity();
+      if (postamatCapacityOk != true) {
+        return; // Если не влезло, останавливаемся
+      }
     }
+    
+    // Если дошли сюда, создаем заказ
+    await _createOrder();
+  }
+
+Future<void> _checkPostamatCapacity() async {
+    if (selectedPostamat == null || cart.isEmpty) return;
 
     isCheckingPostamatCapacity = true;
-    postamatCapacityOk = null;
     postamatCapacityError = null;
     notifyListeners();
 
     try {
+      final itemsToPack = cart.entries.map((entry) {
+        final item = availableItems.firstWhere((i) => i.itemId == entry.key);
+        return {
+          'orderPositionId': 0, 
+          'itemId': item.itemId,
+          'length': item.length,
+          'width': item.width,
+          'height': item.height,
+          'quantity': entry.value
+        };
+      }).toList();
+
       final payload = {
         'postamatId': selectedPostamat!.id,
-        'items': cart.entries
-            .map((e) => {'itemId': e.key, 'quantity': e.value})
-            .toList(),
+        'itemsToPack': itemsToPack
       };
-      final response = await _apiClient.postAsync(
-        ApiEndpoints.checkPostamatCapacity,
-        data: payload,
-      );
-      final ok = response is bool
-          ? response
-          : (response is Map<String, dynamic>
-                ? (response['fits'] as bool? ?? false)
-                : false);
 
-      postamatCapacityOk = ok;
-      postamatCapacityError = ok
-          ? null
-          : 'Габариты/объем заказа не подходят для выбранного постамата. Вернитесь назад и выберите курьера.';
-    } catch (_) {
+      Logger.i('Проверка габаритов: $payload');
+      final response = await _apiClient.postAsync(ApiEndpoints.checkPostamatCapacity, data: payload);
+      
+      // response сам по себе содержит true или false
+      if (response == true) {
+         postamatCapacityOk = true;
+      } else {
+         postamatCapacityOk = false;
+         postamatCapacityError = 'Габариты заказа превышают размер свободных ячеек в выбранном терминале. Уменьшите количество товаров или измените способ доставки.';
+      }
+    } catch (e) {
+      Logger.e('Ошибка при проверке габаритов постамата', e);
       postamatCapacityOk = false;
-      postamatCapacityError =
-          'Не удалось проверить вместимость постамата. Попробуйте позже.';
+      postamatCapacityError = 'Произошла ошибка при проверке вместимости терминала: $e';
     } finally {
       isCheckingPostamatCapacity = false;
       notifyListeners();
@@ -365,29 +356,65 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool get canSubmitOrder {
     if (cart.isEmpty || selectedBranch == null) return false;
     if (selectedDeliveryType == DeliveryType.postamat) {
-      return selectedPostamat != null &&
-          postamatCapacityOk == true &&
-          !isCheckingPostamatCapacity;
+      return selectedPostamat != null && !isCheckingPostamatCapacity;
     }
     return true;
   }
 
-  Future<bool> createOrder() async {
+Future<bool> _createOrder() async {
     if (!canSubmitOrder) return false;
 
     return _withLoading<bool>(() async {
+      // Формируем DTO позиций (OrderPositionDto) с учетом цены
+      final positions = cart.entries.map((entry) {
+        // Находим товар, чтобы взять его цену
+        final item = availableItems.firstWhere((i) => i.itemId == entry.key);
+        
+        return {
+            'itemId': entry.key,
+            'quantity': entry.value,
+            'price': item.price // <--- Теперь отправляем и цену, как просит сервер
+        };
+      }).toList();
+
+      // Формируем корневой DTO (OrderDto)
       final payload = {
+        'customerId': 1, // Заглушка для симулятора
         'branchId': selectedBranch!.branchId,
-        'deliveryType': selectedDeliveryType.name,
-        'postamatId': selectedPostamat?.id,
-        'prepayNow': prepayNow,
-        'items': cart.entries
-            .map((e) => {'itemId': e.key, 'quantity': e.value})
-            .toList(),
+        'deliveryDate': deliveryDate?.toIso8601String(),
+        'deliveryType': selectedDeliveryType.toServerString(),
+        'paymentType': prepayNow ? 'Prepaid' : 'Postpaid',
+        'destinationAddress': (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) 
+            ? destinationAddress 
+            : (selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.address : null),
+        'postamatId': selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.id : null,
+        
+        // ВАЖНО: Названия полей должны совпадать с вашим DTO
+        'totalPrice': cartTotalPrice, 
+        'positions': positions
       };
+      
+      Logger.i('Отправка заказа на сервер: $payload');
+      
       await _apiClient.postAsync(ApiEndpoints.createOrder, data: payload);
       return true;
     }, fallback: false);
+  }
+
+String branchSearchQuery = '';
+
+  List<Branch> get filteredBranches {
+    if (branchSearchQuery.isEmpty) return branches;
+    final q = branchSearchQuery.toLowerCase();
+    return branches.where((b) {
+      return b.branchName.toLowerCase().contains(q) ||
+             (b.address != null && b.address!.toLowerCase().contains(q));
+    }).toList();
+  }
+
+  void filterBranches(String query) {
+    branchSearchQuery = query;
+    notifyListeners();
   }
 
   Future<T> _withLoading<T>(Future<T> Function() action, {T? fallback}) async {
@@ -398,10 +425,9 @@ class CreateOrderViewModel extends ChangeNotifier {
       final result = await action();
       return result;
     } catch (e) {
-      Logger.e('CreateOrderViewModel operation failed', e);
+      Logger.e('CreateOrderViewModel Error', e);
       errorMessage = e.toString();
-      if (fallback != null) return fallback;
-      rethrow;
+      return fallback as T;
     } finally {
       isLoading = false;
       notifyListeners();
