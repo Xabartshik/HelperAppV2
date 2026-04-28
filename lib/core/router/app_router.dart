@@ -131,16 +131,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         return (user.role == MobileUserRole.customer) ? '/customer-home' : '/home';
       }
 
-<<<<<<< HEAD
-      // 3. Защита маршрутов: не пускать покупателя в складскую часть
-      // Если это покупатель и путь НЕ начинается с /customer
-      if (user.role != MobileUserRole.customer) {
-        return '/customer-home';
-      }
-
-      // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя (опционально)
-      if (user.role != MobileUserRole.customer) {
-=======
       // 3. Защита маршрутов: не пускать покупателя в складскую часть.
       // Но маршруты /customer/* разрешаем.
       if (user.role == MobileUserRole.customer && !state.uri.path.startsWith('/customer')) {
@@ -149,7 +139,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя.
       if (user.role != MobileUserRole.customer && state.uri.path.startsWith('/customer')) {
->>>>>>> 0bbc2bc8efc0a420e0a7514efe3fc717d244b3d1
         return '/home';
       }
 
