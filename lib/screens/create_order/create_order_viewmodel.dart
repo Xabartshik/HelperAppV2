@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/utils/logger.dart';
 
 /// Варианты доставки для оформления заказа.
 enum DeliveryType {
@@ -132,11 +133,17 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
+    Logger.i('CreateOrderViewModel: initialize start');
     await Future.wait([loadBranches(), loadPostamats()]);
+    Logger.i(
+      'CreateOrderViewModel: initialize done, '
+      'branches=${_branches.length}, postamats=${_postamats.length}',
+    );
   }
 
   Future<void> loadBranches() async {
     await _withLoading(() async {
+      Logger.i('CreateOrderViewModel: loading branches');
       final response = await _apiClient.getAsync(ApiEndpoints.getBranches);
       final rows = (response as List<dynamic>).cast<Map<String, dynamic>>();
       _branches
@@ -148,6 +155,10 @@ class CreateOrderViewModel extends ChangeNotifier {
   Future<void> loadAvailableItems() async {
     if (selectedBranch == null) return;
     await _withLoading(() async {
+      Logger.i(
+        'CreateOrderViewModel: loading items for branchId=${selectedBranch!.id}, '
+        'query="$itemSearchQuery"',
+      );
       final endpoint = ApiEndpoints.getAvailableItems(
         selectedBranch!.id,
         query: itemSearchQuery,
@@ -173,6 +184,7 @@ class CreateOrderViewModel extends ChangeNotifier {
 
   Future<void> loadPostamats() async {
     await _withLoading(() async {
+      Logger.i('CreateOrderViewModel: loading postamats');
       final response = await _apiClient.getAsync(ApiEndpoints.getPostamats);
       final rows = (response as List<dynamic>).cast<Map<String, dynamic>>();
       _postamats
@@ -207,6 +219,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   void selectBranch(Branch? branch) {
+    Logger.i('CreateOrderViewModel: selectBranch branchId=${branch?.id}, city=${branch?.city}');
     selectedBranch = branch;
     _availableItems.clear();
     cart.clear();
@@ -364,6 +377,7 @@ class CreateOrderViewModel extends ChangeNotifier {
       final result = await action();
       return result;
     } catch (e) {
+      Logger.e('CreateOrderViewModel operation failed', e);
       errorMessage = e.toString();
       if (fallback != null) return fallback;
       rethrow;

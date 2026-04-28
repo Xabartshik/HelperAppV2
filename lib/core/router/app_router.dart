@@ -4,7 +4,10 @@ import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
 import 'package:helper_app/screens/login/register_page.dart';
 import 'package:helper_app/screens/create_order/create_order_page.dart';
+import 'package:flutter/foundation.dart';
+import 'package:helper_app/core/models/user/current_user.dart';
 import '../services/auth_service.dart';
+import '../utils/logger.dart';
 
 // Импорты существующих экранов
 import '../../screens/login/login_page.dart';
@@ -17,16 +20,13 @@ import '../../screens/order_assembly/active_assembly_screen.dart';
 import '../../screens/order_assembly/assembly_barcode_scanner_page.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // Следим за состоянием текущего пользователя
-  final user = ref.watch(currentUserProvider);
+  final refreshNotifier = _RouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
-  return GoRouter(
-    // Начальная точка зависит от роли
-initialLocation: user == null 
-        ? '/login' 
-        : (user.role == MobileUserRole.customer ? '/customer-home' : '/home'),
-    
+  final router = GoRouter(
+    initialLocation: _homeLocationFor(ref.read(currentUserProvider)),
     debugLogDiagnostics: true,
+    refreshListenable: refreshNotifier,
     
     routes: [
       GoRoute(
@@ -117,7 +117,13 @@ initialLocation: user == null
     ],
 
     redirect: (context, state) {
+      final user = ref.read(currentUserProvider);
       final isLoggingIn = state.uri.path == '/login' || state.uri.path == '/register';
+      Logger.i(
+        'Router redirect check: path=${state.uri.path}, '
+        'role=${user?.role.name ?? 'guest'}, '
+        'loggedIn=${user != null}',
+      );
 
       // 1. Если пользователь не авторизован
       if (user == null) {
@@ -127,22 +133,60 @@ initialLocation: user == null
 
       // 2. Если пользователь авторизован и пытается зайти на Login/Register
       if (isLoggingIn) {
-        // Редиректим на соответствующую главную в зависимости от роли
-        return (user.role == MobileUserRole.customer) ? '/customer-home' : '/home';
+        return _homeLocationFor(user);
       }
 
-      // 3. Защита маршрутов: не пускать покупателя в складскую часть.
-      // Но маршруты /customer/* разрешаем.
-      if (user.role == MobileUserRole.customer && !state.uri.path.startsWith('/customer')) {
+      // 3. Защита маршрутов: покупателю разрешаем только customer-маршруты.
+      if (user.role == MobileUserRole.customer && !_isCustomerRoute(state.uri.path)) {
+        Logger.w('Router redirect: customer blocked from ${state.uri.path}, redirecting to /customer-home');
         return '/customer-home';
       }
 
       // 4. Защита маршрутов: не пускать сотрудника в интерфейс покупателя.
-      if (user.role != MobileUserRole.customer && state.uri.path.startsWith('/customer')) {
+      if (user.role != MobileUserRole.customer && _isCustomerRoute(state.uri.path)) {
+        Logger.w('Router redirect: employee blocked from ${state.uri.path}, redirecting to /home');
         return '/home';
       }
 
       return null;
     },
   );
+
+  ref.onDispose(router.dispose);
+  return router;
 });
+
+String _homeLocationFor(CurrentUser? user) {
+  if (user == null) return '/login';
+  return user.role == MobileUserRole.customer ? '/customer-home' : '/home';
+}
+
+bool _isCustomerRoute(String path) {
+  return path == '/customer-home' || path.startsWith('/customer/');
+}
+
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(this._ref) {
+    _subscription = _ref.listen<CurrentUser?>(
+      currentUserProvider,
+      (previous, next) {
+        Logger.i(
+          'Router refresh: user changed '
+          'from=${previous?.role.name ?? 'guest'} '
+          'to=${next?.role.name ?? 'guest'}',
+        );
+        notifyListeners();
+      },
+      fireImmediately: false,
+    );
+  }
+
+  final Ref _ref;
+  late final ProviderSubscription<CurrentUser?> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
+}

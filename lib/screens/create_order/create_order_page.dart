@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/utils/logger.dart';
 import 'create_order_viewmodel.dart';
 
 final createOrderViewModelProvider = ChangeNotifierProvider.autoDispose<CreateOrderViewModel>((ref) {
@@ -34,10 +35,12 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    Logger.i('CreateOrderPage: initState');
   }
 
   @override
   void dispose() {
+    Logger.i('CreateOrderPage: dispose');
     _pageController.dispose();
     _cityController.dispose();
     _searchController.dispose();
