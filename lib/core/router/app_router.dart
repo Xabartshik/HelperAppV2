@@ -1,5 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/screens/home/customer_home_page.dart';
+import 'package:helper_app/screens/login/register_page.dart';
 import '../services/auth_service.dart';
 
 // Импорты существующих экранов
