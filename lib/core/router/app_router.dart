@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
+import 'package:helper_app/screens/home/shift_scanner_page.dart';
 import 'package:helper_app/screens/login/register_page.dart';
 import 'package:helper_app/screens/create_order/create_order_page.dart';
 import 'package:flutter/foundation.dart';
@@ -39,6 +40,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/register',
         name: 'register',
         builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/shift-scanner',
+        name: 'shiftScanner',
+        builder: (context, state) => const ShiftScannerPage(),
       ),
       // --- НОВОЕ: Главная для покупателя ---
       GoRoute(

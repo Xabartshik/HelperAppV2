@@ -183,14 +183,13 @@ class MainPage extends ConsumerWidget {
           const SizedBox(width: 10),
           ElevatedButton(
             onPressed: () async {
-              // 1. Открываем сканер штрих-кодов/QR
-              // Ожидаем, что экран вернет строку payload после сканирования
-              final qrResult = await context.push<String>('/barcode-scanner');
+              // 1. Открываем новый экран сканера и ждем результат
+              final qrResult = await context.push<String>('/shift-scanner');
               
               if (qrResult != null && qrResult.isNotEmpty) {
-                 // 2. Если сосканировали — отправляем запрос на бэкенд
-                 final checkType = isWorking ? 'out' : 'in';
-                 await vm.processQrCheckIn(qrResult, checkType);
+                // 2. Если код получен, вызываем метод во ViewModel
+                final checkType = isWorking ? 'out' : 'in';
+                await vm.processQrCheckIn(qrResult, checkType);
               }
             },
             style: ElevatedButton.styleFrom(

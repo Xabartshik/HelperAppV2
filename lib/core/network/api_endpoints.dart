@@ -44,4 +44,5 @@ class ApiEndpoints {
   static const String checkPostamatCapacity = 'Postamat/check-capacity'; // POST /api/Postamat/check-capacity
   static const String createOrder = 'Orders'; // POST /api/Orders
   static const String qrCheckInScan = 'QrCheckIn/scan';
+  static String lastCheck(int employeeId) => 'CheckIOEmployee/last/$employeeId';
 }

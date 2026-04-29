@@ -82,20 +82,35 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
   }
 
   /// НОВОЕ: Проверка, находится ли сотрудник на смене
-  Future<void> checkShiftStatus() async {
-    state = state.copyWith(isShiftLoading: true);
-    try {
-      // TODO: Здесь должен быть вызов вашего API для проверки статуса смены.
-      // Например: final status = await ref.read(apiClientProvider).get('/api/QrCheckIn/status');
-      // Пока имитируем задержку и считаем, что смены нет:
-      await Future.delayed(const Duration(milliseconds: 500));
-      
-      state = state.copyWith(isActiveShift: false, isShiftLoading: false);
-    } catch (e) {
-      Logger.e('Ошибка при проверке статуса смены', e);
-      state = state.copyWith(isShiftLoading: false);
+// Внутри класса MainViewModel
+Future<void> checkShiftStatus() async {
+  state = state.copyWith(isShiftLoading: true);
+  try {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser?.employeeId == null) return;
+
+    final apiClient = ref.read(apiClientProvider);
+    final lastCheck = await apiClient.getLastCheckAsync(currentUser!.employeeId!);
+
+    if (lastCheck != null && lastCheck.checkType == 'in') {
+      final checkTime = lastCheck.checkTimeStamp;
+      final now = DateTime.now().toUtc();
+      final difference = now.difference(checkTime);
+
+      // Если последняя отметка 'in' и прошло меньше 14 часов
+      if (difference.inHours < 14) {
+        state = state.copyWith(isActiveShift: true, isShiftLoading: false);
+        return;
+      }
     }
+    
+    // В противном случае сотрудник не на смене
+    state = state.copyWith(isActiveShift: false, isShiftLoading: false);
+  } catch (e) {
+    Logger.e('Ошибка при проверке статуса смены', e);
+    state = state.copyWith(isActiveShift: false, isShiftLoading: false);
   }
+}
 
   /// НОВОЕ: Обработка отсканированного QR кода (Приход/Уход)
 Future<bool> processQrCheckIn(String qrRawData, String checkType) async {

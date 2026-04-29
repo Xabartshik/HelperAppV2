@@ -3,6 +3,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
 import 'api_endpoints.dart';
@@ -81,7 +82,11 @@ class ApiClient {
       throw ApiException('HTTP ошибка: ${response.statusCode}');
     }
   }
-
+  Future<CheckIOEmployeeDto?> getLastCheckAsync(int employeeId) async {
+    final response = await getAsync(ApiEndpoints.lastCheck(employeeId));
+    if (response == null) return null;
+    return CheckIOEmployeeDto.fromJson(response);
+  }
   static String? _cachedBaseUrl;
 
   Future<String> _resolveBaseUrl() async {
@@ -100,7 +105,7 @@ class ApiClient {
           _cachedBaseUrl = 'http://10.0.2.2:5000/api/';
         } else {
           // Для физического Android устройства
-          const physicalDeviceAddress = "http://192.168.0.100:5000/api/";
+          const physicalDeviceAddress = "http://192.168.0.106:5000/api/";
           Logger.i('Обнаружено физическое Android устройство, используем $physicalDeviceAddress');
           _cachedBaseUrl = physicalDeviceAddress;
         }
