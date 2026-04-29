@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/network/api_client.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/task_service.dart';
 import '../../core/models/tasks/task_models.dart';
@@ -19,6 +22,10 @@ class MainState {
   final List<TaskItemBase> rawTasks;
   final List<TaskCardVm> taskCards;
   final TaskSortMode sortMode;
+  
+  // НОВОЕ: Статус активной смены
+  final bool isActiveShift;
+  final bool isShiftLoading;
 
   const MainState({
     this.isBusy = false,
@@ -27,6 +34,8 @@ class MainState {
     this.rawTasks = const [],
     this.taskCards = const [],
     this.sortMode = TaskSortMode.byPriority,
+    this.isActiveShift = false,
+    this.isShiftLoading = false,
   });
 
   MainState copyWith({
@@ -36,6 +45,8 @@ class MainState {
     List<TaskItemBase>? rawTasks,
     List<TaskCardVm>? taskCards,
     TaskSortMode? sortMode,
+    bool? isActiveShift,
+    bool? isShiftLoading,
   }) {
     return MainState(
       isBusy: isBusy ?? this.isBusy,
@@ -44,6 +55,8 @@ class MainState {
       rawTasks: rawTasks ?? this.rawTasks,
       taskCards: taskCards ?? this.taskCards,
       sortMode: sortMode ?? this.sortMode,
+      isActiveShift: isActiveShift ?? this.isActiveShift,
+      isShiftLoading: isShiftLoading ?? this.isShiftLoading,
     );
   }
 }
@@ -55,7 +68,10 @@ final mainViewModelProvider = AutoDisposeNotifierProvider<MainViewModel, MainSta
 class MainViewModel extends AutoDisposeNotifier<MainState> {
   @override
   MainState build() {
-    Future.microtask(() => refreshTasks());
+    Future.microtask(() {
+      checkShiftStatus();
+      refreshTasks();
+    });
 
     ref.onDispose(() {
       final taskService = ref.read(taskServiceProvider);
@@ -64,6 +80,62 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
 
     return const MainState();
   }
+
+  /// НОВОЕ: Проверка, находится ли сотрудник на смене
+  Future<void> checkShiftStatus() async {
+    state = state.copyWith(isShiftLoading: true);
+    try {
+      // TODO: Здесь должен быть вызов вашего API для проверки статуса смены.
+      // Например: final status = await ref.read(apiClientProvider).get('/api/QrCheckIn/status');
+      // Пока имитируем задержку и считаем, что смены нет:
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      state = state.copyWith(isActiveShift: false, isShiftLoading: false);
+    } catch (e) {
+      Logger.e('Ошибка при проверке статуса смены', e);
+      state = state.copyWith(isShiftLoading: false);
+    }
+  }
+
+  /// НОВОЕ: Обработка отсканированного QR кода (Приход/Уход)
+Future<bool> processQrCheckIn(String qrRawData, String checkType) async {
+  state = state.copyWith(isShiftLoading: true, errorMessage: '');
+  try {
+    // 1. Пытаемся распарсить JSON, который зашит в QR-код с экрана
+    final Map<String, dynamic> qrData = jsonDecode(qrRawData);
+    final String payload = qrData['p'] ?? '';
+    final int branchId = qrData['b'] ?? 1;
+
+    if (payload.isEmpty) {
+      throw Exception('Неверный формат QR-кода');
+    }
+
+    // 2. Получаем ApiClient (убедитесь, что у вас есть такой провайдер, 
+    // либо читайте его так же, как TaskService)
+    final apiClient = ref.read(apiClientProvider);
+
+    // 3. Отправляем запрос на наш C# бэкенд
+    await apiClient.scanQrCheckInAsync(payload, branchId, checkType);
+
+    // 4. Если запрос успешен — обновляем статус UI
+    final isNowActive = (checkType == 'in');
+    state = state.copyWith(isActiveShift: isNowActive, isShiftLoading: false);
+    
+    // Если зашли на смену — грузим новые задачи
+    if (isNowActive) {
+      refreshTasks();
+    }
+    
+    return true;
+  } catch (e) {
+    Logger.e('Ошибка при QR-отметке на смене', e);
+    state = state.copyWith(
+      errorMessage: 'Ошибка отметки: Неверный QR-код или срок его действия истек.',
+      isShiftLoading: false,
+    );
+    return false;
+  }
+}
 
   Future<void> refreshTasks() async {
     state = state.copyWith(isBusy: true, errorMessage: '');

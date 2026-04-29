@@ -210,7 +210,16 @@ class ApiClient {
       data: payload,
     );
   }
-
+  Future<void> scanQrCheckInAsync(String payload, int branchId, String checkType) async {
+    await postAsync(
+      ApiEndpoints.qrCheckInScan,
+      data: {
+        "payload": payload,
+        "branchId": branchId,
+        "checkType": checkType,
+      },
+    );
+  }
   Future<List<AvailableOrderDto>> getBossPanelAvailableOrdersAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelAvailableOrders);
     return (response as List).map((x) => AvailableOrderDto.fromJson(x)).toList();
