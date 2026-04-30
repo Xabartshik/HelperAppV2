@@ -45,4 +45,5 @@ class ApiEndpoints {
   static const String createOrder = 'Orders'; // POST /api/Orders
   static const String qrCheckInScan = 'QrCheckIn/scan';
   static String lastCheck(int employeeId) => 'CheckIOEmployee/last/$employeeId';
+  static const String getConfig = 'v1/Config'; // GET /api/v1/Config
 }

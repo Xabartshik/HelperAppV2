@@ -88,6 +88,9 @@ class WorkerAssemblyTaskDto with _$WorkerAssemblyTaskDto {
     DateTime? createdDate,
     required int totalLines,
     @Default([]) List<CellPlacementInfoDto> cellPlacements,
+    @Default(false) bool isCooperative,
+    String? partnerName,
+    AssignmentStatus? partnerStatus,
   }) = _WorkerAssemblyTaskDto;
 
   factory WorkerAssemblyTaskDto.fromJson(Map<String, dynamic> json) => _$WorkerAssemblyTaskDtoFromJson(json);

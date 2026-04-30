@@ -116,6 +116,12 @@ _$WorkerAssemblyTaskDtoImpl _$$WorkerAssemblyTaskDtoImplFromJson(
           ?.map((e) => CellPlacementInfoDto.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  isCooperative: json['isCooperative'] as bool? ?? false,
+  partnerName: json['partnerName'] as String?,
+  partnerStatus: $enumDecodeNullable(
+    _$AssignmentStatusEnumMap,
+    json['partnerStatus'],
+  ),
 );
 
 Map<String, dynamic> _$$WorkerAssemblyTaskDtoImplToJson(
@@ -129,6 +135,9 @@ Map<String, dynamic> _$$WorkerAssemblyTaskDtoImplToJson(
   'createdDate': instance.createdDate?.toIso8601String(),
   'totalLines': instance.totalLines,
   'cellPlacements': instance.cellPlacements,
+  'isCooperative': instance.isCooperative,
+  'partnerName': instance.partnerName,
+  'partnerStatus': _$AssignmentStatusEnumMap[instance.partnerStatus],
 };
 
 const _$AssignmentStatusEnumMap = {

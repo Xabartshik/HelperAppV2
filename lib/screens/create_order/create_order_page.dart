@@ -413,8 +413,8 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
            const SizedBox(height: 8),
            GestureDetector(
              onTap: () async {
-                final minTime = DateTime.now().add(const Duration(minutes: 30));
-                
+                final minMinutes = ((vm.appConfig?.pickupWindowLimitHours ?? 0.5) * 60).toInt();
+                final minTime = DateTime.now().add(Duration(minutes: minMinutes));
                 final date = await showDatePicker(
                   context: context,
                   initialDate: minTime,
@@ -456,7 +456,8 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
                ),
              ),
            ),
-        ] else if (vm.selectedDeliveryType == DeliveryType.courier || vm.selectedDeliveryType == DeliveryType.postamat) ...[
+        ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
+           // Оставляем выбор даты и времени ТОЛЬКО для курьера
            const Text('Дата доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            GestureDetector(
@@ -508,6 +509,28 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
                   ),
                 ),
            ]
+        ] else if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
+           // Для постамата выводим информационное сообщение вместо выбора времени
+           Container(
+             padding: const EdgeInsets.all(16),
+             decoration: BoxDecoration(
+               color: _accent.withOpacity(0.1), 
+               borderRadius: BorderRadius.circular(12),
+               border: Border.all(color: _accent.withOpacity(0.3))
+             ),
+             child: const Row(
+               children: [
+                 Icon(Icons.local_shipping_outlined, color: _accent, size: 24),
+                 SizedBox(width: 16),
+                 Expanded(
+                   child: Text(
+                     'Доставка в постамат осуществляется в течение 1-4 дней. Мы пришлем уведомление, когда заказ будет готов к выдаче.', 
+                     style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)
+                   )
+                 ),
+               ],
+             ),
+           ),
         ],
 
         const SizedBox(height: 32),

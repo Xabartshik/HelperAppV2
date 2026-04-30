@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
+import 'package:helper_app/core/models/config/app_config_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
 import 'api_endpoints.dart';
@@ -89,6 +90,11 @@ class ApiClient {
   }
   static String? _cachedBaseUrl;
 
+  Future<AppConfigDto?> getAppConfigAsync() async {
+      final response = await getAsync(ApiEndpoints.getConfig);
+      if (response == null || response is! Map<String, dynamic>) return null;
+      return AppConfigDto.fromJson(response);
+  }
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) return _cachedBaseUrl!;
 

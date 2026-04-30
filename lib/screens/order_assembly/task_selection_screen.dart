@@ -170,7 +170,7 @@ class TaskSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTaskCard(BuildContext context, WidgetRef ref, int userId, WorkerAssemblyTaskDto task) {
+Widget _buildTaskCard(BuildContext context, WidgetRef ref, int userId, WorkerAssemblyTaskDto task) {
     // Подсчёт статистики задачи
     final totalItems = task.cellPlacements.fold(0, (s, c) => s + c.items.length);
     final totalCells = task.cellPlacements.length;
@@ -187,17 +187,8 @@ class TaskSelectionScreen extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          Logger.i('TaskSelectionScreen: выбрана задача ${task.assignmentId}');
-          final result = await context.push('/order-assembly/active', extra: {
-            'assignmentId': task.assignmentId,
-            'taskId': task.taskId,
-            'taskStatusIndex': task.status,
-          });
-          if (result == true) {
-            ref.refresh(orderAssemblyTasksProvider(userId));
-          }
-        },
+        // ВНЕДРЕНИЕ: Вызываем ваш метод обработки нажатия
+        onTap: () => _onTaskTapped(context, ref, task, userId),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -255,6 +246,79 @@ class TaskSelectionScreen extends ConsumerWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Внедренные методы логики
+  // ---------------------------------------------------------------------------
+
+  /// Ваш метод с небольшим дополнением (передаем userId для обновления списка)
+  void _onTaskTapped(BuildContext context, WidgetRef ref, WorkerAssemblyTaskDto task, int userId) {
+    // Предполагается, что в вашей версии WorkerAssemblyTaskDto есть поля isCooperative и partnerName
+    if (task.isCooperative == true) { 
+      // Показываем предупреждение о тяжелом грузе
+      showDialog(
+        context: context,
+        barrierDismissible: false, // Чтобы не закрыли случайно
+        builder: (ctx) => AlertDialog(
+          backgroundColor: _bgGray950, // стилизуем под приложение
+          titleTextStyle: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          contentTextStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+          title: const Text('⚠️ Тяжелый груз!'),
+          content: Text(
+              'Это кооперативная задача. Вам потребуется тележка.\n\n'
+              'Ваш напарник: ${task.partnerName ?? "Неизвестен"}.'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Отмена', style: TextStyle(color: Colors.white54)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _startTaskWithPartnerSync(context, ref, task, userId);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
+              child: const Text('Я готов (Начать)', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Обычная задача - стартуем как раньше
+      _startTask(context, ref, task, userId);
+    }
+  }
+
+  /// Стандартный запуск задачи (перенесено из старого onTap)
+  Future<void> _startTask(BuildContext context, WidgetRef ref, WorkerAssemblyTaskDto task, int userId) async {
+    Logger.i('TaskSelectionScreen: обычная задача ${task.assignmentId}');
+    final result = await context.push('/order-assembly/active', extra: {
+      'assignmentId': task.assignmentId,
+      'taskId': task.taskId,
+      'taskStatusIndex': task.status,
+    });
+    if (result == true) {
+      ref.refresh(orderAssemblyTasksProvider(userId));
+    }
+  }
+
+  /// Запуск кооперативной задачи (аналогично обычной, но можно добавить extra-параметры)
+  Future<void> _startTaskWithPartnerSync(BuildContext context, WidgetRef ref, WorkerAssemblyTaskDto task, int userId) async {
+    Logger.i('TaskSelectionScreen: кооперативная задача ${task.assignmentId}');
+    
+    // Здесь можно вызвать предварительный API-метод для подтверждения готовности напарника,
+    // если это требуется бизнес-логикой. Пока просто переходим:
+    final result = await context.push('/order-assembly/active', extra: {
+      'assignmentId': task.assignmentId,
+      'taskId': task.taskId,
+      'taskStatusIndex': task.status,
+      'isCooperative': true, // передаем флаг на экран выполнения
+    });
+    
+    if (result == true) {
+      ref.refresh(orderAssemblyTasksProvider(userId));
+    }
+  }
   Widget _buildStatChip(IconData icon, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,

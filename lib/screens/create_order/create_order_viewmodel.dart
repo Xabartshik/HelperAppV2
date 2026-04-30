@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:helper_app/core/models/config/app_config_dto.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/utils/logger.dart';
@@ -140,7 +141,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool prepayNow = false; // true = Prepaid, false = Postpaid
   DeliverySlot? selectedSlot;
   List<DeliverySlot> availableSlots = [];
-
+  AppConfigDto? appConfig;
 
 
   // --- Step 4: Проверка ---
@@ -148,7 +149,22 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool? postamatCapacityOk;
   String? postamatCapacityError;
 
+  Future<void> _fetchConfig() async {
+    try {
+      appConfig = await _apiClient.getAppConfigAsync();
+    } catch (e) {
+      Logger.e('Ошибка при загрузке конфига', e);
+      // Fallback значения, если бэкенд недоступен
+      appConfig = AppConfigDto(
+        pickupWindowLimitHours: 0.5, 
+        deliveryWindowLimitHours: 1.0, 
+        weightCoefficient: 1.0
+      );
+    }
+    notifyListeners();
+  }
   Future<void> initialize() async {
+    await _fetchConfig();
     await _fetchBranches();
   }
 
@@ -171,15 +187,12 @@ bool canProceedToNextStep() {
     switch (currentStep) {
       case 0: return selectedBranch != null;
       case 1: return cart.isNotEmpty;
-      case 2:
+      case 2: 
         if (selectedDeliveryType == DeliveryType.postamat) {
-          return selectedPostamat != null && selectedSlot != null;
+          return selectedPostamat != null;
         }
         if (selectedDeliveryType == DeliveryType.courier) {
           return destinationAddress.isNotEmpty && selectedSlot != null;
-        }
-        if (selectedDeliveryType == DeliveryType.pickup) {
-          return deliveryDate != null; // Обязательно указать время
         }
         return true; // Express
       case 3: return canSubmitOrder;
@@ -300,14 +313,17 @@ Future<void> _fetchPostamats() async {
                     deliveryDate!.day == now.day;
 
     if (isToday) {
-      // Требование: до окна доставки должен быть минимум 1 час на сборку
-      final minRequiredHour = now.hour + 1;
-      availableSlots = defaultSlots.where((slot) => slot.startHour >= minRequiredHour).toList();
+      // Используем конфиг вместо хардкода (+ 1)
+      final limitHours = appConfig?.deliveryWindowLimitHours ?? 1.0;
+      final limitMinutes = (limitHours * 60).toInt();
+      
+      final minRequiredTime = now.add(Duration(minutes: limitMinutes));
+      
+      availableSlots = defaultSlots.where((slot) => slot.startHour >= minRequiredTime.hour).toList();
     } else {
-      availableSlots = List.from(defaultSlots); // Завтра и далее доступны все слоты
+      availableSlots = List.from(defaultSlots); 
     }
 
-    // Если текущий выбранный слот недоступен в новый день, сбрасываем его
     if (selectedSlot != null && !availableSlots.contains(selectedSlot)) {
       selectedSlot = null;
     }
