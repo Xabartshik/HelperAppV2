@@ -46,4 +46,6 @@ class ApiEndpoints {
   static const String qrCheckInScan = 'QrCheckIn/scan';
   static String lastCheck(int employeeId) => 'CheckIOEmployee/last/$employeeId';
   static const String getConfig = 'v1/Config'; // GET /api/v1/Config
+  static String workerTaskComplete(int taskId, int workerId) => 
+      'v1/WorkerTasks/$taskId/complete?workerId=$workerId';
 }

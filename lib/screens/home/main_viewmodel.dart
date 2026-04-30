@@ -80,7 +80,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
 
     return const MainState();
   }
-
+  
   /// НОВОЕ: Проверка, находится ли сотрудник на смене
 // Внутри класса MainViewModel
 Future<void> checkShiftStatus() async {

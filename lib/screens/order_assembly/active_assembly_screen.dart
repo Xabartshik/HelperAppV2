@@ -61,17 +61,81 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       userId: currentUser?.employeeId ?? 0,
     );
   }
+  Widget _buildWaitingForPartnerScreen(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Анимированный индикатор ожидания
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    color: Colors.cyanAccent,
+                    strokeWidth: 3,
+                  ),
+                  Icon(Icons.people_outline, color: Colors.cyanAccent.withOpacity(0.8), size: 40),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'Ожидание напарника',
+              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                children: [
+                  const TextSpan(text: 'Вы подтвердили готовность.\nПожалуйста, дождитесь, пока '),
+                  TextSpan(
+                    text: state.partnerName ?? 'ваш напарник',
+                    style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                  ),
+                  const TextSpan(text: ' тоже нажмет кнопку «Начать» в своем приложении.'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 48),
+            // Кнопка ручного обновления (на случай, если веб-сокеты запаздывают)
+            OutlinedButton.icon(
+              onPressed: () => vm.loadTask(),
+              icon: const Icon(Icons.refresh, color: Colors.white54),
+              label: const Text('Обновить статус', style: TextStyle(color: Colors.white54)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   
 Widget _buildCooperationBanner(OrderAssemblyState state) {
   if (!state.isCooperative) return const SizedBox();
 
-  final bool partnerStarted = state.partnerStatus == AssignmentStatus.inProgress;
+  // Добавляем проверку на то, что напарник либо работает, либо уже всё сделал
+  final bool partnerStarted = state.partnerStatus == AssignmentStatus.inProgress || 
+                              state.partnerStatus == AssignmentStatus.completed;
+                              
+  // Отдельный флаг, если он уже закончил
+  final bool partnerCompleted = state.partnerStatus == AssignmentStatus.completed;
 
   return Container(
-    margin: EdgeInsets.zero, // Убираем внешние отступы для плотного прилегания
+    margin: EdgeInsets.zero,
     decoration: BoxDecoration(
       color: Colors.amber.withValues(alpha: 0.05),
-      borderRadius: BorderRadius.zero, // Убираем скругление
+      borderRadius: BorderRadius.zero,
       border: Border(
         bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.4), width: 1),
       ),
@@ -81,7 +145,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
         leading: const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
-        // В свернутом состоянии только краткий текст
         title: const Text(
           'Тяжелый груз!',
           style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
@@ -96,7 +159,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
               children: [
                 const Divider(color: Colors.white10, height: 1),
                 const SizedBox(height: 12),
-                // Инструкция
                 const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -111,7 +173,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Информация о напарнике бирюзовым цветом
                 Row(
                   children: [
                     const Icon(Icons.people_outline, color: Colors.cyanAccent, size: 18),
@@ -126,7 +187,7 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                               text: state.partnerName ?? 'Не назначен',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold, 
-                                color: Colors.cyanAccent, // Тот самый красивый бирюзовый
+                                color: Colors.cyanAccent,
                               ),
                             ),
                           ],
@@ -136,7 +197,7 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Статус готовности напарника
+                // --- ОБНОВЛЕННАЯ ЛОГИКА СТАТУСА НАПАРНИКА ---
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -146,16 +207,18 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                   child: Row(
                     children: [
                       Icon(
-                        partnerStarted ? Icons.check_circle : Icons.person_search_outlined,
+                        partnerCompleted ? Icons.done_all : (partnerStarted ? Icons.check_circle : Icons.person_search_outlined),
                         color: partnerStarted ? Colors.greenAccent : Colors.white54,
                         size: 18,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          partnerStarted 
-                            ? 'Коллега подтвердил участие. Можете начинать.' 
-                            : 'Ожидайте коллегу. Он еще не подтвердил участие.',
+                          partnerCompleted 
+                            ? 'Коллега уже завершил свою часть задачи.' // <-- Если закончил
+                            : (partnerStarted 
+                                ? 'Коллега подтвердил участие. Можете начинать.' // <-- Если в процессе
+                                : 'Ожидайте коллегу. Он еще не подтвердил участие.'), // <-- Если еще не начал
                           style: TextStyle(
                             color: partnerStarted ? Colors.greenAccent : Colors.white54,
                             fontSize: 12,
@@ -173,8 +236,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     ),
   );
 }
-
-
 
 
 
@@ -220,35 +281,42 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
 
     final modeColor = state.mode == AssemblyMode.pick ? _pickColor : _placeColor;
 
+    // --- НОВАЯ ЛОГИКА БЛОКИРОВКИ ---
+    // canEditTask означает, что ВЫ уже нажали "Начать" (ваш статус InProgress).
+    // Если задача кооперативная, а напарник еще НЕ нажал "Начать" - мы ждем его.
+    final bool isWaitingForPartner = state.isCooperative && 
+                                     canEditTask && 
+                                     state.partnerStatus != AssignmentStatus.inProgress &&
+                                     state.partnerStatus != AssignmentStatus.completed;
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       appBar: _buildAppBar(state, modeColor),
       body: state.isLoading && state.cells.isEmpty
           ? const Center(child: CircularProgressIndicator(color: _primaryColor))
-          : Column(
-              children: [
-                _buildCooperationBanner(state),
-                // Баннер текущего режима (анимированный)
-                _buildModeBanner(state, vm),
-                // Прогресс-бар
-                _buildProgressBar(state),
-                if (!canEditTask) _buildStartTaskBanner(),
-                // Список ячеек / товаров
-                Expanded(
-                  child: RefreshIndicator(
-                    color: _primaryColor,
-                    backgroundColor: _bgGray900,
-                    onRefresh: () async => vm.loadTask(),
-                    child: _buildContent(state, vm),
-                  ),
+          : isWaitingForPartner 
+              // Если ждем напарника - показываем специальный экран-заглушку
+              ? _buildWaitingForPartnerScreen(state, vm)
+              // Иначе показываем обычный интерфейс
+              : Column(
+                  children: [
+                    _buildCooperationBanner(state),
+                    _buildModeBanner(state, vm),
+                    _buildProgressBar(state),
+                    if (!canEditTask) _buildStartTaskBanner(),
+                    Expanded(
+                      child: RefreshIndicator(
+                        color: _primaryColor,
+                        backgroundColor: _bgGray900,
+                        onRefresh: () async => vm.loadTask(),
+                        child: _buildContent(state, vm),
+                      ),
+                    ),
+                    _buildBarcodeInput(state, vm),
+                  ],
                 ),
-                // Поле ввода штрихкода
-                _buildBarcodeInput(state, vm),
-              ],
-            ),
     );
   }
-
   // ---------------------------------------------------------------------------
   // AppBar
   // ---------------------------------------------------------------------------

@@ -379,7 +379,7 @@ Future<void> loadTask() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
     try {
       final client = ref.read(apiClientProvider);
-      await client.orderAssemblyCompleteAsync(state.task!.assignmentId);
+      await client.workerTaskCompleteAsync(state.task!.taskId, arg.userId);
 
       Logger.i('OrderAssembly: задача ${state.task!.assignmentId} завершена');
       state = state.copyWith(isLoading: false);

@@ -61,7 +61,12 @@ class ApiClient {
       },
     ));
   }
-
+  
+  /// Единое завершение назначения работника (полиморфно для любой задачи)
+  Future<void> workerTaskCompleteAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
+    await postAsync(url);
+  }
   void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {
       throw UnauthorizedException('Токен истёк или невалиден');
@@ -95,6 +100,10 @@ class ApiClient {
       if (response == null || response is! Map<String, dynamic>) return null;
       return AppConfigDto.fromJson(response);
   }
+
+  // Делаем геттер публичным, чтобы к нему можно было обратиться из MainPage
+  String get baseUrl => _cachedBaseUrl ?? 'http://localhost:5000';
+
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) return _cachedBaseUrl!;
 
@@ -332,5 +341,10 @@ class ApiClient {
 
   Future<void> orderAssemblyCompleteAsync(int assignmentId) async {
     await postAsync(ApiEndpoints.orderAssemblyComplete(assignmentId), data: null);
+  }
+
+  // НОВЫЙ МЕТОД: Асинхронно ждем и отдаем правильный URL
+  Future<String> getBaseUrlAsync() async {
+    return await _resolveBaseUrl();
   }
 }

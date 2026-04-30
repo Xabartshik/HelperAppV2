@@ -4,21 +4,188 @@ import 'package:go_router/go_router.dart';
 import 'package:helper_app/core/models/user/current_user.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/core/models/user/worker_role.dart';
+import 'package:helper_app/core/network/api_client.dart';
 import 'main_viewmodel.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/models/tasks/task_card_vm.dart';
 import '../../core/models/tasks/task_models.dart';
+// НОВЫЕ ИМПОРТЫ ДЛЯ СОКЕТОВ И УВЕДОМЛЕНИЙ
+import '../../core/services/signalr_service.dart'; 
+import '../../core/services/notification_service.dart';
 
-class MainPage extends ConsumerWidget {
+class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
 
+  @override
+  ConsumerState<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends ConsumerState<MainPage> {
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
   static const Color _bgGray900 = Color(0xFF2C2C2E);
   static const Color _primaryColor = Color(0xFF7C3AED);
 
+  // Экземпляр сервиса
+  final SignalRService _signalRService = SignalRService();
+  // Сохраняем ID, чтобы не дергать Riverpod в dispose()
+  int? _connectedEmployeeId;
+@override
+  void initState() {
+    super.initState();
+    LocalNotificationService.init();
+    _setupSignalR();
+  }
+
+  void _setupSignalR() async {
+    _signalRService.onNotificationReceived = (title, message, type) {
+      LocalNotificationService.showNotification(title, message, type);
+
+      if (type == 'high_priority' || type == 'helper_required') {
+        _showCriticalTaskOverlay(context, title, message, type);
+      } else {
+        _showNotificationSnackbar(title, message, type);
+      }
+      
+      ref.read(mainViewModelProvider.notifier).refreshTasks(); 
+    };
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser != null && currentUser.employeeId != null) {
+        _connectedEmployeeId = currentUser.employeeId;
+        
+        // ИСПРАВЛЕНИЕ: Ждем реальный IP-адрес асинхронно!
+        final String rawBaseUrl = await ref.read(apiClientProvider).getBaseUrlAsync();
+        final String serverUrl = rawBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
+        
+        await _signalRService.initConnection(_connectedEmployeeId!, serverUrl);
+      }
+    });
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    // ИСПРАВЛЕНИЕ: Используем сохраненный ID, не трогаем ref!
+    if (_connectedEmployeeId != null) {
+      _signalRService.stopConnection(_connectedEmployeeId!);
+    }
+    super.dispose();
+  }
+
+  // --- МЕТОДЫ ОТОБРАЖЕНИЯ УВЕДОМЛЕНИЙ ---
+
+  void _showNotificationSnackbar(String title, String message, String type) {
+    Color bgColor = Colors.blue.shade700;
+    IconData icon = Icons.info;
+
+    if (type == 'new_task') {
+      bgColor = Colors.green.shade700;
+      icon = Icons.add_task;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: bgColor,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating, // Чтобы снекбар "плавал"
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(message, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCriticalTaskOverlay(BuildContext context, String title, String message, String type) {
+    final isHelper = type == 'helper_required';
+    final bgColor = isHelper ? Colors.orange.shade900 : Colors.red.shade900;
+    final icon = isHelper ? Icons.handshake : Icons.warning_amber_rounded;
+    
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false, 
+          child: Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _bgGray900,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: bgColor, width: 3),
+                boxShadow: [
+                  BoxShadow(color: bgColor.withValues(alpha: 0.5), blurRadius: 20, spreadRadius: 5)
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, 
+                children: [
+                  Icon(icon, color: bgColor, size: 80),
+                  const SizedBox(height: 20),
+                  Text(
+                    title.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16, color: Colors.white70, height: 1.4),
+                  ),
+                  const SizedBox(height: 30),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: bgColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                      },
+                      child: const Text('ПРИНЯТО К ИСПОЛНЕНИЮ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- ОСНОВНОЙ BUILD МЕТОД ---
+
+  @override
+  Widget build(BuildContext context) {
+    // В ConsumerStatefulWidget ref доступен напрямую без передачи в параметры
     final state = ref.watch(mainViewModelProvider);
     final viewModel = ref.read(mainViewModelProvider.notifier);
     final currentUser = ref.watch(currentUserProvider);
@@ -37,7 +204,6 @@ class MainPage extends ConsumerWidget {
             _buildTasksToolbar(state, viewModel),
             if (state.errorMessage.isNotEmpty) _buildErrorText(state.errorMessage),
             
-            // Если мы не на смене, делаем список задач полупрозрачным и запрещаем клики
             Expanded(
               child: IgnorePointer(
                 ignoring: !state.isActiveShift,
@@ -66,7 +232,7 @@ class MainPage extends ConsumerWidget {
     );
   }
 
-  /// НОВОЕ: Красивый заголовок с аватаром
+  /// Красивый заголовок с аватаром
   Widget _buildHeader(BuildContext context, CurrentUser? user, bool isBoss, MainViewModel vm) {
     final initials = (user?.fullName?.isNotEmpty == true) 
         ? user!.fullName![0].toUpperCase() 
@@ -119,7 +285,7 @@ class MainPage extends ConsumerWidget {
     );
   }
 
-  /// НОВОЕ: Баннер управления сменой
+  /// Баннер управления сменой
   Widget _buildShiftBanner(BuildContext context, MainState state, MainViewModel vm) {
     if (state.isShiftLoading) {
       return Container(
@@ -131,10 +297,9 @@ class MainPage extends ConsumerWidget {
 
     final isWorking = state.isActiveShift;
     
-    // Градиенты для разных состояний
     final gradient = isWorking
         ? LinearGradient(colors: [Colors.teal.shade800, Colors.teal.shade900])
-        : LinearGradient(colors: [const Color(0xFF5B21B6), const Color(0xFF4C1D95)]); // Фиолетовый
+        : LinearGradient(colors: [const Color(0xFF5B21B6), const Color(0xFF4C1D95)]); 
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -183,11 +348,9 @@ class MainPage extends ConsumerWidget {
           const SizedBox(width: 10),
           ElevatedButton(
             onPressed: () async {
-              // 1. Открываем новый экран сканера и ждем результат
               final qrResult = await context.push<String>('/shift-scanner');
               
               if (qrResult != null && qrResult.isNotEmpty) {
-                // 2. Если код получен, вызываем метод во ViewModel
                 final checkType = isWorking ? 'out' : 'in';
                 await vm.processQrCheckIn(qrResult, checkType);
               }
