@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/core/models/tasks/task_models.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/utils/logger.dart';
 import '../home/main_viewmodel.dart';
@@ -60,6 +61,122 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       userId: currentUser?.employeeId ?? 0,
     );
   }
+  
+Widget _buildCooperationBanner(OrderAssemblyState state) {
+  if (!state.isCooperative) return const SizedBox();
+
+  final bool partnerStarted = state.partnerStatus == AssignmentStatus.inProgress;
+
+  return Container(
+    margin: EdgeInsets.zero, // Убираем внешние отступы для плотного прилегания
+    decoration: BoxDecoration(
+      color: Colors.amber.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.zero, // Убираем скругление
+      border: Border(
+        bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.4), width: 1),
+      ),
+    ),
+    child: Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        leading: const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+        // В свернутом состоянии только краткий текст
+        title: const Text(
+          'Тяжелый груз!',
+          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        iconColor: Colors.amber,
+        collapsedIconColor: Colors.amber,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(color: Colors.white10, height: 1),
+                const SizedBox(height: 12),
+                // Инструкция
+                const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.white54, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Вес заказа > 50 кг. ОБЯЗАТЕЛЬНО возьмите грузовую тележку.',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Информация о напарнике бирюзовым цветом
+                Row(
+                  children: [
+                    const Icon(Icons.people_outline, color: Colors.cyanAccent, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          children: [
+                            const TextSpan(text: 'Напарник: '),
+                            TextSpan(
+                              text: state.partnerName ?? 'Не назначен',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold, 
+                                color: Colors.cyanAccent, // Тот самый красивый бирюзовый
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Статус готовности напарника
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: partnerStarted ? Colors.green.withOpacity(0.1) : Colors.white10,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        partnerStarted ? Icons.check_circle : Icons.person_search_outlined,
+                        color: partnerStarted ? Colors.greenAccent : Colors.white54,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          partnerStarted 
+                            ? 'Коллега подтвердил участие. Можете начинать.' 
+                            : 'Ожидайте коллегу. Он еще не подтвердил участие.',
+                          style: TextStyle(
+                            color: partnerStarted ? Colors.greenAccent : Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+
+
 
   @override
   void initState() {
@@ -110,6 +227,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
           ? const Center(child: CircularProgressIndicator(color: _primaryColor))
           : Column(
               children: [
+                _buildCooperationBanner(state),
                 // Баннер текущего режима (анимированный)
                 _buildModeBanner(state, vm),
                 // Прогресс-бар

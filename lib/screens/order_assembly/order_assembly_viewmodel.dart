@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
+import 'package:helper_app/core/models/tasks/task_models.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/order_assembly/order_assembly_dtos.dart';
 import '../../core/utils/logger.dart';
@@ -101,7 +102,9 @@ class OrderAssemblyState {
 
   /// Режим работы: Сбор или Размещение
   final AssemblyMode mode;
-
+  final bool isCooperative; 
+  final String? partnerName;
+  final AssignmentStatus? partnerStatus;
   /// Текущая задача
   final WorkerAssemblyTaskDto? task;
 
@@ -122,6 +125,9 @@ class OrderAssemblyState {
     this.cells = const [],
     this.allItemsPicked = false,
     this.allCellsPlaced = false,
+    this.isCooperative = false,
+    this.partnerName,
+    this.partnerStatus,
   });
 
   OrderAssemblyState copyWith({
@@ -132,6 +138,9 @@ class OrderAssemblyState {
     List<CellPlacementVm>? cells,
     bool? allItemsPicked,
     bool? allCellsPlaced,
+    bool? isCooperative,
+    String? partnerName,
+    AssignmentStatus? partnerStatus,
   }) {
     return OrderAssemblyState(
       isLoading: isLoading ?? this.isLoading,
@@ -141,6 +150,9 @@ class OrderAssemblyState {
       cells: cells ?? this.cells,
       allItemsPicked: allItemsPicked ?? this.allItemsPicked,
       allCellsPlaced: allCellsPlaced ?? this.allCellsPlaced,
+      isCooperative: isCooperative ?? this.isCooperative,
+      partnerName: partnerName ?? this.partnerName,
+      partnerStatus: partnerStatus ?? this.partnerStatus,
     );
   }
 
@@ -181,7 +193,7 @@ class OrderAssemblyViewModel
   // -----------------------------------------------------------------------
 
   /// Загружает задачу по assignmentId из аргументов провайдера
-  Future<void> loadTask() async {
+Future<void> loadTask() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
 
     try {
@@ -199,14 +211,18 @@ class OrderAssemblyViewModel
 
       final cells = task.cellPlacements.map((c) => _mapToCellVm(c, task.assignmentId)).toList();
 
+      // Обновляем состояние, включая новые поля для кооперации из WorkerAssemblyTaskDto
       state = state.copyWith(
         task: task,
         cells: cells,
+        isCooperative: task.isCooperative, // Флаг тяжелого груза/совместной работы
+        partnerName: task.partnerName,     // Имя коллеги для отображения в баннере
+        partnerStatus: task.partnerStatus, // Статус напарника (начал ли он работу)
         isLoading: false,
       );
 
       _recalculateProgress();
-      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена, ячеек: ${cells.length}');
+      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена. Кооперация: ${task.isCooperative}, ячеек: ${cells.length}');
     } catch (e, stack) {
       Logger.e('OrderAssembly: ошибка загрузки задачи ${arg.assignmentId}', e, stack);
       state = state.copyWith(

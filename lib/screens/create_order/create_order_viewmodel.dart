@@ -183,7 +183,7 @@ class CreateOrderViewModel extends ChangeNotifier {
     }
   }
 
-bool canProceedToNextStep() {
+  bool canProceedToNextStep() {
     switch (currentStep) {
       case 0: return selectedBranch != null;
       case 1: return cart.isNotEmpty;
@@ -192,9 +192,12 @@ bool canProceedToNextStep() {
           return selectedPostamat != null;
         }
         if (selectedDeliveryType == DeliveryType.courier) {
-          return destinationAddress.isNotEmpty && selectedSlot != null;
+          return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;
         }
-        return true; // Express
+        if (selectedDeliveryType == DeliveryType.pickup) {
+          return deliveryDate != null; // Требуем выбрать время для самовывоза
+        }
+        return true; // Express проходит без дополнительных условий
       case 3: return canSubmitOrder;
       default: return false;
     }
@@ -436,10 +439,18 @@ Future<void> _checkPostamatCapacity() async {
 
   bool get canSubmitOrder {
     if (cart.isEmpty || selectedBranch == null) return false;
+    
     if (selectedDeliveryType == DeliveryType.postamat) {
       return selectedPostamat != null && !isCheckingPostamatCapacity;
     }
-    return true;
+    if (selectedDeliveryType == DeliveryType.courier) {
+      return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;;
+    }
+    if (selectedDeliveryType == DeliveryType.pickup) {
+      return deliveryDate != null; // Требуем время для самовывоза
+    }
+    
+    return true; // Для Express
   }
 
 Future<bool> _createOrder() async {
@@ -462,7 +473,7 @@ Future<bool> _createOrder() async {
       final payload = {
         'customerId': 1, // Заглушка для симулятора
         'branchId': selectedBranch!.branchId,
-        'deliveryDate': deliveryDate?.toIso8601String(),
+        'deliveryDate': deliveryDate?.toUtc().toIso8601String(),
         'deliveryType': selectedDeliveryType.toServerString(),
         'paymentType': prepayNow ? 'Prepaid' : 'Postpaid',
         'destinationAddress': (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) 
