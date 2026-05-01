@@ -75,6 +75,7 @@ abstract class TaskItemBase {
   DateTime? completedAt;
   int assignedToEmployeeId;
   DateTime assignedAt;
+  MobileTaskDetailsBase? details;
 
   TaskItemBase({
     required this.taskId,
@@ -90,6 +91,44 @@ abstract class TaskItemBase {
     this.completedAt,
     required this.assignedToEmployeeId,
     required this.assignedAt,
+    this.details,
+  });
+}
+
+abstract class MobileTaskDetailsBase {
+  final int schemaVersion;
+  const MobileTaskDetailsBase({required this.schemaVersion});
+}
+
+class OrderAssemblyDetails extends MobileTaskDetailsBase {
+  final int assignmentId;
+  final int orderId;
+  final int totalLines;
+  final int completedLines;
+  final List<CellPlacementInfo> lines;
+
+  const OrderAssemblyDetails({
+    required super.schemaVersion,
+    required this.assignmentId,
+    required this.orderId,
+    required this.totalLines,
+    required this.completedLines,
+    required this.lines,
+  });
+}
+
+class InventoryDetails extends MobileTaskDetailsBase {
+  final int assignmentId;
+  final int totalLines;
+  final int completedLines;
+  final List<InventoryLineItem> lines;
+
+  const InventoryDetails({
+    required super.schemaVersion,
+    required this.assignmentId,
+    required this.totalLines,
+    required this.completedLines,
+    required this.lines,
   });
 }
 
@@ -160,6 +199,7 @@ class InventoryTaskItem extends TaskItemBase {
     required this.lines,
     this.totalLinesCount = 0,
     this.completedLinesCount = 0,
+    super.details,
   });
 }
 
@@ -190,6 +230,7 @@ class OrderAssemblyTaskItem extends TaskItemBase {
     required this.totalLines,
     this.completedLinesCount = 0,
     required this.cellPlacements,
+    super.details,
   });
 
   
