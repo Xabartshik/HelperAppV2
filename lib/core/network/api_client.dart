@@ -69,11 +69,24 @@ class ApiClient {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
     await postAsync(url);
   }
+  Future<dynamic> workerTaskDetailsAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskDetails(taskId, workerId);
+    return await getAsync(url);
+  }
 
-  Future<MobileBaseTaskDto?> getWorkerTaskDetailsAsync(int taskId, int workerId) async {
-    final response = await getAsync(ApiEndpoints.workerTaskDetails(taskId, workerId));
-    if (response == null || response is! Map<String, dynamic>) return null;
-    return MobileBaseTaskDto.fromJson(response);
+  Future<void> workerTaskPauseAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskPause(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskCancelAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskCancel(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskStartAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskStart(taskId, workerId);
+    await postAsync(url, data: {});
   }
   void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {

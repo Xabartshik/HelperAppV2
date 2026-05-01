@@ -16,7 +16,7 @@ final taskServiceProvider = Provider<TaskService>((ref) {
 
 class TaskService {
   final ApiClient _apiClient;
-  static const int _supportedSchemaVersion = 1;
+  bool useUnifiedWorkerTasksApi = true;
   Timer? _periodicSyncTimer;
   // Коллбэк периодической синхронизации работает с базовым типом для поддержки обоих видов задач
   Function(List<TaskItemBase>)? _onTasksUpdated;
@@ -416,10 +416,15 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
       Logger.i('Запуск задачи $taskId для работника $workerId');
 
-      await _apiClient.postAsync(
-        ApiEndpoints.workerTaskStart(taskId, workerId),
-        data: {},
-      );
+      // Используем вынесенный эндпоинт
+      if (useUnifiedWorkerTasksApi) {
+        await _apiClient.workerTaskStartAsync(taskId, workerId);
+      } else {
+        await _apiClient.postAsync(
+          ApiEndpoints.workerTaskStart(taskId, workerId),
+          data: {}, // legacy fallback
+        );
+      }
 
       await _performPeriodicSync();
       return true;
