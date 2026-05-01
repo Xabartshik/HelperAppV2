@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/inventory/inventory_dtos.dart';
+import '../../core/services/task_service.dart';
 import '../../core/utils/logger.dart';
 
 class InventoryItemVm {
@@ -116,7 +117,7 @@ class InventoryState {
   }
 }
 
-typedef InventoryArgs = ({int workerId, int assignmentId});
+typedef InventoryArgs = ({int workerId, int assignmentId, int taskId});
 
 final inventoryViewModelProvider = AutoDisposeNotifierProviderFamily<InventoryViewModel, InventoryState, InventoryArgs>(() {
   return InventoryViewModel();
@@ -159,21 +160,21 @@ class InventoryViewModel extends AutoDisposeFamilyNotifier<InventoryState, Inven
     state = state.copyWith(isLoading: true, errorMessage: '');
 
     try {
-      final client = ref.read(apiClientProvider);
-      final dto = await client.getInventoryTaskDetailsAsync(state.assignmentId);
+      final taskService = ref.read(taskServiceProvider);
+      final dto = await taskService.getUnifiedInventoryTaskDetailsAsync(state.workerId, arg.taskId);
 
       if (dto == null) {
         state = state.copyWith(errorMessage: 'Сервер вернул пустой ответ', isLoading: false);
         return;
       }
 
-      final groupedMap = groupBy(dto.items, (InventoryItemDto item) => item.positionCode);
+      final groupedMap = groupBy(dto.lines, (item) => item.positionCode?.fullDescription ?? '-');
       final groupedItems = groupedMap.entries.map((entry) {
         final positionCode = entry.key;
         final items = entry.value.map((item) => InventoryItemVm(
-          itemId: item.itemId,
+          itemId: item.itemPositionId,
           lineId: item.lineId,
-          itemName: item.itemName,
+          itemName: 'Товар ${item.itemPositionId}',
           positionCode: positionCode,
           expectedQuantity: item.expectedQuantity,
           actualQuantity: null,
@@ -185,10 +186,10 @@ class InventoryViewModel extends AutoDisposeFamilyNotifier<InventoryState, Inven
       groupedItems.sort((a, b) => a.positionCode.compareTo(b.positionCode));
 
       state = state.copyWith(
-        initiatedAt: dto.initiatedAt,
-        zoneCode: dto.zoneCode,
+        initiatedAt: dto.createdAt,
+        zoneCode: dto.title,
         status: 'В процессе',
-        description: 'Инвентаризация зоны ${dto.zoneCode}',
+        description: dto.description ?? '',
         groupedItems: groupedItems,
       );
       

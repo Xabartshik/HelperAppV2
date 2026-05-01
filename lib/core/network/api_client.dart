@@ -12,6 +12,7 @@ import 'api_endpoints.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
+import '../models/tasks/mobile_base_task_dto.dart';
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
@@ -67,6 +68,12 @@ class ApiClient {
   Future<void> workerTaskCompleteAsync(int taskId, int workerId) async {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
     await postAsync(url);
+  }
+
+  Future<MobileBaseTaskDto?> getWorkerTaskDetailsAsync(int taskId, int workerId) async {
+    final response = await getAsync(ApiEndpoints.workerTaskDetails(taskId, workerId));
+    if (response == null || response is! Map<String, dynamic>) return null;
+    return MobileBaseTaskDto.fromJson(response);
   }
   void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {
