@@ -532,6 +532,7 @@ class _MainPageState extends ConsumerState<MainPage> {
         } else if (task.kind.toLowerCase() == 'orderassembly') {
           await context.push('/order-assembly/active', extra: {
             'assignmentId': task.navigationId,
+            'workerId': currentUser?.employeeId ?? 0,
             'taskId': taskId,
             'taskStatusIndex': task.rawTask?.assignmentStatus.index,
           });

@@ -22,7 +22,8 @@ final orderAssemblyTasksProvider =
 // Экран выбора задачи сборки
 // ---------------------------------------------------------------------------
 
-/// Отображает список задач сборки, доступных для авторизованного сотрудника
+/// DEPRECATED: экран больше не используется как entry-point.
+/// Единая точка входа в задачи — общий pending-список на MainPage.
 class TaskSelectionScreen extends ConsumerWidget {
   const TaskSelectionScreen({super.key});
 
