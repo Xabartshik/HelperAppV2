@@ -48,4 +48,9 @@ class ApiEndpoints {
   static const String getConfig = 'v1/Config'; // GET /api/v1/Config
   static String workerTaskComplete(int taskId, int workerId) => 
       'v1/WorkerTasks/$taskId/complete?workerId=$workerId';
+
+      // Worker Breaks (Охрана труда)
+  static String breakStatus(int employeeId) => 'workers/$employeeId/breaks/status';
+  static String startBreak(int employeeId) => 'workers/$employeeId/breaks/start';
+  static String endBreak(int employeeId) => 'workers/$employeeId/breaks/end';
 }

@@ -3,6 +3,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/models/attendance/break_status_dto.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
 import '../utils/logger.dart';
@@ -343,7 +344,37 @@ class ApiClient {
     await postAsync(ApiEndpoints.orderAssemblyComplete(assignmentId), data: null);
   }
 
-  // НОВЫЙ МЕТОД: Асинхронно ждем и отдаем правильный URL
+  /// Получить текущий статус перерыва сотрудника
+  Future<BreakStatusDto> getBreakStatusAsync(int employeeId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.breakStatus(employeeId));
+      return BreakStatusDto.fromJson(response);
+    } catch (e) {
+      Logger.e('Ошибка получения статуса перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+
+  /// Запрос на начало перерыва
+  Future<void> startBreakAsync(int employeeId) async {
+    try {
+      await postAsync(ApiEndpoints.startBreak(employeeId));
+    } catch (e) {
+      Logger.e('Ошибка начала перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+
+  /// Запрос на завершение перерыва
+  Future<void> endBreakAsync(int employeeId) async {
+    try {
+      await postAsync(ApiEndpoints.endBreak(employeeId));
+    } catch (e) {
+      Logger.e('Ошибка завершения перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+
   Future<String> getBaseUrlAsync() async {
     return await _resolveBaseUrl();
   }

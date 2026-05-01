@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,10 @@ import '../../core/models/tasks/task_models.dart';
 import '../../core/models/tasks/task_card_vm.dart';
 import '../../core/network/api_exceptions.dart';
 import '../../core/utils/logger.dart';
+
+// Импорты для системы перерывов
+import '../../core/models/attendance/break_status_dto.dart';
+import '../../core/models/config/app_config_dto.dart';
 
 enum TaskSortMode {
   byPriority,
@@ -23,9 +28,12 @@ class MainState {
   final List<TaskCardVm> taskCards;
   final TaskSortMode sortMode;
   
-  // НОВОЕ: Статус активной смены
   final bool isActiveShift;
   final bool isShiftLoading;
+
+  // НОВОЕ: Поля для системы перерывов[cite: 8]
+  final BreakStatusDto? breakStatus;
+  final AppConfigDto? appConfig;
 
   const MainState({
     this.isBusy = false,
@@ -36,6 +44,8 @@ class MainState {
     this.sortMode = TaskSortMode.byPriority,
     this.isActiveShift = false,
     this.isShiftLoading = false,
+    this.breakStatus,
+    this.appConfig,
   });
 
   MainState copyWith({
@@ -47,6 +57,8 @@ class MainState {
     TaskSortMode? sortMode,
     bool? isActiveShift,
     bool? isShiftLoading,
+    BreakStatusDto? breakStatus,
+    AppConfigDto? appConfig,
   }) {
     return MainState(
       isBusy: isBusy ?? this.isBusy,
@@ -57,6 +69,8 @@ class MainState {
       sortMode: sortMode ?? this.sortMode,
       isActiveShift: isActiveShift ?? this.isActiveShift,
       isShiftLoading: isShiftLoading ?? this.isShiftLoading,
+      breakStatus: breakStatus ?? this.breakStatus,
+      appConfig: appConfig ?? this.appConfig,
     );
   }
 }
@@ -66,91 +80,149 @@ final mainViewModelProvider = AutoDisposeNotifierProvider<MainViewModel, MainSta
 });
 
 class MainViewModel extends AutoDisposeNotifier<MainState> {
+  Timer? _breakStatusTimer;
+
+  // Геттеры для лимитов из конфигурации[cite: 8]
+  int get maxBreakMinutes => state.appConfig?.workMinutesRequiredForBreak ?? 60;
+  int get breakDurationMinutes => state.appConfig?.breakDurationMinutes ?? 10;
+
   @override
   MainState build() {
-    Future.microtask(() {
-      checkShiftStatus();
-      refreshTasks();
+    Future.microtask(() async {
+      await checkShiftStatus();
+      await refreshTasks();
+      
+      // Инициализация системы перерывов (Охрана труда)[cite: 8]
+      await _fetchConfig();
+      await _fetchBreakStatus();
+      
+      // Настройка таймера обновления статуса раз в минуту[cite: 8]
+      _breakStatusTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBreakStatus());
     });
 
     ref.onDispose(() {
+      _breakStatusTimer?.cancel(); // Очистка таймера[cite: 8]
       final taskService = ref.read(taskServiceProvider);
       taskService.stopPeriodicSync();
     });
 
     return const MainState();
   }
-  
-  /// НОВОЕ: Проверка, находится ли сотрудник на смене
-// Внутри класса MainViewModel
-Future<void> checkShiftStatus() async {
-  state = state.copyWith(isShiftLoading: true);
-  try {
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser?.employeeId == null) return;
 
-    final apiClient = ref.read(apiClientProvider);
-    final lastCheck = await apiClient.getLastCheckAsync(currentUser!.employeeId!);
+  /// Загрузка конфигурации приложения[cite: 8]
+  Future<void> _fetchConfig() async {
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final config = await apiClient.getAppConfigAsync();
+      state = state.copyWith(appConfig: config);
+    } catch (e) {
+      Logger.w('Не удалось загрузить конфигурацию приложения: $e');
+    }
+  }
 
-    if (lastCheck != null && lastCheck.checkType == 'in') {
-      final checkTime = lastCheck.checkTimeStamp;
-      final now = DateTime.now().toUtc();
-      final difference = now.difference(checkTime);
+  /// Обновление текущего статуса перерыва[cite: 8]
+  Future<void> _fetchBreakStatus() async {
+    try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser?.employeeId == null) return;
 
-      // Если последняя отметка 'in' и прошло меньше 14 часов
-      if (difference.inHours < 14) {
-        state = state.copyWith(isActiveShift: true, isShiftLoading: false);
-        return;
+      final apiClient = ref.read(apiClientProvider);
+      final status = await apiClient.getBreakStatusAsync(currentUser!.employeeId!);
+      state = state.copyWith(breakStatus: status);
+    } catch (e) {
+      Logger.w('Не удалось обновить статус перерыва: $e');
+    }
+  }
+
+  /// Логика начала или завершения перерыва[cite: 8]
+  Future<void> toggleBreak() async {
+    state = state.copyWith(isBusy: true, errorMessage: '');
+    try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser?.employeeId == null) return;
+
+      final apiClient = ref.read(apiClientProvider);
+
+      if (state.breakStatus?.isOnBreak == true) {
+        // Если сотрудник на перерыве — возвращаем его к работе[cite: 8]
+        await apiClient.endBreakAsync(currentUser!.employeeId!);
+      } else {
+        // Если работает — проверяем возможность ухода на перерыв[cite: 8]
+        if (state.breakStatus?.canStartBreak == true) {
+          await apiClient.startBreakAsync(currentUser!.employeeId!);
+        } else {
+          // Если перерыв недоступен, выводим причину (например, не накоплено время)[cite: 8]
+          state = state.copyWith(
+            errorMessage: 'Перерыв недоступен. Накоплено: ${state.breakStatus?.accumulatedMinutes ?? 0} мин.',
+            isBusy: false
+          );
+          return;
+        }
       }
+      
+      // Обновляем состояние после выполнения действия[cite: 8]
+      await _fetchBreakStatus();
+    } catch (e) {
+      Logger.e('Ошибка при смене статуса перерыва', e);
+      state = state.copyWith(errorMessage: 'Ошибка перерыва: $e');
+    } finally {
+      state = state.copyWith(isBusy: false);
     }
-    
-    // В противном случае сотрудник не на смене
-    state = state.copyWith(isActiveShift: false, isShiftLoading: false);
-  } catch (e) {
-    Logger.e('Ошибка при проверке статуса смены', e);
-    state = state.copyWith(isActiveShift: false, isShiftLoading: false);
   }
-}
 
-  /// НОВОЕ: Обработка отсканированного QR кода (Приход/Уход)
-Future<bool> processQrCheckIn(String qrRawData, String checkType) async {
-  state = state.copyWith(isShiftLoading: true, errorMessage: '');
-  try {
-    // 1. Пытаемся распарсить JSON, который зашит в QR-код с экрана
-    final Map<String, dynamic> qrData = jsonDecode(qrRawData);
-    final String payload = qrData['p'] ?? '';
-    final int branchId = qrData['b'] ?? 1;
+  Future<void> checkShiftStatus() async {
+    state = state.copyWith(isShiftLoading: true);
+    try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser?.employeeId == null) return;
 
-    if (payload.isEmpty) {
-      throw Exception('Неверный формат QR-кода');
+      final apiClient = ref.read(apiClientProvider);
+      final lastCheck = await apiClient.getLastCheckAsync(currentUser!.employeeId!);
+
+      if (lastCheck != null && lastCheck.checkType == 'in') {
+        final checkTime = lastCheck.checkTimeStamp;
+        final now = DateTime.now().toUtc();
+        final difference = now.difference(checkTime);
+
+        if (difference.inHours < 14) {
+          state = state.copyWith(isActiveShift: true, isShiftLoading: false);
+          return;
+        }
+      }
+      
+      state = state.copyWith(isActiveShift: false, isShiftLoading: false);
+    } catch (e) {
+      Logger.e('Ошибка при проверке статуса смены', e);
+      state = state.copyWith(isActiveShift: false, isShiftLoading: false);
     }
-
-    // 2. Получаем ApiClient (убедитесь, что у вас есть такой провайдер, 
-    // либо читайте его так же, как TaskService)
-    final apiClient = ref.read(apiClientProvider);
-
-    // 3. Отправляем запрос на наш C# бэкенд
-    await apiClient.scanQrCheckInAsync(payload, branchId, checkType);
-
-    // 4. Если запрос успешен — обновляем статус UI
-    final isNowActive = (checkType == 'in');
-    state = state.copyWith(isActiveShift: isNowActive, isShiftLoading: false);
-    
-    // Если зашли на смену — грузим новые задачи
-    if (isNowActive) {
-      refreshTasks();
-    }
-    
-    return true;
-  } catch (e) {
-    Logger.e('Ошибка при QR-отметке на смене', e);
-    state = state.copyWith(
-      errorMessage: 'Ошибка отметки: Неверный QR-код или срок его действия истек.',
-      isShiftLoading: false,
-    );
-    return false;
   }
-}
+
+  Future<bool> processQrCheckIn(String qrRawData, String checkType) async {
+    state = state.copyWith(isShiftLoading: true, errorMessage: '');
+    try {
+      final Map<String, dynamic> qrData = jsonDecode(qrRawData);
+      final String payload = qrData['p'] ?? '';
+      final int branchId = qrData['b'] ?? 1;
+
+      if (payload.isEmpty) throw Exception('Неверный формат QR-кода');
+
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.scanQrCheckInAsync(payload, branchId, checkType);
+
+      final isNowActive = (checkType == 'in');
+      state = state.copyWith(isActiveShift: isNowActive, isShiftLoading: false);
+      
+      if (isNowActive) refreshTasks();
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при QR-отметке на смене', e);
+      state = state.copyWith(
+        errorMessage: 'Ошибка отметки: Неверный QR-код или срок его действия истек.',
+        isShiftLoading: false,
+      );
+      return false;
+    }
+  }
 
   Future<void> refreshTasks() async {
     state = state.copyWith(isBusy: true, errorMessage: '');
@@ -158,7 +230,6 @@ Future<bool> processQrCheckIn(String qrRawData, String checkType) async {
     try {
       final currentUser = ref.read(currentUserProvider);
       if (currentUser == null) {
-        Logger.w('CurrentUser не найден при обновлении задач');
         state = state.copyWith(isBusy: false);
         return;
       }

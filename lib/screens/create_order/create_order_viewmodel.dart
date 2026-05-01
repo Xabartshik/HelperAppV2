@@ -158,7 +158,10 @@ class CreateOrderViewModel extends ChangeNotifier {
       appConfig = AppConfigDto(
         pickupWindowLimitHours: 0.5, 
         deliveryWindowLimitHours: 1.0, 
-        weightCoefficient: 1.0
+        weightCoefficient: 1.0, 
+        maxConcurrentBreaksPercentage: 20,
+        breakDurationMinutes: 10,
+        workMinutesRequiredForBreak: 60,
       );
     }
     notifyListeners();
@@ -444,7 +447,7 @@ Future<void> _checkPostamatCapacity() async {
       return selectedPostamat != null && !isCheckingPostamatCapacity;
     }
     if (selectedDeliveryType == DeliveryType.courier) {
-      return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;;
+      return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;
     }
     if (selectedDeliveryType == DeliveryType.pickup) {
       return deliveryDate != null; // Требуем время для самовывоза

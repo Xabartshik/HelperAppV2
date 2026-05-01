@@ -12,6 +12,8 @@ import '../../core/models/tasks/task_models.dart';
 // НОВЫЕ ИМПОРТЫ ДЛЯ СОКЕТОВ И УВЕДОМЛЕНИЙ
 import '../../core/services/signalr_service.dart'; 
 import '../../core/services/notification_service.dart';
+// ИМПОРТ ВИДЖЕТА ПЕРЕРЫВА
+import '../../screens/widgets/break_control_widget.dart';
 
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
@@ -30,7 +32,8 @@ class _MainPageState extends ConsumerState<MainPage> {
   final SignalRService _signalRService = SignalRService();
   // Сохраняем ID, чтобы не дергать Riverpod в dispose()
   int? _connectedEmployeeId;
-@override
+
+  @override
   void initState() {
     super.initState();
     LocalNotificationService.init();
@@ -193,6 +196,9 @@ class _MainPageState extends ConsumerState<MainPage> {
     final isBoss = currentUser?.role == MobileUserRole.admin ||
         currentUser?.role == MobileUserRole.supervisor;
 
+    // ВНЕДРЕНИЕ: Проверяем, находится ли сотрудник на перерыве
+    final bool isOnBreak = state.breakStatus?.isOnBreak == true;
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       body: SafeArea(
@@ -206,29 +212,60 @@ class _MainPageState extends ConsumerState<MainPage> {
             
             Expanded(
               child: IgnorePointer(
-                ignoring: !state.isActiveShift,
+                // Блокируем взаимодействие с задачами, если не на смене или на перерыве
+                ignoring: !state.isActiveShift || isOnBreak,
                 child: AnimatedOpacity(
                   duration: const Duration(milliseconds: 300),
-                  opacity: state.isActiveShift ? 1.0 : 0.3,
-                  child: state.taskCards.isEmpty && !state.isBusy
-                      ? const Center(
-                          child: Text(
-                            'Задач не найдено',
-                            style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 16),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: state.taskCards.length,
-                          padding: const EdgeInsets.only(top: 8, bottom: 20),
-                          itemBuilder: (context, index) =>
-                              _buildTaskCard(context, ref, state.taskCards[index]),
-                        ),
+                  // Затемняем список задач, если сотрудник не на смене или на перерыве
+                  opacity: (state.isActiveShift && !isOnBreak) ? 1.0 : 0.3,
+                  child: _buildTaskListContent(state),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Вспомогательный метод для отображения контента списка задач или заглушки перерыва
+  Widget _buildTaskListContent(MainState state) {
+    // ВНЕДРЕНИЕ: Если на перерыве, показываем специальную заглушку вместо пустого списка
+    if (state.breakStatus?.isOnBreak == true) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.coffee, size: 64, color: Colors.orangeAccent),
+            SizedBox(height: 16),
+            Text(
+              'Вы на перерыве',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Задачи временно скрыты',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state.taskCards.isEmpty && !state.isBusy) {
+      return const Center(
+        child: Text(
+          'Задач не найдено',
+          style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: state.taskCards.length,
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
+      itemBuilder: (context, index) =>
+          _buildTaskCard(context, ref, state.taskCards[index]),
     );
   }
 
@@ -378,6 +415,12 @@ class _MainPageState extends ConsumerState<MainPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ВНЕДРЕНИЕ: Размещаем виджет перерыва прямо над заголовком задач, если сотрудник на смене
+          if (state.isActiveShift) ...[
+            const BreakControlWidget(), // ВАЖНО: передаем viewModel, как требует ваш виджет
+            const SizedBox(height: 16),
+          ],
+          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
