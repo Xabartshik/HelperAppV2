@@ -79,7 +79,7 @@ InventoryLineItem? _mapToInventoryLineItem(InventoryAssignmentLineWithItemDto dt
       branchId: rawPosition.branchId,
       zoneCode: rawPosition.zoneCode,
       firstLevelStorageType: rawPosition.firstLevelStorageType,
-      flsNumber: rawPosition.fLSNumber,
+      flsNumber: rawPosition.flsNumber,
       secondLevelStorage: rawPosition.secondLevelStorage,
       thirdLevelStorage: rawPosition.thirdLevelStorage,
     );

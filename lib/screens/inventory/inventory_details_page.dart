@@ -250,7 +250,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
           if (group.isExpanded) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}) : null,
+              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId, 'taskId': widget.taskId}) : null,
               icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
               label: const Text('Сканировать', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(

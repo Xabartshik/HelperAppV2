@@ -24,11 +24,6 @@ class TaskService {
   int _lastSyncEmployeeId = 0;
 
   TaskService(this._apiClient);
-  late final Map<String, TaskItemBase? Function(MobileBaseTaskDto dto, int employeeId)> _taskParsers = {
-    'Inventory': _mapToUnifiedInventoryTask,
-    'OrderAssembly': _mapToUnifiedOrderAssemblyTask,
-  };
-
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
 Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
@@ -261,6 +256,23 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       flsNumber: dto.flsNumber,
       secondLevelStorage: dto.secondLevelStorage,
       thirdLevelStorage: dto.thirdLevelStorage,
+    );
+  }
+
+
+  Future<InventoryTaskItem?> getUnifiedInventoryTaskDetailsAsync(int employeeId, int taskId) async {
+    final tasks = await getTasksForCurrentUserAsync(employeeId);
+    return tasks.whereType<InventoryTaskItem?>().firstWhere(
+      (t) => t?.taskId == taskId || t?.assignmentId == taskId,
+      orElse: () => null,
+    );
+  }
+
+  Future<OrderAssemblyTaskItem?> getUnifiedOrderAssemblyTaskDetailsAsync(int employeeId, int assignmentId) async {
+    final tasks = await getTasksForCurrentUserAsync(employeeId);
+    return tasks.whereType<OrderAssemblyTaskItem?>().firstWhere(
+      (t) => t?.assignmentId == assignmentId || t?.taskId == assignmentId,
+      orElse: () => null,
     );
   }
 
