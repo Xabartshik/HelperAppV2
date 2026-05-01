@@ -454,27 +454,40 @@ Future<void> loadTask() async {
     state = state.copyWith(cells: [...state.cells]);
   }
 
-  /// Маппит DTO ячейки в VM
-  CellPlacementVm _mapToCellVm(CellPlacementInfoDto dto, int assignmentId) {
+  /// Маппит ячейку задачи в VM
+  CellPlacementVm _mapToCellVm(CellPlacementInfo dto, int assignmentId) {
     final items = dto.items
         .map((item) => AssemblyItemVm(
               lineId: item.lineId,
-              itemId: item.itemId,
-              itemName: item.itemName ?? '',
-              barcode: item.barcode ?? '',
-              sourceCellCode: item.sourceCellCode ?? 'Неизвестная ячейка',
+              itemId: item.itemPositionId,
+              itemName: 'Товар ${item.itemPositionId}',
+              barcode: item.itemPositionId.toString(),
+              sourceCellCode: 'Неизвестная ячейка',
               quantity: item.quantity,
-              collectedQuantity: item.pickedQuantity, 
-              status: item.status,
+              collectedQuantity: item.quantity,
+              status: _parseLineStatus(item.status),
             ))
         .toList();
 
     return CellPlacementVm(
       assignmentId: assignmentId,
       targetPositionId: dto.targetPositionId,
-      cellCode: dto.cellCode ?? '',
-      cellDisplayName: dto.cellDisplayName ?? dto.cellCode ?? '',
+      cellCode: dto.targetPositionId.toString(),
+      cellDisplayName: 'Ячейка ${dto.targetPositionId}',
       items: items,
     );
+  }
+
+  OrderAssemblyLineStatus _parseLineStatus(String status) {
+    switch (status) {
+      case 'picked':
+        return OrderAssemblyLineStatus.picked;
+      case 'placed':
+        return OrderAssemblyLineStatus.placed;
+      case 'discrepancy':
+        return OrderAssemblyLineStatus.discrepancy;
+      default:
+        return OrderAssemblyLineStatus.pending;
+    }
   }
 }
