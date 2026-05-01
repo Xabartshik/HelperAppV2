@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/order_assembly/order_assembly_dtos.dart';
+import '../../core/services/task_service.dart';
 import '../../core/utils/logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -197,8 +198,8 @@ Future<void> loadTask() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
 
     try {
-      final client = ref.read(apiClientProvider);
-      final task = await client.getOrderAssemblyTaskDetailsAsync(arg.assignmentId);
+      final taskService = ref.read(taskServiceProvider);
+      final task = await taskService.getUnifiedOrderAssemblyTaskDetailsAsync(arg.userId, arg.assignmentId);
 
       if (task == null) {
         Logger.w('OrderAssembly: детали задачи ${arg.assignmentId} не найдены');
@@ -213,16 +214,33 @@ Future<void> loadTask() async {
 
       // Обновляем состояние, включая новые поля для кооперации из WorkerAssemblyTaskDto
       state = state.copyWith(
-        task: task,
+        task: WorkerAssemblyTaskDto(
+          assignmentId: task.assignmentId,
+          taskId: task.taskId,
+          orderId: task.orderId,
+          status: task.assignmentStatus,
+          totalLines: task.totalLines,
+          cellPlacements: task.cellPlacements.map((c) => CellPlacementInfoDto(
+            targetPositionId: c.targetPositionId,
+            items: c.items.map((i) => PlacementLineDto(
+              lineId: i.lineId,
+              itemPositionId: i.itemPositionId,
+              itemId: i.itemPositionId,
+              quantity: i.quantity,
+              pickedQuantity: i.quantity,
+              status: OrderAssemblyLineStatus.pending,
+            )).toList(),
+          )).toList(),
+        ),
         cells: cells,
-        isCooperative: task.isCooperative, // Флаг тяжелого груза/совместной работы
-        partnerName: task.partnerName,     // Имя коллеги для отображения в баннере
-        partnerStatus: task.partnerStatus, // Статус напарника (начал ли он работу)
+        isCooperative: false,
+        partnerName: null,
+        partnerStatus: null,
         isLoading: false,
       );
 
       _recalculateProgress();
-      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена. Кооперация: ${task.isCooperative}, ячеек: ${cells.length}');
+      Logger.i('OrderAssembly: задача ${task.assignmentId} загружена. Ячеек: ${cells.length}');
     } catch (e, stack) {
       Logger.e('OrderAssembly: ошибка загрузки задачи ${arg.assignmentId}', e, stack);
       state = state.copyWith(

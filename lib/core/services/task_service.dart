@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/network/api_endpoints.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
+import '../network/api_exceptions.dart';
 import '../models/tasks/mobile_base_task_dto.dart';
 import '../models/tasks/task_models.dart';
 import '../models/inventory/inventory_dtos.dart';
@@ -22,6 +23,10 @@ class TaskService {
   int _lastSyncEmployeeId = 0;
 
   TaskService(this._apiClient);
+  late final Map<String, TaskItemBase? Function(MobileBaseTaskDto dto, int employeeId)> _taskParsers = {
+    'Inventory': _mapToUnifiedInventoryTask,
+    'OrderAssembly': _mapToUnifiedOrderAssemblyTask,
+  };
 
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
 Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
@@ -41,15 +46,13 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         final dto = MobileBaseTaskDto.fromJson(item as Map<String, dynamic>);
         
         // 2. Маппим DTO в доменные объекты в зависимости от типа задачи
-        if (dto.taskType == 'Inventory') {
-          final task = _mapToUnifiedInventoryTask(dto, employeeId);
-          if (task != null) allTasks.add(task);
-        } else if (dto.taskType == 'OrderAssembly') {
-          final task = _mapToUnifiedOrderAssemblyTask(dto, employeeId);
-          if (task != null) allTasks.add(task);
-        } else {
+        final parser = _taskParsers[dto.taskType];
+        if (parser == null) {
           Logger.w('Неизвестный тип задачи от агрегатора: ${dto.taskType}');
+          continue;
         }
+        final task = parser(dto, employeeId);
+        if (task != null) allTasks.add(task);
       }
 
       Logger.i('Получено ${allTasks.length} задач');
@@ -76,6 +79,14 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       final tDetails = dto.taskDetails;
       final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
       final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
+      final schemaVersion = _readSchemaVersion(dto.taskDetails);
+      final typedDetails = InventoryDetails(
+        schemaVersion: schemaVersion,
+        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
+        totalLines: totalLines,
+        completedLines: completedLines,
+        lines: lines,
+      );
       return InventoryTaskItem(
         taskId: dto.taskId,
         type: TaskType.inventory,
@@ -94,6 +105,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         lines: lines,
         totalLinesCount: totalLines,
         completedLinesCount: completedLines,
+        details: typedDetails,
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
@@ -181,7 +193,8 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
 
   OrderAssemblyTaskItem? _mapToUnifiedOrderAssemblyTask(MobileBaseTaskDto dto, int employeeId) {
     try {
-      final cellPlacementsJson = dto.taskDetails['cellPlacements'] as List<dynamic>? ?? [];
+      final rawLines = dto.taskDetails['lines'] ?? dto.taskDetails['cellPlacements'];
+      final cellPlacementsJson = rawLines as List<dynamic>? ?? [];
       
       final cellPlacements = cellPlacementsJson.map((c) => CellPlacementInfo(
         targetPositionId: c['targetPositionId'],
@@ -199,6 +212,16 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
       final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
       final deadline = dto.deadline?.toUtc();
+      final assignmentId = dto.taskDetails['assignmentId'] ?? dto.taskId;
+      final orderId = dto.taskDetails['orderId'] ?? 0;
+      final typedDetails = OrderAssemblyDetails(
+        schemaVersion: _readSchemaVersion(dto.taskDetails),
+        assignmentId: assignmentId,
+        orderId: orderId,
+        totalLines: totalLines,
+        completedLines: completedLines,
+        lines: cellPlacements,
+      );
       return OrderAssemblyTaskItem(
         taskId: dto.taskId,
         type: TaskType.orderAssembly,
@@ -212,16 +235,37 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         createdAt: createdAt,
         assignedToEmployeeId: employeeId,
         assignedAt: createdAt,
-        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
-        orderId: dto.taskDetails['orderId'] ?? 0,
+        assignmentId: assignmentId,
+        orderId: orderId,
         totalLines: totalLines,
         completedLinesCount: completedLines,
         cellPlacements: cellPlacements,
+        details: typedDetails,
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи сборки из DTO агрегатора', e, stack);
       return null;
     }
+  }
+
+  int _readSchemaVersion(Map<String, dynamic> details) {
+    final version = (details['schemaVersion'] as num?)?.toInt() ?? 1;
+    if (version != _supportedSchemaVersion) {
+      throw UnsupportedError('Неподдерживаемая schemaVersion: $version');
+    }
+    return version;
+  }
+
+  Future<InventoryTaskItem?> getUnifiedInventoryTaskDetailsAsync(int workerId, int taskId) async {
+    final dto = await _apiClient.getWorkerTaskDetailsAsync(taskId, workerId);
+    if (dto == null || dto.taskType != 'Inventory') return null;
+    return _mapToUnifiedInventoryTask(dto, workerId);
+  }
+
+  Future<OrderAssemblyTaskItem?> getUnifiedOrderAssemblyTaskDetailsAsync(int workerId, int taskId) async {
+    final dto = await _apiClient.getWorkerTaskDetailsAsync(taskId, workerId);
+    if (dto == null || dto.taskType != 'OrderAssembly') return null;
+    return _mapToUnifiedOrderAssemblyTask(dto, workerId);
   }
 
 
@@ -382,11 +426,20 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
         );
       }
 
-      // После успешного запуска обновляем список задач, 
-      // чтобы получить актуальные статусы (включая Paused для других задач)
       await _performPeriodicSync();
-      
       return true;
+    } on NotFoundException catch (e) {
+      Logger.w('Задача $taskId не найдена при старте: $e');
+      await _performPeriodicSync();
+      return false;
+    } on ApiException catch (e, stack) {
+      if (e.message.contains('400')) {
+        Logger.w('Некорректный старт задачи $taskId (400): $e');
+        await _performPeriodicSync();
+        return false;
+      }
+      Logger.e('Ошибка API при старте задачи $taskId', e, stack);
+      return false;
     } catch (e, stack) {
       Logger.e('Ошибка при старте задачи $taskId', e, stack);
       return false;

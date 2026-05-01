@@ -12,6 +12,7 @@ import 'api_endpoints.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
+import '../models/tasks/mobile_base_task_dto.dart';
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
