@@ -7,6 +7,7 @@ class AppConfigDto {
   final int maxConcurrentBreaksPercentage;
   final int breakDurationMinutes;
   final int workMinutesRequiredForBreak;
+  final bool useUnifiedWorkerTasksApi;
 
   AppConfigDto({
     required this.pickupWindowLimitHours,
@@ -15,6 +16,7 @@ class AppConfigDto {
     required this.maxConcurrentBreaksPercentage,
     required this.breakDurationMinutes,
     required this.workMinutesRequiredForBreak,
+    required this.useUnifiedWorkerTasksApi,
   });
 
   factory AppConfigDto.fromJson(Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class AppConfigDto {
       maxConcurrentBreaksPercentage: (json['maxConcurrentBreaksPercentage'] as num?)?.toInt() ?? 20,
       breakDurationMinutes: (json['breakDurationMinutes'] as num?)?.toInt() ?? 10,
       workMinutesRequiredForBreak: (json['workMinutesRequiredForBreak'] as num?)?.toInt() ?? 60,
+      useUnifiedWorkerTasksApi: json['useUnifiedWorkerTasksApi'] as bool? ?? true,
     );
   }
 }

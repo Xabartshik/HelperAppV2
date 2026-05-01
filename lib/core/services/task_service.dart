@@ -15,6 +15,7 @@ final taskServiceProvider = Provider<TaskService>((ref) {
 
 class TaskService {
   final ApiClient _apiClient;
+  bool useUnifiedWorkerTasksApi = true;
   Timer? _periodicSyncTimer;
   // Коллбэк периодической синхронизации работает с базовым типом для поддержки обоих видов задач
   Function(List<TaskItemBase>)? _onTasksUpdated;
@@ -372,10 +373,14 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       Logger.i('Запуск задачи $taskId для работника $workerId');
 
       // Используем вынесенный эндпоинт
-      final response = await _apiClient.postAsync(
-        ApiEndpoints.workerTaskStart(taskId, workerId),
-        data: {}, // Тело пустое, так как параметры в Query
-      );
+      if (useUnifiedWorkerTasksApi) {
+        await _apiClient.workerTaskStartAsync(taskId, workerId);
+      } else {
+        await _apiClient.postAsync(
+          ApiEndpoints.workerTaskStart(taskId, workerId),
+          data: {}, // legacy fallback
+        );
+      }
 
       // После успешного запуска обновляем список задач, 
       // чтобы получить актуальные статусы (включая Paused для других задач)

@@ -68,6 +68,25 @@ class ApiClient {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
     await postAsync(url);
   }
+  Future<dynamic> workerTaskDetailsAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskDetails(taskId, workerId);
+    return await getAsync(url);
+  }
+
+  Future<void> workerTaskPauseAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskPause(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskCancelAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskCancel(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskStartAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskStart(taskId, workerId);
+    await postAsync(url, data: {});
+  }
   void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {
       throw UnauthorizedException('Токен истёк или невалиден');
