@@ -23,6 +23,7 @@ class _BarcodeScannerPageState extends ConsumerState<BarcodeScannerPage> {
   late String positionCode;
   late int assignmentId;
   late int workerId;
+  late int taskId;
 
   bool _isProcessing = false;
   bool _showSuccessOverlay = false;
@@ -36,6 +37,7 @@ class _BarcodeScannerPageState extends ConsumerState<BarcodeScannerPage> {
     positionCode = widget.args['positionCode'] as String;
     assignmentId = widget.args['assignmentId'] as int;
     workerId = widget.args['workerId'] as int;
+    taskId = widget.args['taskId'] as int? ?? assignmentId;
   }
 
   @override
@@ -52,7 +54,7 @@ class _BarcodeScannerPageState extends ConsumerState<BarcodeScannerPage> {
     
     setState(() => _isProcessing = true);
 
-    final provider = inventoryViewModelProvider((workerId: workerId, assignmentId: assignmentId));
+    final provider = inventoryViewModelProvider((workerId: workerId, assignmentId: assignmentId, taskId: taskId));
     final vm = ref.read(provider.notifier);
 
     final result = await vm.processScannedCodeAsync(positionCode, code);
