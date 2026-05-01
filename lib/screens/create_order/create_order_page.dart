@@ -376,10 +376,50 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
         const SizedBox(height: 24),
         
         // --- АДРЕС ИЛИ ПОСТАМАТ ---
+// --- ВЫБОР ПОСТАМАТА ---
         if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
-          const Text('Выберите терминал', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+          const Text(
+            'Выберите терминал', 
+            style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)
+          ),
           const SizedBox(height: 8),
-          // ... (Код Dropdown постаматов остается прежним) ...
+          
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            decoration: BoxDecoration(
+              color: _bgGray900, 
+              borderRadius: BorderRadius.circular(12)
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Postamat>(
+                value: vm.selectedPostamat,
+                hint: const Text(
+                  'Выберите адрес из списка', 
+                  style: TextStyle(color: _textGray)
+                ),
+                dropdownColor: _bgGray950,
+                isExpanded: true,
+                icon: const Icon(Icons.location_on_outlined, color: _accent),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                items: vm.postamats.map((p) => DropdownMenuItem(
+                  value: p, 
+                  child: Text(p.address, overflow: TextOverflow.ellipsis)
+                )).toList(),
+                onChanged: (val) => vm.setPostamat(val!),
+              ),
+            ),
+          ),
+          
+          // Индикатор загрузки списка, если он еще пуст
+          if (vm.isLoading && vm.postamats.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0),
+              child: LinearProgressIndicator(
+                color: _accent, 
+                backgroundColor: Colors.transparent
+              ),
+            ),
+            
         ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
           const Text('Адрес доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
@@ -409,36 +449,55 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
 
         // --- ДАТА И ВРЕМЯ ---
         if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
-           const Text('Ожидаемое время самовывоза', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
-           const SizedBox(height: 8),
-           GestureDetector(
-             onTap: () async {
-                final minMinutes = ((vm.appConfig?.pickupWindowLimitHours ?? 0.5) * 60).toInt();
-                final minTime = DateTime.now().add(Duration(minutes: minMinutes));
+          const Text('Ожидаемое время самовывоза', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () async {
+                final minAllowed = vm.minPickupTime; // Используем наш новый метод из VM
+                
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: minTime,
-                  firstDate: minTime,
+                  initialDate: vm.deliveryDate ?? minAllowed,
+                  firstDate: DateTime.now(),
                   lastDate: DateTime.now().add(const Duration(days: 14)),
-                  // ... theme builder ...
                 );
+
                 if (date != null && context.mounted) {
                   final time = await showTimePicker(
                     context: context, 
-                    initialTime: TimeOfDay.fromDateTime(date.day == minTime.day ? minTime : date),
-                    // ... theme builder ...
+                    initialTime: TimeOfDay.fromDateTime(vm.deliveryDate ?? minAllowed),
                   );
+
                   if (time != null) {
                     var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-                    // Жесткая проверка: нельзя выбрать время раньше чем через 30 минут
-                    if (selected.isBefore(minTime)) {
-                      selected = minTime;
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Минимальное время на сборку - 30 минут.')));
+
+                    // 1. ПРОВЕРКА ДИАПАЗОНА 10:00 - 22:00
+                    if (selected.hour < 10 || selected.hour >= 22) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Часы работы самовывоза: с 10:00 до 22:00'))
+                      );
+                      // Принудительно ставим границы, если пользователь ошибся
+                      selected = DateTime(
+                        selected.year, 
+                        selected.month, 
+                        selected.day, 
+                        (selected.hour < 10) ? 10 : 21, 
+                        (selected.hour < 10) ? 0 : 59
+                      );
                     }
+
+                    // 2. ПРОВЕРКА МИНИМАЛЬНОГО ВРЕМЕНИ (с учетом подготовки заказа)
+                    if (selected.isBefore(minAllowed)) {
+                      selected = minAllowed;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Выбрано слишком раннее время с учетом сборки.'))
+                      );
+                    }
+
                     vm.setDeliveryDate(selected);
                   }
                 }
-             },
+            },
              child: Container(
                padding: const EdgeInsets.all(16),
                decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),

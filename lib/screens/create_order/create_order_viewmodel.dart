@@ -108,7 +108,7 @@ class Postamat {
 
   factory Postamat.fromJson(Map<String, dynamic> json) {
     return Postamat(
-      id: json['postamatId'] as int? ?? 0,
+      id: json['id'] as int? ?? 0,
       address: json['address'] as String? ?? 'Неизвестный адрес',
     );
   }
@@ -335,18 +335,42 @@ Future<void> _fetchPostamats() async {
     }
   }
 
+DateTime get minPickupTime {
+    final minMinutes = ((appConfig?.pickupWindowLimitHours ?? 0.5) * 60).toInt();
+    var minTime = DateTime.now().add(Duration(minutes: minMinutes));
+
+    // Если сейчас слишком рано (до 10:00), сдвигаем на 10:00 сегодня
+    if (minTime.hour < 10) {
+      minTime = DateTime(minTime.year, minTime.month, minTime.day, 10, 0);
+    } 
+    // Если сейчас слишком поздно (после 22:00), сдвигаем на 10:00 завтра
+    else if (minTime.hour >= 22) {
+      final nextDay = minTime.add(const Duration(days: 1));
+      minTime = DateTime(nextDay.year, nextDay.month, nextDay.day, 10, 0);
+    }
+    return minTime;
+  }
+
   void setDeliveryDate(DateTime date) {
-    deliveryDate = date;
+    if (selectedDeliveryType == DeliveryType.courier) {
+      deliveryDate = DateTime.utc(date.year, date.month, date.day);
+    } else if (selectedDeliveryType == DeliveryType.pickup) {
+      // Ограничиваем часы в диапазоне 10-22
+      int hour = date.hour;
+      if (hour < 10) hour = 10;
+      if (hour >= 22) hour = 21; // 21:59 - крайнее время
+
+      deliveryDate = DateTime(date.year, date.month, date.day, hour, date.minute);
+    } else {
+      deliveryDate = date;
+    }
+    
     _calculateAvailableSlots();
     notifyListeners();
   }
 
-  void setDeliverySlot(DeliverySlot slot) {
+void setDeliverySlot(DeliverySlot slot) {
     selectedSlot = slot;
-    // Устанавливаем время доставки в соответствии с началом слота
-    if (deliveryDate != null) {
-      deliveryDate = DateTime(deliveryDate!.year, deliveryDate!.month, deliveryDate!.day, slot.startHour, 0);
-    }
     notifyListeners();
   }
 
@@ -456,35 +480,50 @@ Future<void> _checkPostamatCapacity() async {
     return true; // Для Express
   }
 
-Future<bool> _createOrder() async {
+// Обновленный метод формирования заказа
+  Future<bool> _createOrder() async {
     if (!canSubmitOrder) return false;
 
     return _withLoading<bool>(() async {
-      // Формируем DTO позиций (OrderPositionDto) с учетом цены
+      // Формируем DTO позиций с учетом цены
       final positions = cart.entries.map((entry) {
-        // Находим товар, чтобы взять его цену
         final item = availableItems.firstWhere((i) => i.itemId == entry.key);
-        
         return {
             'itemId': entry.key,
             'quantity': entry.value,
-            'price': item.price // <--- Теперь отправляем и цену, как просит сервер
+            'price': item.price 
         };
       }).toList();
 
-      // Формируем корневой DTO (OrderDto)
+      // Определение правильной даты для отправки на сервер
+      String? dateToSubmit;
+      if (deliveryDate != null) {
+        if (selectedDeliveryType == DeliveryType.courier) {
+          // Курьер: Отправляем нашу чистую UTC дату как ISO 8601 (закончится на Z)
+          dateToSubmit = deliveryDate!.toIso8601String();
+        } else {
+          // Самовывоз: Конвертируем локальное выбранное время в UTC
+          dateToSubmit = deliveryDate!.toUtc().toIso8601String();
+        }
+      }
+
+      // Формируем корневой DTO
       final payload = {
-        'customerId': 1, // Заглушка для симулятора
+        'customerId': 1, // Заглушка
         'branchId': selectedBranch!.branchId,
-        'deliveryDate': deliveryDate?.toUtc().toIso8601String(),
+        'deliveryDate': dateToSubmit, // <--- ИСПОЛЬЗУЕМ ВЫЧИСЛЕННУЮ ДАТУ
         'deliveryType': selectedDeliveryType.toServerString(),
         'paymentType': prepayNow ? 'Prepaid' : 'Postpaid',
+        
         'destinationAddress': (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) 
             ? destinationAddress 
             : (selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.address : null),
+        
         'postamatId': selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.id : null,
         
-        // ВАЖНО: Названия полей должны совпадать с вашим DTO
+        // НОВОЕ ПОЛЕ ДЛЯ C#
+        'deliverySlotId': selectedDeliveryType == DeliveryType.courier ? selectedSlot?.id : null,
+        
         'totalPrice': cartTotalPrice, 
         'positions': positions
       };
@@ -496,6 +535,7 @@ Future<bool> _createOrder() async {
     }, fallback: false);
   }
 
+  
 String branchSearchQuery = '';
 
   List<Branch> get filteredBranches {

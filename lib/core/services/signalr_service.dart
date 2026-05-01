@@ -21,32 +21,32 @@ Future<void> initConnection(int workerId, String serverUrl) async {
 
     // 1. Логируем успешное (пере)подключение
     _hubConnection?.onreconnected(({connectionId}) async {
-      print('SignalR: Переподключились! Новый ID: $connectionId');
+      Logger.i('SignalR: Переподключились! Новый ID: $connectionId');
       // КРИТИЧЕСКИ ВАЖНО: Заново добавляем себя в группу после обрыва сети!
       try {
         await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
-        print('SignalR: Работник $workerId заново зарегистрирован в группе.');
+        Logger.i('SignalR: Работник $workerId заново зарегистрирован в группе.');
       } catch (e) {
-        print('SignalR: Ошибка перерегистрации $e');
+        Logger.i('SignalR: Ошибка перерегистрации $e');
       }
     });
 
     try {
       await _hubConnection?.start();
-      print('SignalR Успешно подключен к $url');
+      Logger.i('SignalR Успешно подключен к $url');
       
       // Первичная регистрация
       await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
-      print('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
+      Logger.i('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
       
     } catch (e) {
-      print('Ошибка подключения SignalR: $e');
+      Logger.i('Ошибка подключения SignalR: $e');
     }
   }
 
   /// Внутренний обработчик входящих сообщений от сервера
   void _handleNotification(List<dynamic>? parameters) {
-    print('🚨 СЫРЫЕ ДАННЫЕ ИЗ SIGNALR: $parameters');
+    Logger.i('🚨 СЫРЫЕ ДАННЫЕ ИЗ SIGNALR: $parameters');
     if (parameters != null && parameters.isNotEmpty) {
       // SignalR передает C# объекты как Map<String, dynamic> в первом аргументе
       final data = parameters[0] as Map<String, dynamic>;

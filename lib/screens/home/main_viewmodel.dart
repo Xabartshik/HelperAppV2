@@ -81,27 +81,40 @@ final mainViewModelProvider = AutoDisposeNotifierProvider<MainViewModel, MainSta
 
 class MainViewModel extends AutoDisposeNotifier<MainState> {
   Timer? _breakStatusTimer;
+  Timer? _taskFetchTimer;
 
   // Геттеры для лимитов из конфигурации[cite: 8]
   int get maxBreakMinutes => state.appConfig?.workMinutesRequiredForBreak ?? 60;
   int get breakDurationMinutes => state.appConfig?.breakDurationMinutes ?? 10;
 
   @override
+@override
   MainState build() {
     Future.microtask(() async {
       await checkShiftStatus();
-      await refreshTasks();
+      await refreshTasks(); // Первый запуск — обычный (с лоадером)
       
-      // Инициализация системы перерывов (Охрана труда)[cite: 8]
+      // Инициализация системы перерывов (Охрана труда)
       await _fetchConfig();
       await _fetchBreakStatus();
       
-      // Настройка таймера обновления статуса раз в минуту[cite: 8]
-      _breakStatusTimer = Timer.periodic(const Duration(minutes: 1), (_) => _fetchBreakStatus());
+      // Настройка таймера обновления статуса перерыва раз в минуту
+      _breakStatusTimer = Timer.periodic(
+        const Duration(minutes: 1), 
+        (_) => _fetchBreakStatus()
+      );
+
+      // НОВОЕ: Настройка таймера фонового обновления задач (раз в 5 минут)
+      // Мы делаем это "тихо", чтобы не показывать лоадер каждые 5 минут
+      _taskFetchTimer = Timer.periodic(
+        const Duration(minutes: 5), 
+        (_) => refreshTasks(isSilent: true)
+      );
     });
 
     ref.onDispose(() {
-      _breakStatusTimer?.cancel(); // Очистка таймера[cite: 8]
+      _breakStatusTimer?.cancel(); // Очистка таймера перерывов
+      _taskFetchTimer?.cancel();   // Очистка таймера задач
       final taskService = ref.read(taskServiceProvider);
       taskService.stopPeriodicSync();
     });
@@ -224,13 +237,18 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
     }
   }
 
-  Future<void> refreshTasks() async {
-    state = state.copyWith(isBusy: true, errorMessage: '');
+/// Обновление списка задач. 
+  /// [isSilent] - если true, обновление происходит без показа индикатора загрузки
+  Future<void> refreshTasks({bool isSilent = false}) async {
+    // Если обновление "тихое", не включаем глобальный индикатор загрузки (isBusy)
+    if (!isSilent) {
+      state = state.copyWith(isBusy: true, errorMessage: '');
+    }
 
     try {
       final currentUser = ref.read(currentUserProvider);
       if (currentUser == null) {
-        state = state.copyWith(isBusy: false);
+        if (!isSilent) state = state.copyWith(isBusy: false);
         return;
       }
 
@@ -243,9 +261,10 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         rawTasks: tasks,
         taskCards: _applySort(taskCards, state.sortMode),
         hasNetwork: true,
-        isBusy: false,
+        isBusy: false, // Всегда выключаем лоадер при успехе
       );
 
+      // Управление периодической синхронизацией через TaskService (если она используется)
       taskService.setEmployeeIdForPeriodicSync(currentUser.employeeId!);
       if (!taskService.isPeriodicSyncActive) {
         taskService.startPeriodicSync((updatedTasks) {
@@ -258,22 +277,27 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         });
       }
     } on NoNetworkException {
-      state = state.copyWith(
-        errorMessage: 'Нет подключения к сети',
-        hasNetwork: false,
-        isBusy: false,
-      );
+      if (!isSilent) {
+        state = state.copyWith(
+          errorMessage: 'Нет подключения к сети',
+          hasNetwork: false,
+          isBusy: false,
+        );
+      }
     } on UnauthorizedException {
       await logout();
     } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Ошибка загрузки задач: $e',
-        isBusy: false,
-      );
-      Logger.e('Ошибка при загрузке задач', e);
+      // В тихом режиме ошибки только логируем, в обычном — показываем пользователю
+      if (!isSilent) {
+        state = state.copyWith(
+          errorMessage: 'Ошибка загрузки задач: $e',
+          isBusy: false,
+        );
+      }
+      Logger.e('Ошибка при загрузке задач (фоновое обновление: $isSilent)', e);
     }
   }
-
+  
   void setSortMode(TaskSortMode mode) {
     state = state.copyWith(
       sortMode: mode,
