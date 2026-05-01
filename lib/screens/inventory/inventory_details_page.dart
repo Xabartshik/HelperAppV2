@@ -49,13 +49,13 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
 
   @override
   Future<void> onTaskStarted() async {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     await ref.read(provider.notifier).loadDetailsAsync();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     final state = ref.watch(provider);
     final vm = ref.read(provider.notifier);
 
@@ -396,7 +396,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
   }
 
   void _handleComplete(InventoryViewModel vm) async {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     final state = ref.read(provider);
 
     final allItems = state.groupedItems.expand((g) => g.items).toList();

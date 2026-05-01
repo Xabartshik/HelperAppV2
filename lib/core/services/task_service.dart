@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/network/api_endpoints.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
+import '../network/api_exceptions.dart';
 import '../models/tasks/mobile_base_task_dto.dart';
 import '../models/tasks/task_models.dart';
 import '../tasks/task_registry.dart';
@@ -16,12 +17,17 @@ final taskServiceProvider = Provider<TaskService>((ref) {
 
 class TaskService {
   final ApiClient _apiClient;
+  bool useUnifiedWorkerTasksApi = true;
   Timer? _periodicSyncTimer;
   // Коллбэк периодической синхронизации работает с базовым типом для поддержки обоих видов задач
   Function(List<TaskItemBase>)? _onTasksUpdated;
   int _lastSyncEmployeeId = 0;
 
   TaskService(this._apiClient);
+  late final Map<String, TaskItemBase? Function(MobileBaseTaskDto dto, int employeeId)> _taskParsers = {
+    'Inventory': _mapToUnifiedInventoryTask,
+    'OrderAssembly': _mapToUnifiedOrderAssemblyTask,
+  };
 
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
 Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
@@ -203,16 +209,29 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       Logger.i('Запуск задачи $taskId для работника $workerId');
 
       // Используем вынесенный эндпоинт
-      final response = await _apiClient.postAsync(
-        ApiEndpoints.workerTaskStart(taskId, workerId),
-        data: {}, // Тело пустое, так как параметры в Query
-      );
+      if (useUnifiedWorkerTasksApi) {
+        await _apiClient.workerTaskStartAsync(taskId, workerId);
+      } else {
+        await _apiClient.postAsync(
+          ApiEndpoints.workerTaskStart(taskId, workerId),
+          data: {}, // legacy fallback
+        );
+      }
 
-      // После успешного запуска обновляем список задач, 
-      // чтобы получить актуальные статусы (включая Paused для других задач)
       await _performPeriodicSync();
-      
       return true;
+    } on NotFoundException catch (e) {
+      Logger.w('Задача $taskId не найдена при старте: $e');
+      await _performPeriodicSync();
+      return false;
+    } on ApiException catch (e, stack) {
+      if (e.message.contains('400')) {
+        Logger.w('Некорректный старт задачи $taskId (400): $e');
+        await _performPeriodicSync();
+        return false;
+      }
+      Logger.e('Ошибка API при старте задачи $taskId', e, stack);
+      return false;
     } catch (e, stack) {
       Logger.e('Ошибка при старте задачи $taskId', e, stack);
       return false;

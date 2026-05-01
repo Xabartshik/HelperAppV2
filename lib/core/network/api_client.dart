@@ -12,6 +12,7 @@ import 'api_endpoints.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
+import '../models/tasks/mobile_base_task_dto.dart';
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
@@ -67,6 +68,25 @@ class ApiClient {
   Future<void> workerTaskCompleteAsync(int taskId, int workerId) async {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
     await postAsync(url);
+  }
+  Future<dynamic> workerTaskDetailsAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskDetails(taskId, workerId);
+    return await getAsync(url);
+  }
+
+  Future<void> workerTaskPauseAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskPause(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskCancelAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskCancel(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskStartAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskStart(taskId, workerId);
+    await postAsync(url, data: {});
   }
   void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {

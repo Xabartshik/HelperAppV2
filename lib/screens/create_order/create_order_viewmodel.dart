@@ -162,6 +162,7 @@ class CreateOrderViewModel extends ChangeNotifier {
         maxConcurrentBreaksPercentage: 20,
         breakDurationMinutes: 10,
         workMinutesRequiredForBreak: 60,
+        useUnifiedWorkerTasksApi: true,
       );
     }
     notifyListeners();

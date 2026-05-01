@@ -8,6 +8,9 @@ class ApiEndpoints {
   // Worker Tasks (Aggregator)
   static String workerTasksPending(int employeeId) => 'v1/WorkerTasks/$employeeId/pending';
   static String workerTaskStart(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/start?workerId=$workerId';
+  static String workerTaskDetails(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/details?workerId=$workerId';
+  static String workerTaskPause(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/pause?workerId=$workerId';
+  static String workerTaskCancel(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/cancel?workerId=$workerId';
 
   // Boss Panel
   static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
