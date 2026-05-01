@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/network/api_endpoints.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
+import '../network/api_exceptions.dart';
 import '../models/tasks/mobile_base_task_dto.dart';
 import '../models/tasks/task_models.dart';
 import '../models/inventory/inventory_dtos.dart';
@@ -371,17 +372,25 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
       Logger.i('Запуск задачи $taskId для работника $workerId');
 
-      // Используем вынесенный эндпоинт
-      final response = await _apiClient.postAsync(
+      await _apiClient.postAsync(
         ApiEndpoints.workerTaskStart(taskId, workerId),
-        data: {}, // Тело пустое, так как параметры в Query
+        data: {},
       );
 
-      // После успешного запуска обновляем список задач, 
-      // чтобы получить актуальные статусы (включая Paused для других задач)
       await _performPeriodicSync();
-      
       return true;
+    } on NotFoundException catch (e) {
+      Logger.w('Задача $taskId не найдена при старте: $e');
+      await _performPeriodicSync();
+      return false;
+    } on ApiException catch (e, stack) {
+      if (e.message.contains('400')) {
+        Logger.w('Некорректный старт задачи $taskId (400): $e');
+        await _performPeriodicSync();
+        return false;
+      }
+      Logger.e('Ошибка API при старте задачи $taskId', e, stack);
+      return false;
     } catch (e, stack) {
       Logger.e('Ошибка при старте задачи $taskId', e, stack);
       return false;
