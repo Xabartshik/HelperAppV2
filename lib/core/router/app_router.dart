@@ -16,7 +16,6 @@ import '../../screens/home/main_page.dart';
 import '../../screens/boss_panel/boss_panel_page.dart';
 import '../../screens/inventory/inventory_details_page.dart';
 import '../../screens/inventory/barcode_scanner_page.dart';
-import '../../screens/order_assembly/task_selection_screen.dart';
 import '../../screens/order_assembly/active_assembly_screen.dart';
 import '../../screens/order_assembly/assembly_barcode_scanner_page.dart';
 
@@ -94,7 +93,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/order-assembly',
         name: 'order_assembly',
-        builder: (context, state) => const TaskSelectionScreen(),
+        redirect: (context, state) => '/home',
       ),
       GoRoute(
         path: '/order-assembly/active',
