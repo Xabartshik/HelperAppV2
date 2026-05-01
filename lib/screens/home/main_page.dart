@@ -11,6 +11,7 @@ import '../../core/models/tasks/task_card_vm.dart';
 import '../../core/models/tasks/task_models.dart';
 import '../../core/services/signalr_service.dart'; 
 import '../../core/services/notification_service.dart';
+import '../../core/tasks/task_navigation_dispatcher.dart';
 import '../../screens/widgets/break_control_widget.dart';
 
 class MainPage extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _MainPageState extends ConsumerState<MainPage> {
   static const Color _primaryColor = Color(0xFF7C3AED);
 
   final SignalRService _signalRService = SignalRService();
+  final TaskNavigationDispatcher _taskNavigationDispatcher = const TaskNavigationDispatcher();
   int? _connectedEmployeeId;
 
   @override
@@ -519,24 +521,13 @@ class _MainPageState extends ConsumerState<MainPage> {
     return GestureDetector(
       onTap: () async {
         final currentUser = ref.read(currentUserProvider);
-        final status = task.status;
-        final taskId = task.rawTask?.taskId ?? 0;
+        final navigated = await _taskNavigationDispatcher.navigate(
+          context,
+          task,
+          currentUser?.employeeId ?? 0,
+        );
 
-        if (task.kind.toLowerCase() == 'inventory') {
-          await context.push('/inventory-details', extra: {
-            'workerId': currentUser?.employeeId ?? 0,
-            'assignmentId': task.navigationId,
-            'taskId': taskId,
-            'taskStatusIndex': task.rawTask?.assignmentStatus.index,
-          });
-        } else if (task.kind.toLowerCase() == 'orderassembly') {
-          await context.push('/order-assembly/active', extra: {
-            'assignmentId': task.navigationId,
-            'workerId': currentUser?.employeeId ?? 0,
-            'taskId': taskId,
-            'taskStatusIndex': task.rawTask?.assignmentStatus.index,
-          });
-        } else {
+        if (!navigated && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Не реализована навигация для типа задачи: $type')),
           );
