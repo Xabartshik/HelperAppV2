@@ -6,12 +6,9 @@ class LocalNotificationService {
       FlutterLocalNotificationsPlugin();
 
   static Future<void> init() async {
-    // 1. Настройки для Android
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // 2. Настройки для iOS / macOS (Darwin)
-    // В версии 17+ это поле часто требуется в конструкторе
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -19,22 +16,19 @@ class LocalNotificationService {
       requestSoundPermission: true,
     );
 
-    // 3. Объединяем настройки
     const InitializationSettings settings = InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsDarwin,
       macOS: initializationSettingsDarwin,
     );
 
-    // 4. Инициализируем плагин
     await _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Здесь можно обработать нажатие на уведомление, если нужно
+        // Логика по клику на системное уведомление
       },
     );
 
-    // 5. Запрос прав для Android 13+
     final androidImplementation = _notificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     await androidImplementation?.requestNotificationsPermission();
@@ -44,21 +38,31 @@ class LocalNotificationService {
     Importance importance = Importance.defaultImportance;
     Priority priority = Priority.defaultPriority;
 
-    if (type == 'high_priority' || type == 'helper_required') {
+    // ПРИОРИТЕТ 3: Критический (Максимальная важность + агрессивная вибрация)
+    if (type == 'high_priority' || type == 'helper_required' || type == 'priority_escalated_3') {
       importance = Importance.max;
       priority = Priority.high;
       
-      // Кастомная вибрация
       if (await Vibration.hasVibrator() ?? false) {
         Vibration.vibrate(pattern: [500, 1000, 500, 1000]);
       }
-    } else {
+    } 
+    // ПРИОРИТЕТ 2: Высокий (Обычная важность + короткая вибрация)
+    else if (type == 'priority_escalated_2') {
+      importance = Importance.defaultImportance;
+      priority = Priority.defaultPriority;
+      
+      if (await Vibration.hasVibrator() ?? false) {
+        Vibration.vibrate(duration: 500);
+      }
+    } 
+    // Дефолтное поведение для остальных типов
+    else {
       if (await Vibration.hasVibrator() ?? false) {
         Vibration.vibrate(duration: 500);
       }
     }
 
-    // Параметры канала для Android
     AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'task_channel_id',

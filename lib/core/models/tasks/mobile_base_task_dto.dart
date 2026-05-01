@@ -14,7 +14,7 @@ class MobileBaseTaskDto with _$MobileBaseTaskDto {
     DateTime? deadline,
     @Default('Без названия') String title,
     String? description,
-    @JsonKey(name: 'priorityLevel') @Default(5) int priority,
+    @JsonKey(name: 'priorityLevel') @Default(1) int priority,
     DateTime? createdAt,
     @Default(<String, dynamic>{}) Map<String, dynamic> taskDetails,
   }) = _MobileBaseTaskDto;

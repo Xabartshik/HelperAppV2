@@ -9,34 +9,44 @@ class SignalRService {
   Function(String title, String message, String type)? onNotificationReceived;
 
   /// Инициализация подключения к SignalR хабу
-  Future<void> initConnection(int workerId, String serverUrl) async {
-    // Формируем полный URL до хаба
+Future<void> initConnection(int workerId, String serverUrl) async {
     final url = '$serverUrl/hubs/task-notifications';
 
-    // Создаем подключение с автоматическим восстановлением связи
     _hubConnection = HubConnectionBuilder()
         .withUrl(url)
         .withAutomaticReconnect() 
         .build();
 
-    // Подписываемся на метод "ReceiveNotification", который вызывает бэкенд
     _hubConnection?.on('ReceiveNotification', _handleNotification);
+
+    // 1. Логируем успешное (пере)подключение
+    _hubConnection?.onreconnected(({connectionId}) async {
+      print('SignalR: Переподключились! Новый ID: $connectionId');
+      // КРИТИЧЕСКИ ВАЖНО: Заново добавляем себя в группу после обрыва сети!
+      try {
+        await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
+        print('SignalR: Работник $workerId заново зарегистрирован в группе.');
+      } catch (e) {
+        print('SignalR: Ошибка перерегистрации $e');
+      }
+    });
 
     try {
       await _hubConnection?.start();
-      Logger.i('SignalR Успешно подключен к $url');
+      print('SignalR Успешно подключен к $url');
       
-      // Регистрируем работника на сервере, чтобы он попал в свою персональную группу
+      // Первичная регистрация
       await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
-      Logger.i('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
+      print('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
       
     } catch (e) {
-      Logger.e('Ошибка подключения SignalR: $e');
+      print('Ошибка подключения SignalR: $e');
     }
   }
 
   /// Внутренний обработчик входящих сообщений от сервера
   void _handleNotification(List<dynamic>? parameters) {
+    print('🚨 СЫРЫЕ ДАННЫЕ ИЗ SIGNALR: $parameters');
     if (parameters != null && parameters.isNotEmpty) {
       // SignalR передает C# объекты как Map<String, dynamic> в первом аргументе
       final data = parameters[0] as Map<String, dynamic>;
