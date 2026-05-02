@@ -2,10 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/services/order_service.dart';
-import 'package:helper_app/core/network/api_client.dart'; // Добавлено для ApiClient
+import 'package:helper_app/core/network/api_client.dart'; 
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // Убедитесь, что эта зависимость добавлена в pubspec.yaml
-// Импорт виджета для подачи жалобы
+import 'package:qr_flutter/qr_flutter.dart'; 
 import 'package:helper_app/screens/widgets/complaint_bottom_sheet.dart'; 
 
 class OrderDetailsScreen extends ConsumerStatefulWidget {
@@ -23,7 +22,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(orderDetailsProvider(widget.orderId));
+      if (mounted) {
+        ref.invalidate(orderDetailsProvider(widget.orderId));
+      }
     });
   }
 
@@ -49,86 +50,104 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     }
   }
 
-  // НОВЫЙ МЕТОД: Запрос токена и показ диалога с QR-кодом
+  /// Метод получения QR-кода с защитой от блокировки потока
   Future<void> _showPickupQrCode(BuildContext context, int orderId) async {
+    // Используем локальный навигатор, чтобы избежать проблем с контекстом
+    final navigator = Navigator.of(context, rootNavigator: true);
+
     try {
-      // Показываем индикатор загрузки
+      // 1. Показываем лоадер
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+        ),
       );
 
       final apiClient = ref.read(apiClientProvider);
-      
-      // Вызываем наш новый эндпоинт
       final response = await apiClient.getAsync('Orders/$orderId/pickup-qr');
       
-      // Закрываем индикатор загрузки
-      if (mounted) Navigator.of(context).pop();
+      // 2. Закрываем лоадер сразу после получения ответа
+      navigator.pop();
 
       if (response != null && response['qrToken'] != null) {
         final String qrToken = response['qrToken'];
-
+        
+        // 3. Небольшая задержка перед открытием нового диалога для стабильности UI
+        await Future.delayed(const Duration(milliseconds: 100));
+        
         if (mounted) {
-          // Показываем диалог с QR-кодом
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              backgroundColor: const Color(0xFF1C1C1E),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text(
-                'Код получения',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Покажите этот код сотруднику',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: QrImageView(
-                      data: qrToken,
-                      version: QrVersions.auto,
-                      size: 200.0,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Код действителен до конца дня',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Закрыть', style: TextStyle(color: Color(0xFF7C3AED))),
-                ),
-              ],
-            ),
-          );
+          _showQrDialog(context, qrToken);
         }
+      } else {
+        throw 'Токен не найден в ответе сервера';
       }
     } catch (e) {
-      // Закрываем индикатор загрузки в случае ошибки
+      // Пытаемся закрыть лоадер, если он всё еще висит
+      if (navigator.canPop()) navigator.pop();
+
       if (mounted) {
-        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка при получении QR-кода: $e')),
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.redAccent),
         );
       }
     }
+  }
+
+  void _showQrDialog(BuildContext context, String qrToken) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Код получения',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        content: SizedBox(
+          // Фиксируем ширину, чтобы избежать пересчетов layout
+          width: 250, 
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Покажите этот код сотруднику',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: qrToken,
+                  version: QrVersions.auto,
+                  size: 200.0,
+                  // Добавляем плейсхолдер на время рендеринга
+                  errorStateBuilder: (cxt, err) => const Text("Ошибка генерации QR"),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Код действителен до конца дня',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Закрыть', style: TextStyle(color: Color(0xFF7C3AED))),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -138,79 +157,57 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF141414),
       appBar: AppBar(
-        title: Text(
-          'Заказ #${widget.orderId}', 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-        ),
+        title: Text('Заказ #${widget.orderId}', 
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: const Color(0xFF141414),
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            tooltip: 'Обновить',
-            onPressed: () {
-              ref.invalidate(orderDetailsProvider(widget.orderId));
-            },
+            onPressed: () => ref.invalidate(orderDetailsProvider(widget.orderId)),
           ),
         ],
       ),
       body: detailsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: Color(0xFF7C3AED))
-        ),
+        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
         error: (err, stack) => Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text('Ошибка: $err', style: const TextStyle(color: Colors.redAccent)),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
+              ElevatedButton(
                 onPressed: () => ref.invalidate(orderDetailsProvider(widget.orderId)),
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                label: const Text('Повторить', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                child: const Text('Повторить'),
               )
             ],
           ),
         ),
         data: (order) {
-          final localTime = order.deliveryDate?.toLocal();
-          final formattedTime = localTime != null 
-              ? DateFormat('dd.MM.yyyy HH:mm').format(localTime) 
+          final formattedTime = order.deliveryDate != null 
+              ? DateFormat('dd.MM.yyyy HH:mm').format(order.deliveryDate!.toLocal()) 
               : 'Не назначено';
 
-          // НОВАЯ ЛОГИКА: Определяем, нужно ли показывать кнопку QR-кода
-          // Показываем, если статус Ready. Для Express можно добавить проверку на 'Assembly'
           final bool canShowQrCode = order.status == 'Ready' || 
                                     (order.status == 'Assembly' && order.deliveryType == 'Express');
 
           return RefreshIndicator(
-            color: const Color(0xFF7C3AED),
-            backgroundColor: const Color(0xFF1C1C1E),
-            onRefresh: () async {
-              return ref.refresh(orderDetailsProvider(widget.orderId).future);
-            },
+            onRefresh: () async => ref.refresh(orderDetailsProvider(widget.orderId).future),
             child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
                 _buildInfoCard(
-                  context,
                   title: 'Информация о доставке',
                   children: [
                     _buildDetailRow('Статус', _translateStatus(order.status), isHighlight: true),
                     _buildDetailRow('Тип', _translateDeliveryType(order.deliveryType)),
                     _buildDetailRow('Время', formattedTime),
-                    if (order.destinationAddress != null && order.destinationAddress!.isNotEmpty)
+                    if (order.destinationAddress?.isNotEmpty ?? false)
                       _buildDetailRow('Адрес', order.destinationAddress!),
                   ],
                 ),
                 
-                // НОВАЯ КНОПКА: Показ QR-кода
                 if (canShowQrCode) ...[
                   const SizedBox(height: 20),
                   SizedBox(
@@ -218,10 +215,8 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _showPickupQrCode(context, order.orderId),
                       icon: const Icon(Icons.qr_code, color: Colors.white),
-                      label: const Text(
-                        'Показать код получения', 
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
-                      ),
+                      label: const Text('Показать код получения', 
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF7C3AED),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -233,98 +228,47 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
 
                 const SizedBox(height: 20),
                 _buildInfoCard(
-                  context,
                   title: 'Состав заказа',
                   children: [
                     if (order.positions.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text('Позиции не найдены', style: TextStyle(color: Colors.white70)),
-                      )
+                      const Text('Позиции не найдены', style: TextStyle(color: Colors.white70))
                     else
                       ...order.positions.map((pos) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                pos.itemName ?? 'Неизвестный товар',
-                                style: const TextStyle(color: Colors.white, fontSize: 15),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                '${pos.quantity} шт.',
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.white54, fontSize: 14),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                '${pos.price.toStringAsFixed(0)} ₽',
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(
-                                  color: Colors.white, 
-                                  fontWeight: FontWeight.bold, 
-                                  fontSize: 15
-                                ),
-                              ),
-                            ),
+                            Expanded(flex: 4, child: Text(pos.itemName ?? 'Товар', style: const TextStyle(color: Colors.white))),
+                            Expanded(flex: 1, child: Text('${pos.quantity} шт.', style: const TextStyle(color: Colors.white54))),
+                            Expanded(flex: 2, child: Text('${pos.price.toStringAsFixed(0)} ₽', textAlign: TextAlign.right, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                           ],
                         ),
                       )),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Divider(color: Colors.white12, height: 24),
-                    ),
+                    const Divider(color: Colors.white12, height: 32),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Итого', 
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-                        ),
-                        Text(
-                          '${order.totalPrice.toStringAsFixed(0)} ₽', 
-                          style: const TextStyle(
-                            color: Color(0xFF7C3AED), 
-                            fontSize: 18, 
-                            fontWeight: FontWeight.bold
-                          )
-                        ),
+                        const Text('Итого', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('${order.totalPrice.toStringAsFixed(0)} ₽', style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 18, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 32),
                 
-                // Кнопка жалобы (только для завершенных заказов)
                 if (order.status == 'Completed')
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true, 
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => ComplaintBottomSheet(order: order),
-                        );
-                      },
-                      icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent),
-                      label: const Text(
-                        'Сообщить о проблеме с заказом', 
-                        style: TextStyle(color: Colors.redAccent, fontSize: 16)
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: BorderSide(color: Colors.redAccent.withOpacity(0.5)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                  OutlinedButton.icon(
+                    onPressed: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => ComplaintBottomSheet(order: order),
+                    ),
+                    icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent),
+                    label: const Text('Сообщить о проблеме', style: TextStyle(color: Colors.redAccent)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Colors.redAccent),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
               ],
@@ -335,20 +279,14 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, {required String title, required List<Widget> children}) {
+  Widget _buildInfoCard({required String title, required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1E),
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF1C1C1E), borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title, 
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-          ),
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           ...children,
         ],
@@ -360,22 +298,9 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: isHighlight ? const Color(0xFF7C3AED) : Colors.white,
-                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
-                fontSize: 14,
-              ),
-            ),
-          ),
+          SizedBox(width: 100, child: Text(label, style: const TextStyle(color: Colors.white54))),
+          Expanded(child: Text(value, style: TextStyle(color: isHighlight ? const Color(0xFF7C3AED) : Colors.white, fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal))),
         ],
       ),
     );
