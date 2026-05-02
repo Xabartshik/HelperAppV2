@@ -53,7 +53,8 @@ class ApiEndpoints {
   static const String getConfig = 'v1/Config'; // GET /api/v1/Config
   static String workerTaskComplete(int taskId, int workerId) => 
       'v1/WorkerTasks/$taskId/complete?workerId=$workerId';
-
+  // НОВЫЙ ЭНДПОИНТ ДЛЯ ЭКСПРЕСС-ВЫДАЧИ
+  static String orderAssemblyExpressHandover(int assignmentId) => 'v1/OrderAssembly/assignment/$assignmentId/express-handover';
       // Worker Breaks (Охрана труда)
   static String breakStatus(int employeeId) => 'workers/$employeeId/breaks/status';
   static String startBreak(int employeeId) => 'workers/$employeeId/breaks/start';

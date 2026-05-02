@@ -411,6 +411,11 @@ class ApiClient {
     }
   }
 
+  Future<void> orderAssemblyExpressHandoverAsync(int assignmentId, String qrToken) async {
+    final request = {'qrToken': qrToken};
+    await postAsync(ApiEndpoints.orderAssemblyExpressHandover(assignmentId), data: request);
+  }
+
   Future<OrderDto> getOrderByIdAsync(int orderId) async {
     try {
       final response = await getAsync(ApiEndpoints.orderDetails(orderId));

@@ -1,3 +1,4 @@
+// lib/screens/order_assembly/order_assembly_viewmodel.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
@@ -11,10 +12,10 @@ import '../../core/utils/logger.dart';
 
 /// Режим работы экрана ActiveAssemblyScreen
 enum AssemblyMode {
-  /// Сотрудник собирает товары из хранилища в тележку поштучно
+  /// Сотрудник собирает товары из хранилища в тележку поштучно[cite: 4]
   pick,
 
-  /// Все товары собраны — сотрудник размещает их по ячейкам выдачи
+  /// Все товары собраны — сотрудник размещает их по ячейкам выдачи[cite: 4]
   place,
 }
 
@@ -22,7 +23,7 @@ enum AssemblyMode {
 // View-модели (VM) для UI-отображения
 // ---------------------------------------------------------------------------
 
-/// VM для отображения одного товара на экране
+/// VM для отображения одного товара на экране[cite: 4]
 class AssemblyItemVm {
   final int lineId;
   final int itemId;
@@ -49,7 +50,7 @@ class AssemblyItemVm {
   bool get isMissing => status == OrderAssemblyLineStatus.discrepancy;
   bool get isDone => isPicked || isMissing;
 
-  /// Текстовое отображение статуса
+  /// Текстовое отображение статуса[cite: 4]
   String get statusText {
     switch (status) {
       case OrderAssemblyLineStatus.pending:
@@ -64,7 +65,7 @@ class AssemblyItemVm {
   }
 }
 
-/// VM для отображения одной ячейки выдачи с её товарами
+/// VM для отображения одной ячейки выдачи с её товарами[cite: 4]
 class CellPlacementVm {
   final int assignmentId;
   final int targetPositionId;
@@ -95,26 +96,30 @@ class CellPlacementVm {
 // Стейт экрана сборки
 // ---------------------------------------------------------------------------
 
-/// Иммутабельное состояние экрана сборки заказов
+/// Иммутабельное состояние экрана сборки заказов[cite: 4]
 class OrderAssemblyState {
   final bool isLoading;
   final String errorMessage;
 
-  /// Режим работы: Сбор или Размещение
+  /// Режим работы: Сбор или Размещение[cite: 4]
   final AssemblyMode mode;
   final bool isCooperative; 
   final String? partnerName;
   final AssignmentStatus? partnerStatus;
-  /// Текущая задача
+  
+  /// Текущая задача сборки[cite: 4]
   final WorkerAssemblyTaskDto? task;
 
-  /// Сгруппированные ячейки с товарами
+  /// Тип доставки (загружается отдельно из деталей заказа)[cite: 4]
+  final String? deliveryType;
+
+  /// Сгруппированные ячейки с товарами[cite: 4]
   final List<CellPlacementVm> cells;
 
-  /// Флаг: все товары собраны (можно переходить к размещению)
+  /// Флаг: все товары собраны (можно переходить к размещению)[cite: 4]
   final bool allItemsPicked;
 
-  /// Флаг: все ячейки заполнены (можно завершать задачу)
+  /// Флаг: все ячейки заполнены (можно завершать задачу)[cite: 4]
   final bool allCellsPlaced;
 
   const OrderAssemblyState({
@@ -122,6 +127,7 @@ class OrderAssemblyState {
     this.errorMessage = '',
     this.mode = AssemblyMode.pick,
     this.task,
+    this.deliveryType, 
     this.cells = const [],
     this.allItemsPicked = false,
     this.allCellsPlaced = false,
@@ -135,6 +141,7 @@ class OrderAssemblyState {
     String? errorMessage,
     AssemblyMode? mode,
     WorkerAssemblyTaskDto? task,
+    String? deliveryType,
     List<CellPlacementVm>? cells,
     bool? allItemsPicked,
     bool? allCellsPlaced,
@@ -147,6 +154,7 @@ class OrderAssemblyState {
       errorMessage: errorMessage ?? this.errorMessage,
       mode: mode ?? this.mode,
       task: task ?? this.task,
+      deliveryType: deliveryType ?? this.deliveryType,
       cells: cells ?? this.cells,
       allItemsPicked: allItemsPicked ?? this.allItemsPicked,
       allCellsPlaced: allCellsPlaced ?? this.allCellsPlaced,
@@ -156,10 +164,13 @@ class OrderAssemblyState {
     );
   }
 
-  /// Общий прогресс сбора: количество собранных / всего
+  /// Общий прогресс сбора: количество собранных / всего[cite: 4]
   int get totalItems => cells.fold(0, (s, c) => s + c.totalItems);
   int get pickedItems => cells.fold(0, (s, c) => s + c.pickedCount + c.missingCount);
   int get placedCells => cells.where((c) => c.isPlaced).length;
+
+  /// Проверка на экспресс-доставку[cite: 4]
+  bool get isExpress => deliveryType == 'Express';
 }
 
 // ---------------------------------------------------------------------------
@@ -177,13 +188,10 @@ final orderAssemblyViewModelProvider =
 // ViewModel
 // ---------------------------------------------------------------------------
 
-/// ViewModel для экрана ActiveAssemblyScreen.
-/// Управляет стейт-машиной режимов Pick → Place и взаимодействием с API.
 class OrderAssemblyViewModel
     extends AutoDisposeFamilyNotifier<OrderAssemblyState, OrderAssemblyArgs> {
   @override
   OrderAssemblyState build(OrderAssemblyArgs arg) {
-    // Загружаем данные после инициализации
     Future.microtask(() => loadTask());
     return const OrderAssemblyState();
   }
@@ -192,12 +200,13 @@ class OrderAssemblyViewModel
   // Загрузка данных
   // -----------------------------------------------------------------------
 
-  /// Загружает задачу по assignmentId из аргументов провайдера
-Future<void> loadTask() async {
+  Future<void> loadTask() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
 
     try {
       final client = ref.read(apiClientProvider);
+      
+      // 1. Загружаем детали задачи сборки[cite: 4]
       final task = await client.getOrderAssemblyTaskDetailsAsync(arg.assignmentId);
 
       if (task == null) {
@@ -209,20 +218,29 @@ Future<void> loadTask() async {
         return;
       }
 
+      // 2. Загружаем детали заказа, чтобы определить DeliveryType[cite: 4]
+      String? fetchedDeliveryType;
+      try {
+        final orderDetails = await client.getOrderByIdAsync(task.orderId);
+        fetchedDeliveryType = orderDetails.deliveryType;
+      } catch (e) {
+        Logger.w('OrderAssembly: Не удалось загрузить детали заказа ${task.orderId} для определения типа доставки. Ошибка: $e');
+      }
+
       final cells = task.cellPlacements.map((c) => _mapToCellVm(c, task.assignmentId)).toList();
 
-      // Обновляем состояние, включая новые поля для кооперации из WorkerAssemblyTaskDto
       state = state.copyWith(
         task: task,
+        deliveryType: fetchedDeliveryType, 
         cells: cells,
-        isCooperative: task.isCooperative, // Флаг тяжелого груза/совместной работы
-        partnerName: task.partnerName,     // Имя коллеги для отображения в баннере
-        partnerStatus: task.partnerStatus, // Статус напарника (начал ли он работу)
+        isCooperative: task.isCooperative, 
+        partnerName: task.partnerName,     
+        partnerStatus: task.partnerStatus, 
         isLoading: false,
       );
 
       _recalculateProgress();
-      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена. Кооперация: ${task.isCooperative}, ячеек: ${cells.length}');
+      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена. Кооперация: ${task.isCooperative}, Тип: $fetchedDeliveryType');
     } catch (e, stack) {
       Logger.e('OrderAssembly: ошибка загрузки задачи ${arg.assignmentId}', e, stack);
       state = state.copyWith(
@@ -236,8 +254,6 @@ Future<void> loadTask() async {
   // Режим Сбора (Pick Mode)
   // -----------------------------------------------------------------------
 
-  /// Обрабатывает отсканированный штрихкод товара в режиме Сбора.
-  /// Возвращает (успех, сообщение).
   Future<(bool, String)> processScanPick(String barcode) async {
     if (state.mode != AssemblyMode.pick) {
       return (false, 'Неверный режим: ожидается режим «Сбор»');
@@ -245,7 +261,6 @@ Future<void> loadTask() async {
 
     if (barcode.trim().isEmpty) return (false, 'Пустой штрихкод');
 
-    // Ищем товар по штрихкоду среди всех ячеек
     AssemblyItemVm? foundItem;
     for (final cell in state.cells) {
       foundItem = cell.items.firstWhereOrNull(
@@ -259,7 +274,6 @@ Future<void> loadTask() async {
       return (false, 'Товар со штрихкодом «$barcode» не найден в задаче');
     }
 
-    // Вызываем API
     try {
       final client = ref.read(apiClientProvider);
       await client.orderAssemblyScanPickAsync(foundItem.lineId, barcode);
@@ -276,7 +290,6 @@ Future<void> loadTask() async {
       final isAllDone = state.allItemsPicked;
       final msg = '✓ ${foundItem.itemName} собран (${foundItem.collectedQuantity}/${foundItem.quantity})';
       
-      // Возвращаем специальный флаг успеха, если это был последний товар в режиме сбора
       return (true, isAllDone ? 'FINISH:$msg' : msg);
     } catch (e) {
       Logger.e('OrderAssembly: ошибка scanPick barcode=$barcode', e);
@@ -288,8 +301,6 @@ Future<void> loadTask() async {
   // Режим Размещения (Place Mode)
   // -----------------------------------------------------------------------
 
-  /// Обрабатывает сканирование кода ячейки в режиме Размещения.
-  /// Возвращает (успех, сообщение).
   Future<(bool, String)> processScanPlace(String cellCode) async {
     if (state.mode != AssemblyMode.place) {
       return (false, 'Неверный режим: ожидается режим «Размещение»');
@@ -297,7 +308,6 @@ Future<void> loadTask() async {
 
     if (cellCode.trim().isEmpty) return (false, 'Пустой код ячейки');
 
-    // Пытаемся найти ячейку по ID (если в коде число) или по строковому коду
     final scannedId = int.tryParse(cellCode.trim());
     
     final cell = state.cells.firstWhereOrNull(
@@ -310,12 +320,10 @@ Future<void> loadTask() async {
       return (false, 'Ячейка «$cellCode» не найдена или уже обработана');
     }
 
-    // Вызываем API массового размещения
     try {
       final client = ref.read(apiClientProvider);
       await client.orderAssemblyScanPlaceBulkAsync(cell.assignmentId, cellCode);
 
-      // Обновляем статусы товаров ячейки локально
       for (final item in cell.items) {
         if (item.isPicked) {
           item.status = OrderAssemblyLineStatus.placed;
@@ -336,10 +344,37 @@ Future<void> loadTask() async {
   }
 
   // -----------------------------------------------------------------------
-  // Отчёт об отсутствующем товаре
+  // Экспресс-выдача (Express Handover)
   // -----------------------------------------------------------------------
 
-  /// Отмечает товар как отсутствующий и отправляет отчёт на сервер
+  /// Обрабатывает сканирование QR-кода клиента для экспресс-выдачи[cite: 4]
+  Future<(bool, String)> processExpressHandover(String qrToken) async {
+    if (state.mode != AssemblyMode.place) {
+      return (false, 'Неверный режим: ожидается размещение/выдача');
+    }
+
+    if (qrToken.trim().isEmpty) return (false, 'Пустой QR-код');
+
+    try {
+      final client = ref.read(apiClientProvider);
+      
+      // Отправка запроса на сервер для валидации выдачи[cite: 4]
+      await client.orderAssemblyExpressHandoverAsync(arg.assignmentId, qrToken);
+
+      // Обновляем локальное состояние[cite: 4]
+      state = state.copyWith(allCellsPlaced: true);
+      
+      return (true, 'FINISH_EXPRESS:✅ Товар передан клиенту, заказ завершен!');
+    } catch (e) {
+      Logger.e('OrderAssembly: ошибка express handover qr=$qrToken', e);
+      return (false, 'Ошибка валидации QR: $e');
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Остальные методы
+  // -----------------------------------------------------------------------
+
   Future<(bool, String)> reportMissingItem(int lineId, String reason) async {
     if (lineId <= 0) return (false, 'Некорректный lineId');
     if (reason.trim().isEmpty) return (false, 'Укажите причину отсутствия');
@@ -348,7 +383,6 @@ Future<void> loadTask() async {
       final client = ref.read(apiClientProvider);
       await client.orderAssemblyReportMissingAsync(lineId, reason);
 
-      // Обновляем статус локально
       for (final cell in state.cells) {
         final item = cell.items.firstWhereOrNull((i) => i.lineId == lineId);
         if (item != null) {
@@ -368,11 +402,6 @@ Future<void> loadTask() async {
     }
   }
 
-  // -----------------------------------------------------------------------
-  // Завершение задачи
-  // -----------------------------------------------------------------------
-
-  /// Завершает задачу сборки (вызывается, когда все ячейки заполнены)
   Future<(bool, String)> completeTask() async {
     if (state.task == null) return (false, 'Задача не загружена');
 
@@ -394,35 +423,19 @@ Future<void> loadTask() async {
     }
   }
 
-  // -----------------------------------------------------------------------
-  // UI-хелперы
-  // -----------------------------------------------------------------------
-
-  /// Переключает раскрытие/свёртку ячейки
   void toggleCellExpansion(CellPlacementVm cell) {
     cell.isExpanded = !cell.isExpanded;
     _triggerRebuild();
   }
 
-  // -----------------------------------------------------------------------
-  // Приватные методы
-  // -----------------------------------------------------------------------
-
-  /// Пересчитывает прогресс и при необходимости переключает режим Pick → Place
   void _recalculateProgress() {
     final allItems = state.cells.expand((c) => c.items).toList();
     final allDone = allItems.isNotEmpty && allItems.every((i) => i.isDone);
     final allPlaced = state.cells.isNotEmpty && state.cells.every((c) => c.isPlaced);
 
-    // Возвращаем автоматическое переключение Pick -> Place, чтобы основной экран обновил UI.
-    // При этом сканер все равно закроется из-за логики в AssemblyBarcodeScannerPage.
     final newMode = (allDone && state.mode == AssemblyMode.pick)
         ? AssemblyMode.place
         : state.mode;
-
-    if (newMode == AssemblyMode.place && state.mode == AssemblyMode.pick) {
-      Logger.i('OrderAssembly: все товары собраны, переход в состояние Размещения');
-    }
 
     state = state.copyWith(
       allItemsPicked: allDone,
@@ -431,12 +444,10 @@ Future<void> loadTask() async {
     );
   }
 
-  /// Форсирует пересборку UI (для изменений изменяемых данных VM)
   void _triggerRebuild() {
     state = state.copyWith(cells: [...state.cells]);
   }
 
-  /// Маппит DTO ячейки в VM
   CellPlacementVm _mapToCellVm(CellPlacementInfoDto dto, int assignmentId) {
     final items = dto.items
         .map((item) => AssemblyItemVm(

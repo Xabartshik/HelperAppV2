@@ -111,7 +111,7 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
             ElevatedButton(
               onPressed: startTask,
               style: ElevatedButton.styleFrom(backgroundColor: actionColor),
-              child: const Text('Start', style: TextStyle(color: Colors.white)),
+              child: const Text('Начать', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),

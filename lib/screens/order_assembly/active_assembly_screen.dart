@@ -9,7 +9,7 @@ import '../tasks/base_task_screen.dart';
 import 'order_assembly_viewmodel.dart';
 
 /// Основной рабочий экран сборки заказа.
-/// Визуально разделяет режимы «Сбор» (Pick) и «Размещение» (Place).
+/// Визуально разделяет режимы «Сбор» (Pick) и «Размещение» (Place) / «Выдача» (Express).
 class ActiveAssemblyScreen extends ConsumerStatefulWidget {
   final int assignmentId;
   final int taskId;
@@ -38,11 +38,9 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   static const Color _pickColor = Color(0xFF0D9488); // teal для режима Сбора
   static const Color _placeColor = Color(0xFFF59E0B); // amber для режима Размещения
 
-  // Контроллер для анимации переключения режима
   late AnimationController _modeAnimController;
   late Animation<double> _modeAnimation;
 
-  // Контроллер поля ввода штрихкода
   final TextEditingController _barcodeController = TextEditingController();
   final FocusNode _barcodeFocusNode = FocusNode();
 
@@ -61,183 +59,6 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
       userId: currentUser?.employeeId ?? 0,
     );
   }
-  Widget _buildWaitingForPartnerScreen(OrderAssemblyState state, OrderAssemblyViewModel vm) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Анимированный индикатор ожидания
-            SizedBox(
-              width: 80,
-              height: 80,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const CircularProgressIndicator(
-                    color: Colors.cyanAccent,
-                    strokeWidth: 3,
-                  ),
-                  Icon(Icons.people_outline, color: Colors.cyanAccent.withOpacity(0.8), size: 40),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Ожидание напарника',
-              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                children: [
-                  const TextSpan(text: 'Вы подтвердили готовность.\nПожалуйста, дождитесь, пока '),
-                  TextSpan(
-                    text: state.partnerName ?? 'ваш напарник',
-                    style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
-                  ),
-                  const TextSpan(text: ' тоже нажмет кнопку «Начать» в своем приложении.'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 48),
-            // Кнопка ручного обновления (на случай, если веб-сокеты запаздывают)
-            OutlinedButton.icon(
-              onPressed: () => vm.loadTask(),
-              icon: const Icon(Icons.refresh, color: Colors.white54),
-              label: const Text('Обновить статус', style: TextStyle(color: Colors.white54)),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white24),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
-Widget _buildCooperationBanner(OrderAssemblyState state) {
-  if (!state.isCooperative) return const SizedBox();
-
-  // Добавляем проверку на то, что напарник либо работает, либо уже всё сделал
-  final bool partnerStarted = state.partnerStatus == AssignmentStatus.inProgress || 
-                              state.partnerStatus == AssignmentStatus.completed;
-                              
-  // Отдельный флаг, если он уже закончил
-  final bool partnerCompleted = state.partnerStatus == AssignmentStatus.completed;
-
-  return Container(
-    margin: EdgeInsets.zero,
-    decoration: BoxDecoration(
-      color: Colors.amber.withValues(alpha: 0.05),
-      borderRadius: BorderRadius.zero,
-      border: Border(
-        bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.4), width: 1),
-      ),
-    ),
-    child: Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        leading: const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
-        title: const Text(
-          'Тяжелый груз!',
-          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14),
-        ),
-        iconColor: Colors.amber,
-        collapsedIconColor: Colors.amber,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Divider(color: Colors.white10, height: 1),
-                const SizedBox(height: 12),
-                const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.white54, size: 16),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Вес заказа > 50 кг. ОБЯЗАТЕЛЬНО возьмите грузовую тележку.',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.people_outline, color: Colors.cyanAccent, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          children: [
-                            const TextSpan(text: 'Напарник: '),
-                            TextSpan(
-                              text: state.partnerName ?? 'Не назначен',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold, 
-                                color: Colors.cyanAccent,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                // --- ОБНОВЛЕННАЯ ЛОГИКА СТАТУСА НАПАРНИКА ---
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: partnerStarted ? Colors.green.withOpacity(0.1) : Colors.white10,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        partnerCompleted ? Icons.done_all : (partnerStarted ? Icons.check_circle : Icons.person_search_outlined),
-                        color: partnerStarted ? Colors.greenAccent : Colors.white54,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          partnerCompleted 
-                            ? 'Коллега уже завершил свою часть задачи.' // <-- Если закончил
-                            : (partnerStarted 
-                                ? 'Коллега подтвердил участие. Можете начинать.' // <-- Если в процессе
-                                : 'Ожидайте коллегу. Он еще не подтвердил участие.'), // <-- Если еще не начал
-                          style: TextStyle(
-                            color: partnerStarted ? Colors.greenAccent : Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
 
   @override
   void initState() {
@@ -272,7 +93,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     final state = ref.watch(provider);
     final vm = ref.read(provider.notifier);
 
-    // Анимируем переход при смене режима
     if (state.mode == AssemblyMode.place && _modeAnimController.value < 1.0) {
       _modeAnimController.forward();
     } else if (state.mode == AssemblyMode.pick && _modeAnimController.value > 0.0) {
@@ -281,9 +101,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
 
     final modeColor = state.mode == AssemblyMode.pick ? _pickColor : _placeColor;
 
-    // --- НОВАЯ ЛОГИКА БЛОКИРОВКИ ---
-    // canEditTask означает, что ВЫ уже нажали "Начать" (ваш статус InProgress).
-    // Если задача кооперативная, а напарник еще НЕ нажал "Начать" - мы ждем его.
     final bool isWaitingForPartner = state.isCooperative && 
                                      canEditTask && 
                                      state.partnerStatus != AssignmentStatus.inProgress &&
@@ -295,9 +112,7 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
       body: state.isLoading && state.cells.isEmpty
           ? const Center(child: CircularProgressIndicator(color: _primaryColor))
           : isWaitingForPartner 
-              // Если ждем напарника - показываем специальный экран-заглушку
               ? _buildWaitingForPartnerScreen(state, vm)
-              // Иначе показываем обычный интерфейс
               : Column(
                   children: [
                     _buildCooperationBanner(state),
@@ -317,9 +132,6 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                 ),
     );
   }
-  // ---------------------------------------------------------------------------
-  // AppBar
-  // ---------------------------------------------------------------------------
 
   AppBar _buildAppBar(OrderAssemblyState state, Color modeColor) {
     return AppBar(
@@ -333,7 +145,9 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           Text(
-            state.mode == AssemblyMode.pick ? 'Режим: Сбор товаров' : 'Режим: Размещение',
+            state.mode == AssemblyMode.pick 
+                ? 'Режим: Сбор товаров' 
+                : (state.isExpress ? 'Режим: Выдача' : 'Режим: Размещение'),
             style: TextStyle(fontSize: 11, color: modeColor),
           ),
         ],
@@ -354,15 +168,14 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Баннер режима (анимированный)
-  // ---------------------------------------------------------------------------
-
+  /// Баннер режима с поддержкой Экспресс-выдачи
   Widget _buildModeBanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     return AnimatedBuilder(
       animation: _modeAnimation,
       builder: (context, child) {
         final isPick = state.mode == AssemblyMode.pick;
+        final isExpressPlace = !isPick && state.isExpress;
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -397,7 +210,9 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isPick ? 'Режим: Сбор товаров' : 'Режим: Размещение',
+                        isPick 
+                            ? 'Режим: Сбор товаров' 
+                            : (isExpressPlace ? 'Режим: Выдача клиенту' : 'Режим: Размещение'),
                         style: TextStyle(
                           color: isPick ? _pickColor : _placeColor,
                           fontSize: 15,
@@ -408,7 +223,9 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
                       Text(
                         isPick
                             ? 'Сканируйте штрихкод товара'
-                            : 'Перейдите в зону выдачи и сканируйте код ячейки',
+                            : (isExpressPlace 
+                                ? 'Отсканируйте QR-код покупателя для выдачи' 
+                                : 'Перейдите в зону выдачи и сканируйте код ячейки'),
                         style: const TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     ],
@@ -422,78 +239,63 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Прогресс-бар
-  // ---------------------------------------------------------------------------
-
+  /// Прогресс-бар с условием скрытия для Express
   Widget _buildProgressBar(OrderAssemblyState state) {
     final total = state.totalItems;
     final done = state.pickedItems;
     final progress = total > 0 ? done / total : 0.0;
-
     final placedCells = state.placedCells;
     final totalCells = state.cells.length;
 
     return Container(
       color: _bgGray950,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Сбор товаров', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: _bgGray900,
-                      color: _pickColor,
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$done / $total товаров',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Сбор товаров', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: _bgGray900,
+                  color: _pickColor,
+                  minHeight: 6,
+                  borderRadius: BorderRadius.circular(3),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Размещение ячеек', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: totalCells > 0 ? placedCells / totalCells : 0.0,
-                      backgroundColor: _bgGray900,
-                      color: _placeColor,
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$placedCells / $totalCells ячеек',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text('$done / $total товаров', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
+          // Убираем блок «Размещение ячеек» для Express заказов
+          if (!state.isExpress) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Размещение ячеек', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  const SizedBox(height: 4),
+                  LinearProgressIndicator(
+                    value: totalCells > 0 ? placedCells / totalCells : 0.0,
+                    backgroundColor: _bgGray900,
+                    color: _placeColor,
+                    minHeight: 6,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('$placedCells / $totalCells ячеек', style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Контент (список ячеек или сообщение о завершении)
-  // ---------------------------------------------------------------------------
 
   Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     if (state.errorMessage.isNotEmpty) {
@@ -505,36 +307,21 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
             children: [
               const Icon(Icons.error_outline, color: Colors.redAccent, size: 56),
               const SizedBox(height: 16),
-              Text(
-                state.errorMessage,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 14),
-                textAlign: TextAlign.center,
-              ),
+              Text(state.errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 14), textAlign: TextAlign.center),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () => vm.loadTask(),
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 label: const Text('Повторить', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               ),
             ],
           ),
         ),
       );
     }
-
-    if (state.allCellsPlaced) {
-      return _buildCompletionState(state, vm);
-    }
-
-    if (state.cells.isEmpty) {
-      return const Center(
-        child: Text('Нет ячеек в задаче', style: TextStyle(color: Colors.white54)),
-      );
-    }
+    if (state.allCellsPlaced) return _buildCompletionState(state, vm);
+    if (state.cells.isEmpty) return const Center(child: Text('Нет ячеек в задаче', style: TextStyle(color: Colors.white54)));
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
@@ -543,33 +330,19 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Карточка ячейки
-  // ---------------------------------------------------------------------------
-
   Widget _buildCellCard(CellPlacementVm cell, OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final isPick = state.mode == AssemblyMode.pick;
-    final cellColor = cell.isPlaced
-        ? Colors.green
-        : (isPick ? _pickColor : _placeColor);
+    final cellColor = cell.isPlaced ? Colors.green : (isPick ? _pickColor : _placeColor);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: _bgGray900,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: cell.isPlaced
-              ? Colors.green.withValues(alpha: 0.5)
-              : (cell.allDone
-                  ? cellColor.withValues(alpha: 0.6)
-                  : _bgGray900),
-          width: 1.5,
-        ),
+        border: Border.all(color: cell.isPlaced ? Colors.green.withValues(alpha: 0.5) : (cell.allDone ? cellColor.withValues(alpha: 0.6) : _bgGray900), width: 1.5),
       ),
       child: Column(
         children: [
-          // Заголовок ячейки
           InkWell(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
             onTap: () => vm.toggleCellExpansion(cell),
@@ -577,59 +350,34 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  // Иконка статуса ячейки
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: BoxDecoration(
-                      color: cellColor.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      cell.isPlaced
-                          ? Icons.check_circle_outline
-                          : Icons.place_outlined,
-                      color: cellColor,
-                      size: 20,
-                    ),
+                    decoration: BoxDecoration(color: cellColor.withValues(alpha: 0.15), shape: BoxShape.circle),
+                    child: Icon(cell.isPlaced ? Icons.check_circle_outline : Icons.place_outlined, color: cellColor, size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Для Express заменяем название ячейки в режиме выдачи
                         Text(
-                          cell.cellDisplayName.isNotEmpty
-                              ? cell.cellDisplayName
-                              : 'Ячейка: ${cell.cellCode}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          state.isExpress && !isPick
+                              ? 'Выдать покупателю'
+                              : (cell.cellDisplayName.isNotEmpty ? cell.cellDisplayName : 'Ячейка: ${cell.cellCode}'), 
+                          style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)
                         ),
                         const SizedBox(height: 2),
-                        Text(
-                          cell.isPlaced
-                              ? '✅ Размещено'
-                              : 'Собрано: ${cell.doneCount} / ${cell.totalItems}',
-                          style: TextStyle(
-                            color: cell.isPlaced ? Colors.green : Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
+                        Text(cell.isPlaced ? '✅ Размещено' : 'Собрано: ${cell.doneCount} / ${cell.totalItems}', style: TextStyle(color: cell.isPlaced ? Colors.green : Colors.white54, fontSize: 12)),
                       ],
                     ),
                   ),
-                  Icon(
-                    cell.isExpanded ? Icons.expand_less : Icons.expand_more,
-                    color: Colors.white38,
-                  ),
+                  Icon(cell.isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white38),
                 ],
               ),
             ),
           ),
-          // Контент ячейки (разворачиваемый)
           if (cell.isExpanded) ...[
             const Divider(color: Colors.white12, height: 1),
             ...cell.items.map((item) => _buildItemRow(item, state, vm)),
@@ -639,96 +387,48 @@ Widget _buildCooperationBanner(OrderAssemblyState state) {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Строка товара внутри ячейки
-  // ---------------------------------------------------------------------------
-
-Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
-    final statusColor = item.isMissing
-        ? Colors.redAccent
-        : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
-
-    // Находим целевую ячейку, к которой привязан этот товар, 
-    // чтобы знать, куда его нужно будет положить в режиме размещения
-    final parentCell = state.cells.firstWhere(
-      (c) => c.items.any((i) => i.lineId == item.lineId),
-    );
-
+  Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    final statusColor = item.isMissing ? Colors.redAccent : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
+    final parentCell = state.cells.firstWhere((c) => c.items.any((i) => i.lineId == item.lineId));
     final isPickMode = state.mode == AssemblyMode.pick;
     
-    // Формируем текст и цвет в зависимости от режима
+    // Модификация текста ячейки для Express: скрываем подпись под товаром в режиме выдачи
     final cellText = isPickMode 
         ? 'Забрать из: ${item.sourceCellCode}' 
-        : 'Положить в: ${parentCell.cellDisplayName}';
+        : (state.isExpress ? '' : 'Положить в: ${parentCell.cellDisplayName}');
+    
     final cellTextColor = isPickMode ? Colors.orangeAccent : Colors.blueAccent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white10, width: 0.5)),
-      ),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white10, width: 0.5))),
       child: Row(
         children: [
-          // Индикатор статуса
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 12, top: 4),
-            decoration: BoxDecoration(
-              color: statusColor,
-              shape: BoxShape.circle,
-            ),
-          ),
-          // Информация о товаре
+          Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 12, top: 4), decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.itemName.isNotEmpty ? item.itemName : 'Товар #${item.itemId}',
-                  style: TextStyle(
-                    color: item.isDone ? Colors.white54 : Colors.white,
-                    fontSize: 13,
-                    decoration: item.isMissing ? TextDecoration.lineThrough : null,
-                  ),
-                ),
+                Text(item.itemName.isNotEmpty ? item.itemName : 'Товар #${item.itemId}', style: TextStyle(color: item.isDone ? Colors.white54 : Colors.white, fontSize: 13, decoration: item.isMissing ? TextDecoration.lineThrough : null)),
+                if (cellText.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(cellText, style: TextStyle(color: item.isDone && isPickMode ? Colors.white54 : cellTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                ],
                 const SizedBox(height: 4),
-                // Динамическая подсказка по ячейкам (забрать/положить)
-                Text(
-                  cellText,
-                  style: TextStyle(
-                    color: item.isDone && isPickMode ? Colors.white54 : cellTextColor, 
-                    fontSize: 12, 
-                    fontWeight: FontWeight.w600
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.',
-                  style: TextStyle(color: statusColor, fontSize: 11),
-                ),
+                Text('${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.', style: TextStyle(color: statusColor, fontSize: 11)),
               ],
             ),
           ),
-          // Кнопка «Отсутствует» (только в режиме Сбора для непроцессированных товаров)
           if (isPickMode && !item.isDone)
             TextButton(
               onPressed: canEditTask ? () => _showReportMissingDialog(item, vm) : null,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
               child: const Text('Нет', style: TextStyle(fontSize: 11)),
             ),
         ],
       ),
     );
   }
-  // ---------------------------------------------------------------------------
-  // Состояние «всё размещено» — можно завершить задачу
-  // ---------------------------------------------------------------------------
 
   Widget _buildCompletionState(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     return Center(
@@ -737,45 +437,17 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle, color: Colors.green, size: 52),
-            ),
+            Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.check_circle, color: Colors.green, size: 52)),
             const SizedBox(height: 24),
-            const Text(
-              'Все ячейки заполнены!',
-              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-            ),
+            const Text('Все ячейки заполнены!', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            const Text(
-              'Вы можете завершить задачу сборки',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+            const Text('Вы можете завершить задачу сборки', style: TextStyle(color: Colors.white54, fontSize: 14), textAlign: TextAlign.center),
             const SizedBox(height: 36),
             ElevatedButton.icon(
               onPressed: state.isLoading ? null : () => _handleCompleteTask(vm),
-              icon: state.isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.done_all, color: Colors.white),
-              label: Text(
-                state.isLoading ? 'Завершение...' : 'Завершить задачу',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              icon: state.isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.done_all, color: Colors.white),
+              label: Text(state.isLoading ? 'Завершение...' : 'Завершить задачу', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             ),
           ],
         ),
@@ -784,22 +456,18 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
   }
 
   Widget _buildStartTaskBanner() {
-    return buildTaskNotStartedBanner(
-      backgroundColor: _bgGray900,
-      actionColor: _primaryColor,
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-      subtitle: 'Доступен только просмотр деталей.',
-    );
+    return buildTaskNotStartedBanner(backgroundColor: _bgGray900, actionColor: _primaryColor, margin: const EdgeInsets.fromLTRB(12, 8, 12, 8), subtitle: 'Доступен только просмотр деталей.');
   }
 
-  // ---------------------------------------------------------------------------
-  // Поле ввода штрихкода
-  // ---------------------------------------------------------------------------
-
+  /// Поле ввода с поддержкой Экспресс-подсказки
   Widget _buildBarcodeInput(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final isPick = state.mode == AssemblyMode.pick;
     final activeColor = isPick ? _pickColor : _placeColor;
-    final hint = isPick ? 'Штрихкод товара...' : 'Код ячейки выдачи...';
+    
+    // Динамический хинт в зависимости от типа заказа
+    final hint = isPick 
+        ? 'Штрихкод товара...' 
+        : (state.isExpress ? 'QR-код клиента...' : 'Код ячейки выдачи...');
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
@@ -809,26 +477,17 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
       ),
       child: Row(
         children: [
-          // Кнопка сканера
           InkWell(
             onTap: canEditTask ? () => _openScanner(state, vm) : null,
             borderRadius: BorderRadius.circular(10),
             child: Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(
-                color: activeColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                isPick ? Icons.qr_code_scanner : Icons.grid_view,
-                color: activeColor,
-                size: 22,
-              ),
+              decoration: BoxDecoration(color: activeColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+              child: Icon(isPick ? Icons.qr_code_scanner : Icons.grid_view, color: activeColor, size: 22),
             ),
           ),
           const SizedBox(width: 10),
-          // Поле ввода
           Expanded(
             child: TextField(
               controller: _barcodeController,
@@ -841,29 +500,17 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
                 filled: true,
                 fillColor: _bgGray900,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: activeColor, width: 1.5),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: activeColor, width: 1.5)),
               ),
               enabled: canEditTask,
               onSubmitted: (value) => _handleBarcodeSubmit(value, state, vm),
             ),
           ),
           const SizedBox(width: 10),
-          // Кнопка подтверждения
           ElevatedButton(
             onPressed: canEditTask ? () => _handleBarcodeSubmit(_barcodeController.text, state, vm) : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: activeColor,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              minimumSize: const Size(0, 40),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: activeColor, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), minimumSize: const Size(0, 40)),
             child: const Icon(Icons.send, color: Colors.white, size: 20),
           ),
         ],
@@ -871,21 +518,15 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Обработчики событий
-  // ---------------------------------------------------------------------------
-
-  /// Открывает экран сканера (как в инвентаризации)
   void _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     if (!canEditTask) return;
-    Logger.i('ActiveAssemblyScreen: переход к сканеру');
     context.push('/order-assembly/scanner', extra: {
       'assignmentId': widget.assignmentId,
       'userId': _args.userId,
     });
   }
 
-  /// Обрабатывает ввод штрихкода (товар или ячейка, в зависимости от режима)
+  /// Обработка сканирования с поддержкой Экспресс-выдачи
   Future<void> _handleBarcodeSubmit(
       String value, OrderAssemblyState state, OrderAssemblyViewModel vm) async {
     if (!canEditTask) return;
@@ -899,6 +540,9 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
 
     if (state.mode == AssemblyMode.pick) {
       result = await vm.processScanPick(barcode);
+    } else if (state.isExpress) {
+      // Направляем в метод выдачи, если это экспресс
+      result = await vm.processExpressHandover(barcode);
     } else {
       result = await vm.processScanPlace(barcode);
     }
@@ -906,6 +550,21 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
     final (success, message) = result;
 
     if (!mounted) return;
+
+    // Спец-обработка для быстрого закрытия экрана при выдаче клиенту
+    if (success && message.startsWith('FINISH_EXPRESS:')) {
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message.substring(15)),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      ref.read(mainViewModelProvider.notifier).refreshTasks();
+      context.pop(true);
+      return;
+    }
 
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -920,7 +579,6 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
     );
   }
 
-  /// Диалог отметки товара как отсутствующего
   Future<void> _showReportMissingDialog(AssemblyItemVm item, OrderAssemblyViewModel vm) async {
     if (!canEditTask) return;
     final reasonController = TextEditingController();
@@ -930,87 +588,32 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
       builder: (ctx) => AlertDialog(
         backgroundColor: _bgGray950,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text(
-          'Товар отсутствует',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
+        title: const Text('Товар отсутствует', style: TextStyle(color: Colors.white, fontSize: 18)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              item.itemName.isNotEmpty ? item.itemName : 'Товар #${item.itemId}',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
+            Text(item.itemName.isNotEmpty ? item.itemName : 'Товар #${item.itemId}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
             const SizedBox(height: 16),
-            const Text(
-              'Причина отсутствия:',
-              style: TextStyle(color: Colors.white54, fontSize: 12),
-            ),
+            const Text('Причина отсутствия:', style: TextStyle(color: Colors.white54, fontSize: 12)),
             const SizedBox(height: 8),
-            TextField(
-              controller: reasonController,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'Например: не обнаружен на складе',
-                hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                filled: true,
-                fillColor: const Color(0xFF141414),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              maxLines: 2,
-            ),
+            TextField(controller: reasonController, autofocus: true, style: const TextStyle(color: Colors.white, fontSize: 13), decoration: InputDecoration(hintText: 'Причина...', hintStyle: const TextStyle(color: Colors.white38, fontSize: 12), filled: true, fillColor: const Color(0xFF141414), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)), maxLines: 2),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (reasonController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Укажите причину'), behavior: SnackBarBehavior.floating),
-                );
-                return;
-              }
-              Navigator.pop(ctx, true);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Подтвердить', style: TextStyle(color: Colors.white)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Colors.white54)),),
+          ElevatedButton(onPressed: () { if (reasonController.text.trim().isEmpty) return; Navigator.pop(ctx, true); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text('Подтвердить', style: TextStyle(color: Colors.white)),),
         ],
       ),
     );
 
     if (confirmed != true || !mounted) return;
-
     final (success, message) = await vm.reportMissingItem(item.lineId, reasonController.text.trim());
-
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: success ? Colors.orange.shade700 : Colors.redAccent.shade700,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 80),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: success ? Colors.orange.shade700 : Colors.redAccent.shade700, behavior: SnackBarBehavior.floating, margin: const EdgeInsets.fromLTRB(12, 0, 12, 80), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))));
+    }
   }
 
-
-  /// Завершение задачи с подтверждением
   Future<void> _handleCompleteTask(OrderAssemblyViewModel vm) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1018,56 +621,56 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
         backgroundColor: _bgGray950,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Завершение задачи', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Все ячейки обработаны. Завершить задачу сборки?',
-          style: TextStyle(color: Colors.white70),
-        ),
+        content: const Text('Все ячейки обработаны. Завершить задачу сборки?', style: TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Завершить', style: TextStyle(color: Colors.white)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: Colors.white54)),),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text('Завершить', style: TextStyle(color: Colors.white)),),
         ],
       ),
     );
 
     if (confirmed != true || !mounted) return;
-
     final (success, message) = await vm.completeTask();
-
     if (!mounted) return;
-
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-      Logger.i('ActiveAssemblyScreen: задача завершена, возврат на список задач');
       ref.read(mainViewModelProvider.notifier).refreshTasks();
-      context.pop(true); // Возврат на экран выбора задач
+      context.pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.redAccent.shade700,
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent.shade700, behavior: SnackBarBehavior.floating, margin: const EdgeInsets.fromLTRB(12, 0, 12, 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))));
     }
+  }
+
+  Widget _buildWaitingForPartnerScreen(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    return Center(child: Padding(padding: const EdgeInsets.all(32.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [SizedBox(width: 80, height: 80, child: Stack(alignment: Alignment.center, children: [const CircularProgressIndicator(color: Colors.cyanAccent, strokeWidth: 3), Icon(Icons.people_outline, color: Colors.cyanAccent.withOpacity(0.8), size: 40)])), const SizedBox(height: 32), const Text('Ожидание напарника', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), const SizedBox(height: 16), RichText(textAlign: TextAlign.center, text: TextSpan(style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5), children: [const TextSpan(text: 'Вы подтвердили готовность.\nПожалуйста, дождитесь, пока '), TextSpan(text: state.partnerName ?? 'ваш напарник', style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)), const TextSpan(text: ' тоже нажмет кнопку «Начать» в своем приложении.')])), const SizedBox(height: 48), OutlinedButton.icon(onPressed: () => vm.loadTask(), icon: const Icon(Icons.refresh, color: Colors.white54), label: const Text('Обновить статус', style: TextStyle(color: Colors.white54)), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)))])));
+  }
+
+  Widget _buildCooperationBanner(OrderAssemblyState state) {
+    if (!state.isCooperative) return const SizedBox();
+    final bool partnerStarted = state.partnerStatus == AssignmentStatus.inProgress || state.partnerStatus == AssignmentStatus.completed;
+    final bool partnerCompleted = state.partnerStatus == AssignmentStatus.completed;
+
+    return Container(
+      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.05), border: Border(bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.4), width: 1))),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+          title: const Text('Тяжелый груз!', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Divider(color: Colors.white10),
+                const Row(children: [Icon(Icons.info_outline, color: Colors.white54, size: 16), SizedBox(width: 8), Expanded(child: Text('Вес заказа > 50 кг. ОБЯЗАТЕЛЬНО возьмите грузовую тележку.', style: TextStyle(color: Colors.white70, fontSize: 13)))]),
+                const SizedBox(height: 12),
+                Row(children: [const Icon(Icons.people_outline, color: Colors.cyanAccent, size: 18), const SizedBox(width: 8), Expanded(child: RichText(text: TextSpan(style: const TextStyle(color: Colors.white, fontSize: 14), children: [const TextSpan(text: 'Напарник: '), TextSpan(text: state.partnerName ?? 'Не назначен', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent))])))]),
+                const SizedBox(height: 10),
+                Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: partnerStarted ? Colors.green.withOpacity(0.1) : Colors.white10, borderRadius: BorderRadius.circular(8)), child: Row(children: [Icon(partnerCompleted ? Icons.done_all : (partnerStarted ? Icons.check_circle : Icons.person_search_outlined), color: partnerStarted ? Colors.greenAccent : Colors.white54, size: 18), const SizedBox(width: 10), Expanded(child: Text(partnerCompleted ? 'Коллега уже завершил свою часть задачи.' : (partnerStarted ? 'Коллега подтвердил участие. Можете начинать.' : 'Ожидайте коллегу. Он еще не подтвердил участие.'), style: TextStyle(color: partnerStarted ? Colors.greenAccent : Colors.white54, fontSize: 12)))]))
+              ]),
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

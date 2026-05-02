@@ -127,9 +127,10 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 child: QrImageView(
                   data: qrToken,
                   version: QrVersions.auto,
-                  size: 200.0,
-                  // Добавляем плейсхолдер на время рендеринга
-                  errorStateBuilder: (cxt, err) => const Text("Ошибка генерации QR"),
+                  size: 250.0, // Слегка увеличим размер (было 200)
+                  errorCorrectionLevel: QrErrorCorrectLevel.L, // ВАЖНО: Низкий уровень коррекции
+                  backgroundColor: Colors.white, // Гарантируем контрастный фон
+                  padding: const EdgeInsets.all(12), // Гарантируем "тихую зону" вокруг кода
                 ),
               ),
               const SizedBox(height: 16),
