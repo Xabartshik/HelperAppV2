@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/core/services/auth_service.dart';
+import 'package:helper_app/screens/widgets/recent_orders_widget.dart';
 import 'customer_home_viewmodel.dart';
+// Предполагается, что эти импорты добавлены в проект
+// import 'auth_provider.dart'; 
+// import 'recent_orders_widget.dart';
 
 class CustomerHomePage extends ConsumerWidget {
   const CustomerHomePage({super.key});
@@ -15,6 +20,8 @@ class CustomerHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.watch(customerHomeViewModelProvider.notifier);
     final state = ref.watch(customerHomeViewModelProvider);
+    // 1. Получаем текущего пользователя для передачи ID в виджет заказов[cite: 1]
+    final currentUser = ref.read(currentUserProvider);
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -77,12 +84,12 @@ class CustomerHomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 32),
 
-              // Секция "Статистика" или "Бонусы" для заполнения пустоты
+              // Информационный баннер
               _buildInfoBanner(),
 
               const SizedBox(height: 32),
 
-              // Заголовок для списка последних заказов
+              // 2. Обновленная нижняя секция с логикой загрузки и списком заказов[cite: 1]
               const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -95,11 +102,12 @@ class CustomerHomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              // Список-заглушка
               if (state.isLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))) //[cite: 1]
+              else if (currentUser != null)
+                RecentOrdersWidget(customerId: currentUser.customerId!) // Используем реальный виджет вместо заглушки[cite: 1]
               else
-                _buildOrderPlaceholder(),
+                _buildOrderPlaceholder(), //[cite: 1]
             ],
           ),
         ),

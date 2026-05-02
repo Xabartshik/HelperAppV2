@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/services/auth_service.dart';
 
 import '../../core/network/api_client.dart';
 import 'create_order_viewmodel.dart';
 
 final createOrderViewModelProvider = ChangeNotifierProvider.autoDispose<CreateOrderViewModel>((ref) {
-  final vm = CreateOrderViewModel(ref.read(apiClientProvider));
+  final user = ref.read(currentUserProvider);
+  final customerId = user?.customerId ?? 0;
+  final vm = CreateOrderViewModel(ref.read(apiClientProvider), customerId);
   Future.microtask(() => vm.initialize());
   return vm;
 });

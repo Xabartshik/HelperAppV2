@@ -39,6 +39,8 @@ class ApiEndpoints {
   static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
   static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
 
+  static String customerOrders(int customerId) => 'orders/customer/$customerId';
+  static String orderDetails(int orderId) => 'orders/$orderId';
   // Create Order (Customer simulator)
   static const String getBranches = 'Branches'; // GET /api/Branch
   static String getAvailableItems(int branchId, {String query = ''}) =>

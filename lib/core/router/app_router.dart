@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/screens/home/all_orders_screen.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
+import 'package:helper_app/screens/home/order_details_screen.dart';
 import 'package:helper_app/screens/home/shift_scanner_page.dart';
 import 'package:helper_app/screens/login/register_page.dart';
 import 'package:helper_app/screens/create_order/create_order_page.dart';
@@ -56,7 +58,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'customer_orders_create',
         builder: (context, state) => const CreateOrderPage(),
       ),
-      
+            GoRoute(
+        path: '/customer/orders/list',
+        name: 'customer_orders_list',
+        builder: (context, state) {
+          // Retrieve the current user's ID to pass to the screen
+          final currentUser = ref.read(currentUserProvider);
+          return AllOrdersScreen(customerId: currentUser?.customerId ?? 0);
+        },
+      ),
+      GoRoute(
+        path: '/customer/orders/details/:id',
+        name: 'customer_order_details',
+        builder: (context, state) {
+          final orderIdString = state.pathParameters['id'];
+          final orderId = int.tryParse(orderIdString ?? '0') ?? 0;
+          return OrderDetailsScreen(orderId: orderId);
+        },
+      ),
+  
       // Маршруты сотрудников
       GoRoute(
         path: '/home',

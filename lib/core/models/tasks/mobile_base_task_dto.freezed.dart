@@ -258,7 +258,7 @@ class _$MobileBaseTaskDtoImpl implements _MobileBaseTaskDto {
     this.deadline,
     this.title = 'Без названия',
     this.description,
-    @JsonKey(name: 'priorityLevel') this.priority = 5,
+    @JsonKey(name: 'priorityLevel') this.priority = 1,
     this.createdAt,
     final Map<String, dynamic> taskDetails = const <String, dynamic>{},
   }) : _taskDetails = taskDetails;

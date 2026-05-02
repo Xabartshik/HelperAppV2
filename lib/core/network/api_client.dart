@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/attendance/break_status_dto.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
+import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
 import 'api_endpoints.dart';
@@ -392,6 +393,35 @@ class ApiClient {
     } catch (e) {
       Logger.e('Ошибка завершения перерыва для сотрудника $employeeId', e);
       rethrow;
+    }
+  }
+  Future<List<OrderDto>> getCustomerOrdersAsync(int customerId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.customerOrders(customerId));
+      
+      // Поскольку getAsync уже возвращает response.data, 
+      // нам остается только проверить, что это список, и скрафтить DTO.
+      if (response != null && response is List) {
+        return response.map((json) => OrderDto.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка загрузки заказов клиента $customerId', e);
+      throw Exception('Ошибка загрузки заказов: $e');
+    }
+  }
+
+  Future<OrderDto> getOrderByIdAsync(int orderId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.orderDetails(orderId));
+      
+      if (response != null && response is Map<String, dynamic>) {
+        return OrderDto.fromJson(response);
+      }
+      throw ApiException('Неверный формат ответа от сервера');
+    } catch (e) {
+      Logger.e('Ошибка загрузки деталей заказа $orderId', e);
+      throw Exception('Ошибка загрузки деталей заказа: $e');
     }
   }
 

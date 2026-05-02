@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
+import 'package:helper_app/core/models/user/current_user.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/utils/logger.dart';
@@ -116,8 +117,8 @@ class Postamat {
 
 class CreateOrderViewModel extends ChangeNotifier {
   final ApiClient _apiClient;
-
-  CreateOrderViewModel(this._apiClient);
+  final int customerId;
+  CreateOrderViewModel(this._apiClient, this.customerId);
 
   int currentStep = 0;
   bool isLoading = false;
@@ -510,7 +511,7 @@ Future<void> _checkPostamatCapacity() async {
 
       // Формируем корневой DTO
       final payload = {
-        'customerId': 1, // Заглушка
+        'customerId': customerId, // Заглушка
         'branchId': selectedBranch!.branchId,
         'deliveryDate': dateToSubmit, // <--- ИСПОЛЬЗУЕМ ВЫЧИСЛЕННУЮ ДАТУ
         'deliveryType': selectedDeliveryType.toServerString(),
