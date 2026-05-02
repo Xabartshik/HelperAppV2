@@ -1,7 +1,10 @@
+// lib/screens/home/order_details_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/services/order_service.dart';
+import 'package:helper_app/core/network/api_client.dart'; // Добавлено для ApiClient
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // Убедитесь, что эта зависимость добавлена в pubspec.yaml
 // Импорт виджета для подачи жалобы
 import 'package:helper_app/screens/widgets/complaint_bottom_sheet.dart'; 
 
@@ -19,7 +22,6 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Принудительное обновление данных при открытии экрана
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(orderDetailsProvider(widget.orderId));
     });
@@ -44,6 +46,88 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       case 'Postamat': return 'Доставка в постамат';
       case 'Express': return 'Экспресс-доставка';
       default: return type;
+    }
+  }
+
+  // НОВЫЙ МЕТОД: Запрос токена и показ диалога с QR-кодом
+  Future<void> _showPickupQrCode(BuildContext context, int orderId) async {
+    try {
+      // Показываем индикатор загрузки
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
+      );
+
+      final apiClient = ref.read(apiClientProvider);
+      
+      // Вызываем наш новый эндпоинт
+      final response = await apiClient.getAsync('Orders/$orderId/pickup-qr');
+      
+      // Закрываем индикатор загрузки
+      if (mounted) Navigator.of(context).pop();
+
+      if (response != null && response['qrToken'] != null) {
+        final String qrToken = response['qrToken'];
+
+        if (mounted) {
+          // Показываем диалог с QR-кодом
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: const Color(0xFF1C1C1E),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Код получения',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Покажите этот код сотруднику',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: QrImageView(
+                      data: qrToken,
+                      version: QrVersions.auto,
+                      size: 200.0,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Код действителен до конца дня',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Закрыть', style: TextStyle(color: Color(0xFF7C3AED))),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Закрываем индикатор загрузки в случае ошибки
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при получении QR-кода: $e')),
+        );
+      }
     }
   }
 
@@ -99,6 +183,11 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
               ? DateFormat('dd.MM.yyyy HH:mm').format(localTime) 
               : 'Не назначено';
 
+          // НОВАЯ ЛОГИКА: Определяем, нужно ли показывать кнопку QR-кода
+          // Показываем, если статус Ready. Для Express можно добавить проверку на 'Assembly'
+          final bool canShowQrCode = order.status == 'Ready' || 
+                                    (order.status == 'Assembly' && order.deliveryType == 'Express');
+
           return RefreshIndicator(
             color: const Color(0xFF7C3AED),
             backgroundColor: const Color(0xFF1C1C1E),
@@ -120,6 +209,28 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                       _buildDetailRow('Адрес', order.destinationAddress!),
                   ],
                 ),
+                
+                // НОВАЯ КНОПКА: Показ QR-кода
+                if (canShowQrCode) ...[
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showPickupQrCode(context, order.orderId),
+                      icon: const Icon(Icons.qr_code, color: Colors.white),
+                      label: const Text(
+                        'Показать код получения', 
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 20),
                 _buildInfoCard(
                   context,
