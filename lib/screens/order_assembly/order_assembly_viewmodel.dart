@@ -3,7 +3,6 @@ import 'package:collection/collection.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/order_assembly/order_assembly_dtos.dart';
-import '../../core/services/task_service.dart';
 import '../../core/utils/logger.dart';
 
 // ---------------------------------------------------------------------------
@@ -198,8 +197,8 @@ Future<void> loadTask() async {
     state = state.copyWith(isLoading: true, errorMessage: '');
 
     try {
-      final taskService = ref.read(taskServiceProvider);
-      final task = await taskService.getUnifiedOrderAssemblyTaskDetailsAsync(arg.userId, arg.assignmentId);
+      final client = ref.read(apiClientProvider);
+      final task = await client.getOrderAssemblyTaskDetailsAsync(arg.assignmentId);
 
       if (task == null) {
         Logger.w('OrderAssembly: детали задачи ${arg.assignmentId} не найдены');
@@ -214,33 +213,16 @@ Future<void> loadTask() async {
 
       // Обновляем состояние, включая новые поля для кооперации из WorkerAssemblyTaskDto
       state = state.copyWith(
-        task: WorkerAssemblyTaskDto(
-          assignmentId: task.assignmentId,
-          taskId: task.taskId,
-          orderId: task.orderId,
-          status: task.assignmentStatus,
-          totalLines: task.totalLines,
-          cellPlacements: task.cellPlacements.map((c) => CellPlacementInfoDto(
-            targetPositionId: c.targetPositionId,
-            items: c.items.map((i) => PlacementLineDto(
-              lineId: i.lineId,
-              itemPositionId: i.itemPositionId,
-              itemId: i.itemPositionId,
-              quantity: i.quantity,
-              pickedQuantity: i.quantity,
-              status: OrderAssemblyLineStatus.pending,
-            )).toList(),
-          )).toList(),
-        ),
+        task: task,
         cells: cells,
-        isCooperative: false,
-        partnerName: null,
-        partnerStatus: null,
+        isCooperative: task.isCooperative, // Флаг тяжелого груза/совместной работы
+        partnerName: task.partnerName,     // Имя коллеги для отображения в баннере
+        partnerStatus: task.partnerStatus, // Статус напарника (начал ли он работу)
         isLoading: false,
       );
 
       _recalculateProgress();
-      Logger.i('OrderAssembly: задача ${task.assignmentId} загружена. Ячеек: ${cells.length}');
+      Logger.i('OrderAssembly: задача ${task.taskNumber} загружена. Кооперация: ${task.isCooperative}, ячеек: ${cells.length}');
     } catch (e, stack) {
       Logger.e('OrderAssembly: ошибка загрузки задачи ${arg.assignmentId}', e, stack);
       state = state.copyWith(
@@ -454,40 +436,27 @@ Future<void> loadTask() async {
     state = state.copyWith(cells: [...state.cells]);
   }
 
-  /// Маппит ячейку задачи в VM
-  CellPlacementVm _mapToCellVm(CellPlacementInfo dto, int assignmentId) {
+  /// Маппит DTO ячейки в VM
+  CellPlacementVm _mapToCellVm(CellPlacementInfoDto dto, int assignmentId) {
     final items = dto.items
         .map((item) => AssemblyItemVm(
               lineId: item.lineId,
-              itemId: item.itemPositionId,
-              itemName: 'Товар ${item.itemPositionId}',
-              barcode: item.itemPositionId.toString(),
-              sourceCellCode: 'Неизвестная ячейка',
+              itemId: item.itemId,
+              itemName: item.itemName ?? '',
+              barcode: item.barcode ?? '',
+              sourceCellCode: item.sourceCellCode ?? 'Неизвестная ячейка',
               quantity: item.quantity,
-              collectedQuantity: item.quantity,
-              status: _parseLineStatus(item.status),
+              collectedQuantity: item.pickedQuantity, 
+              status: item.status,
             ))
         .toList();
 
     return CellPlacementVm(
       assignmentId: assignmentId,
       targetPositionId: dto.targetPositionId,
-      cellCode: dto.targetPositionId.toString(),
-      cellDisplayName: 'Ячейка ${dto.targetPositionId}',
+      cellCode: dto.cellCode ?? '',
+      cellDisplayName: dto.cellDisplayName ?? dto.cellCode ?? '',
       items: items,
     );
-  }
-
-  OrderAssemblyLineStatus _parseLineStatus(String status) {
-    switch (status) {
-      case 'picked':
-        return OrderAssemblyLineStatus.picked;
-      case 'placed':
-        return OrderAssemblyLineStatus.placed;
-      case 'discrepancy':
-        return OrderAssemblyLineStatus.discrepancy;
-      default:
-        return OrderAssemblyLineStatus.pending;
-    }
   }
 }

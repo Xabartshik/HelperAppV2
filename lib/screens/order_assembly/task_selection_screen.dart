@@ -297,6 +297,8 @@ Widget _buildTaskCard(BuildContext context, WidgetRef ref, int userId, WorkerAss
       'assignmentId': task.assignmentId,
       'taskId': task.taskId,
       'taskStatusIndex': task.status,
+      'assignmentStatus': task.status,
+      'isCooperative': task.isCooperative, // передаем флаг на экран выполнения
     });
     if (result == true) {
       ref.refresh(orderAssemblyTasksProvider(userId));
@@ -313,7 +315,8 @@ Widget _buildTaskCard(BuildContext context, WidgetRef ref, int userId, WorkerAss
       'assignmentId': task.assignmentId,
       'taskId': task.taskId,
       'taskStatusIndex': task.status,
-      'isCooperative': true, // передаем флаг на экран выполнения
+      'assignmentStatus': task.status,
+      'isCooperative': task.isCooperative, // передаем флаг на экран выполнения
     });
     
     if (result == true) {

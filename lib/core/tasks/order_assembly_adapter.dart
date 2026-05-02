@@ -22,13 +22,13 @@ class OrderAssemblyTaskAdapter implements TaskTypeAdapter {
           .map((c) => CellPlacementInfo(
                 targetPositionId: c['targetPositionId'],
                 items: (c['items'] as List<dynamic>)
-                    .map((i) => PlacementLineInfo(
-                          lineId: i['lineId'],
-                          itemPositionId: i['itemPositionId'],
-                          quantity: i['quantity'],
-                          status: i['status'] ?? 'pending',
-                        ))
-                    .toList(),
+                      .map((i) => PlacementLineInfo(
+                            lineId: i['lineId'],
+                            itemPositionId: i['itemPositionId'],
+                            quantity: i['quantity'],
+                            status: _parseLineStatus(i['status']), // Используем безопасный парсер
+                          ))
+                      .toList(),
               ))
           .toList();
 
@@ -104,4 +104,28 @@ AssignmentStatus _parseAssignmentStatusFromInt(int serverStatus) {
     default:
       return AssignmentStatus.assigned;
   }
+  
+
+  
+}
+
+String _parseLineStatus(dynamic serverStatus) {
+  // Если сервер уже прислал строку (например, 'picked') - просто возвращаем её
+  if (serverStatus is String) {
+    return serverStatus;
+  }
+  
+  // Если сервер прислал число (Enum из C#) - мапим в нужную строку
+  if (serverStatus is int) {
+    switch (serverStatus) {
+      case 0: return 'pending';
+      case 1: return 'picked';
+      case 2: return 'placed';
+      case 3: return 'discrepancy'; // Если есть такой статус
+      default: return 'pending';
+    }
+  }
+  
+  // Фолбэк по умолчанию
+  return 'pending';
 }
