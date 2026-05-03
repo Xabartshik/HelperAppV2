@@ -42,25 +42,25 @@ class _MainPageState extends ConsumerState<MainPage> {
     _signalRService.onNotificationReceived = (title, message, type) {
       
       // ПРИОРИТЕТ 1: Фоновая задача стала "Нормой".
-      // Без системных пушей и вибраций. Просто тихо обновляем список[cite: 18].
+      // Без системных пушей и вибраций. Просто тихо обновляем список.
       if (type == 'priority_escalated_1') {
         ref.read(mainViewModelProvider.notifier).refreshTasks();
         return; 
       }
 
-      // Для остальных типов вызываем локальное (системное) уведомление и вибрацию[cite: 18].
+      // Для остальных типов вызываем локальное (системное) уведомление и вибрацию.
       LocalNotificationService.showNotification(title, message, type);
 
-      // ПРИОРИТЕТ 3 или другие критические: Агрессивный оверлей на весь экран[cite: 18].
+      // ПРИОРИТЕТ 3 или другие критические: Агрессивный оверлей на весь экран.
       if (type == 'high_priority' || type == 'helper_required' || type == 'priority_escalated_3') {
         _showCriticalTaskOverlay(context, title, message, type);
       } 
-      // ПРИОРИТЕТ 2 или дефолтные: Показываем внутриигровой Снекбар[cite: 18].
+      // ПРИОРИТЕТ 2 или дефолтные: Показываем внутриигровой Снекбар.
       else {
         _showNotificationSnackbar(title, message, type);
       }
       
-      // Обновляем список задач[cite: 18].
+      // Обновляем список задач.
       ref.read(mainViewModelProvider.notifier).refreshTasks(); 
     };
 
@@ -194,6 +194,64 @@ class _MainPageState extends ConsumerState<MainPage> {
     );
   }
 
+  // Метод для обработки нажатия на кнопку "ВЫДАТЬ ЗАКАЗ"
+Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async {
+    // 1. Открываем сканер клиента
+    final String? scannedQr = await context.push<String>('/customer-qr-scanner');
+    
+    if (scannedQr == null || scannedQr.isEmpty) return; // Закрыли сканер
+
+    // 2. Показываем лоадер, пока бэкенд генерирует задачу
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => const Center(child: CircularProgressIndicator(color: _primaryColor)),
+    );
+
+    try {
+      final currentUser = ref.read(currentUserProvider);
+      final apiClient = ref.read(apiClientProvider);
+
+      if (currentUser?.employeeId == null || currentUser?.branchId == null) {
+        throw Exception("Данные сотрудника не найдены");
+      }
+
+      // 3. Вызываем API для генерации задачи (Бэкенд сам создаст BaseTask и Assignment)
+      final newTaskId = await apiClient.initCustomerHandoverAsync(
+        scannedQr,
+        currentUser!.employeeId!,
+        currentUser.branchId!,
+      );
+
+      // Закрываем лоадер
+      if (context.mounted) Navigator.pop(context);
+
+      if (newTaskId != null && context.mounted) {
+        // 4. Обновляем список на фоне
+        ref.read(mainViewModelProvider.notifier).refreshTasks(isSilent: true);
+        
+        // 5. Мгновенно перекидываем сотрудника в сгенерированную задачу
+        context.push('/order-handover/active', extra: {
+          'taskId': newTaskId,
+          'assignmentId': 0, // Не важен, бэкенд сам найдет по workerId и taskId
+        });
+      }
+    } catch (e) {
+      // Ошибка (например, QR просрочен)
+      if (context.mounted) {
+        Navigator.pop(context); // закрываем лоадер
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('ApiException: ', '')),
+            backgroundColor: Colors.redAccent.shade700,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(mainViewModelProvider);
@@ -207,6 +265,18 @@ class _MainPageState extends ConsumerState<MainPage> {
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
+      // ДОБАВЛЯЕМ КНОПКУ СЮДА:
+      floatingActionButton: (state.isActiveShift && !isOnBreak && !isBoss)
+          ? FloatingActionButton.extended(
+              onPressed: () => _onScanCustomerQrPressed(context, ref),
+              backgroundColor: _primaryColor,
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              label: const Text(
+                'ВЫДАТЬ ЗАКАЗ', 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Column(
           children: [

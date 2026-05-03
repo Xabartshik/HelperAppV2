@@ -69,4 +69,5 @@ class ApiEndpoints {
 // НОВЫЙ ЭНДПОИНТ: Специфичный метод для OrderHandover
   static String orderHandoverScan(int taskId, int workerId) => 
     'v1/OrderHandover/$taskId/scan?workerId=$workerId';
+    static const String initCustomerHandover = 'v1/OrderHandover/init-customer';
 }

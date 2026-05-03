@@ -415,15 +415,36 @@ class ApiClient {
     final request = {'qrToken': qrToken};
     await postAsync(ApiEndpoints.orderAssemblyExpressHandover(assignmentId), data: request);
   }
-  
+
   Future<Map<String, dynamic>> orderHandoverScanAsync(int taskId, int workerId, String barcode) async {
-  final url = ApiEndpoints.orderHandoverScan(taskId, workerId);
-  
-  // Согласно требованию, отправляем строку в формате JSON: "$barcode"
-  final response = await postAsync(url, data: '"$barcode"');
-  
-  return response as Map<String, dynamic>;
-}
+    final url = ApiEndpoints.orderHandoverScan(taskId, workerId);
+    
+    // Согласно требованию, отправляем строку в формате JSON: "$barcode"
+    final response = await postAsync(url, data: '"$barcode"');
+    
+    return response as Map<String, dynamic>;
+  }
+
+  Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId) async {
+    try {
+      final response = await postAsync(
+        ApiEndpoints.initCustomerHandover,
+        data: {
+          'qrToken': qrToken,
+          'workerId': workerId,
+          'branchId': branchId,
+        },
+      );
+      
+      if (response != null && response['taskId'] != null) {
+        return response['taskId'] as int;
+      }
+      return null;
+    } catch (e) {
+      Logger.w('Ошибка при инициализации выдачи по QR: $e');
+      rethrow;
+    }
+  }
 
   Future<OrderDto> getOrderByIdAsync(int orderId) async {
     try {

@@ -9,6 +9,7 @@ import 'package:helper_app/screens/login/register_page.dart';
 import 'package:helper_app/screens/create_order/create_order_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:helper_app/core/models/user/current_user.dart';
+import 'package:helper_app/screens/order_assembly/customer_qr_scanner_page.dart';
 import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
 import 'package:helper_app/screens/order_handover/handover_barcode_scanner_page.dart';
 import '../services/auth_service.dart';
@@ -81,6 +82,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentStatusIndex: args['taskStatusIndex'] as int?,
           );
         },
+      ),
+      GoRoute(
+        path: '/customer-qr-scanner',
+        name: 'customer_qr_scanner',
+        builder: (context, state) => const CustomerQrScannerPage(),
       ),
       GoRoute(
         path: '/order-handover/scanner',

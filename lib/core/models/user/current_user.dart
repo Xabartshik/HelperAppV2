@@ -9,6 +9,9 @@ class CurrentUser {
   final int? employeeId;
   // Добавляем опциональный customerId
   final int? customerId;
+  // ДОБАВЛЕНО: branchId для привязки к филиалу
+  final int? branchId; 
+
   final String firstName;
   final String lastName;
   
@@ -22,6 +25,7 @@ class CurrentUser {
     required this.id,
     this.employeeId,
     this.customerId,
+    this.branchId, // ДОБАВЛЕНО
     required this.firstName,
     required this.lastName,
     
@@ -41,6 +45,7 @@ class CurrentUser {
       id: dto.id,
       employeeId: dto.employeeId,
       customerId: dto.customerId,
+      branchId: dto.branchId, // ДОБАВЛЕНО
       firstName: dto.firstName, 
       lastName: dto.lastName,
       
