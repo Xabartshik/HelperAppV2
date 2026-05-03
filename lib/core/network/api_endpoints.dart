@@ -12,6 +12,11 @@ class ApiEndpoints {
   static String workerTaskPause(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/pause?workerId=$workerId';
   static String workerTaskCancel(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/cancel?workerId=$workerId';
 
+
+// // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)
+// static String workerTaskDetails(int taskId, int workerId) => 
+//     'v1/WorkerTasks/$workerId/$taskId/details';
+
   // Boss Panel
   static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
   static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
@@ -59,4 +64,8 @@ class ApiEndpoints {
   static String breakStatus(int employeeId) => 'workers/$employeeId/breaks/status';
   static String startBreak(int employeeId) => 'workers/$employeeId/breaks/start';
   static String endBreak(int employeeId) => 'workers/$employeeId/breaks/end';
+
+// НОВЫЙ ЭНДПОИНТ: Специфичный метод для OrderHandover
+  static String orderHandoverScan(int taskId, int workerId) => 
+    'v1/OrderHandover/$taskId/scan?workerId=$workerId';
 }

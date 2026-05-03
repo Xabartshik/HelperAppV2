@@ -415,6 +415,15 @@ class ApiClient {
     final request = {'qrToken': qrToken};
     await postAsync(ApiEndpoints.orderAssemblyExpressHandover(assignmentId), data: request);
   }
+  
+  Future<Map<String, dynamic>> orderHandoverScanAsync(int taskId, int workerId, String barcode) async {
+  final url = ApiEndpoints.orderHandoverScan(taskId, workerId);
+  
+  // Согласно требованию, отправляем строку в формате JSON: "$barcode"
+  final response = await postAsync(url, data: '"$barcode"');
+  
+  return response as Map<String, dynamic>;
+}
 
   Future<OrderDto> getOrderByIdAsync(int orderId) async {
     try {
