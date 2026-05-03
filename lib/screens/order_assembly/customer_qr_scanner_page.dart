@@ -232,6 +232,7 @@ class _ScannerOverlayPainter extends CustomPainter {
     canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.bottom)..lineTo(rect.right - radius, rect.bottom)..quadraticBezierTo(rect.right, rect.bottom, rect.right, rect.bottom - radius)..lineTo(rect.right, rect.bottom - cornerLen), paint);
   }
 
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
