@@ -31,6 +31,7 @@ class AuthService {
   static const String _lastNameKey = 'last_name';
   static const String _userIdKey = 'user_id';
   static const String _workerRoleKey = 'worker_role';
+  static const String _branchId = 'branch_id';
 
   AuthService(this._apiClient, this._ref);
 
@@ -57,6 +58,7 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
       lastName: response.user.lastName,
       workerRole: response.user.workerRole,
       role: response.user.role,
+      branchId: response.user.branchId,
       accessToken: token,
       tokenExpiresAt: expiresAt,
     );
@@ -68,6 +70,7 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
     await prefs.setString(_roleKey, user.role.name);
     await prefs.setString(_firstNameKey, user.firstName);
     await prefs.setString(_lastNameKey, user.lastName);
+    await prefs.setInt(_branchId, user.branchId!);
     if (user.workerRole != null) {
       await prefs.setString(_workerRoleKey, user.workerRole!.name);
     }
@@ -162,6 +165,7 @@ final responseData = await _apiClient.postAsync(
         customerId: prefs.getInt(_customerIdKey), // Загружаем customerId
         firstName: prefs.getString(_firstNameKey) ?? '',
         lastName: prefs.getString(_lastNameKey) ?? '',
+        branchId: prefs.getInt(_branchId),
         role: role,
         workerRole: workerRole,
         accessToken: token,
