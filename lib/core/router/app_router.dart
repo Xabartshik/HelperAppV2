@@ -9,6 +9,8 @@ import 'package:helper_app/screens/login/register_page.dart';
 import 'package:helper_app/screens/create_order/create_order_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:helper_app/core/models/user/current_user.dart';
+import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
+import 'package:helper_app/screens/order_handover/handover_barcode_scanner_page.dart';
 import '../services/auth_service.dart';
 import '../utils/logger.dart';
 
@@ -65,6 +67,30 @@ final routerProvider = Provider<GoRouter>((ref) {
           // Retrieve the current user's ID to pass to the screen
           final currentUser = ref.read(currentUserProvider);
           return AllOrdersScreen(customerId: currentUser?.customerId ?? 0);
+        },
+      ),
+      GoRoute(
+        path: '/order-handover/active',
+        name: 'order_handover_active',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return ActiveHandoverScreen(
+            assignmentId: args['assignmentId'] as int? ?? 0,
+            taskId: args['taskId'] as int? ?? 0,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
+            assignmentStatusIndex: args['taskStatusIndex'] as int?,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/order-handover/scanner',
+        name: 'order_handover_scanner',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return HandoverBarcodeScannerPage(
+            taskId: args['taskId'] as int? ?? 0,
+            workerId: args['workerId'] as int? ?? 0,
+          );
         },
       ),
       GoRoute(

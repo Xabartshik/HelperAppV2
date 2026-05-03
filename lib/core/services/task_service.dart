@@ -276,6 +276,37 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     );
   }
 
+  Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId) async {
+    try {
+      Logger.i('Инициализация выдачи по QR для сотрудника $workerId на филиале $branchId');
+
+      // Отправляем POST запрос на наш новый контроллер
+      final response = await _apiClient.postAsync(
+        '/api/v1/OrderHandover/init-customer', // Проверь, чтобы путь совпадал с твоим API
+        data: {
+          'qrToken': qrToken,
+          'workerId': workerId,
+          'branchId': branchId,
+        },
+      );
+
+      // Бэкенд возвращает нам JSON вида { "message": "...", "taskId": 42, "orderId": 10 }
+      if (response != null && response['taskId'] != null) {
+        final newTaskId = response['taskId'] as int;
+        Logger.i('Успешно сгенерирована задача выдачи TaskId: $newTaskId');
+        return newTaskId;
+      }
+      return null;
+    } on ApiException catch (e) {
+      // Здесь перехватываем кастомные ошибки (например, неверный QR)
+      Logger.w('Ошибка при инициализации выдачи: ${e.message}');
+      rethrow; // Пробрасываем дальше, чтобы показать SnackBar в UI
+    } catch (e, stack) {
+      Logger.e('Неизвестная ошибка при обработке QR', e, stack);
+      return null;
+    }
+  }
+
   void dispose() {
     stopPeriodicSync();
     Logger.i('TaskService уничтожен');

@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 enum TaskType {
   inventory,
   orderAssembly,
+  orderHandover,
   receipt,
   movement,
   shipping,
@@ -234,4 +235,51 @@ class OrderAssemblyTaskItem extends TaskItemBase {
   });
 
   
+}
+
+class OrderHandoverDetails extends MobileTaskDetailsBase {
+  final int assignmentId;
+  final int orderId;
+  final String handoverType;
+  final int totalLines;
+  final int completedLines;
+
+  const OrderHandoverDetails({
+    required super.schemaVersion,
+    required this.assignmentId,
+    required this.orderId,
+    required this.handoverType,
+    required this.totalLines,
+    required this.completedLines,
+  });
+}
+
+class OrderHandoverTaskItem extends TaskItemBase {
+  final int assignmentId;
+  final int orderId;
+  final String handoverType;
+  final int totalLines;
+  final int completedLinesCount;
+
+  OrderHandoverTaskItem({
+    required super.taskId,
+    required super.type,
+    required super.branchId,
+    required super.title,
+    super.description,
+    required super.status,
+    required super.assignmentStatus,
+    required super.priority,
+    super.deadline,
+    required super.createdAt,
+    super.completedAt,
+    required super.assignedToEmployeeId,
+    required super.assignedAt,
+    required this.assignmentId,
+    required this.orderId,
+    required this.handoverType,
+    required this.totalLines,
+    this.completedLinesCount = 0,
+    super.details,
+  });
 }

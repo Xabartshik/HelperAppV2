@@ -40,6 +40,8 @@ String taskTypeToRussian(TaskType type) {
       return 'Инвентаризация';
     case TaskType.orderAssembly:
       return 'Подготовка заказа к выдаче';
+    case TaskType.orderHandover: // <-- ДОБАВЛЕНО
+      return 'Выдача / Передача заказа';
     case TaskType.receipt:
       return 'Приёмка';
     case TaskType.movement:
@@ -96,14 +98,41 @@ class TaskCardVm {
 
   double get progressFraction => totalSteps > 0 ? (completedSteps / totalSteps).clamp(0.0, 1.0) : 0.0;
 
-  static TaskCardVm fromTask(TaskItemBase task) {
+static TaskCardVm fromTask(TaskItemBase task) {
     if (task is InventoryTaskItem) {
       return _mapInventoryTaskToCard(task);
     }
     if (task is OrderAssemblyTaskItem) {
       return _mapOrderAssemblyTaskToCard(task);
     }
+    if (task is OrderHandoverTaskItem) { 
+      return _mapOrderHandoverTaskToCard(task);
+    }
     return _mapGenericTaskToCard(task);
+  }
+static TaskCardVm _mapOrderHandoverTaskToCard(OrderHandoverTaskItem task) {
+    final isCourier = task.handoverType == 'ToCourier';
+    
+    return TaskCardVm(
+      kind: task.type.name,
+      navigationId: task.assignmentId,
+      title: task.title,
+      subtitle: task.description ?? (isCourier ? 'Передача курьеру' : 'Выдача клиенту'),
+      status: task.status,
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
+      priority: task.priority,
+      deadline: task.deadline,
+      completedSteps: task.completedLinesCount,
+      totalSteps: task.totalLines,
+      primaryMetric: task.totalLines > 0 ? '${task.completedLinesCount}/${task.totalLines} товаров' : 'Нет товаров',
+      createdAt: task.createdAt,
+      badges: {
+        'Тип': 'Выдача',
+        'Заказ': '#${task.orderId}',
+        'Кому': isCourier ? 'Курьер' : 'Клиент',
+      },
+      rawTask: task,
+    );
   }
 
   static TaskCardVm _mapInventoryTaskToCard(InventoryTaskItem task) {

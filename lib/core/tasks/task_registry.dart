@@ -1,5 +1,6 @@
 import 'package:helper_app/core/tasks/inventory_adapter.dart';
 import 'package:helper_app/core/tasks/order_assembly_adapter.dart';
+import 'package:helper_app/core/tasks/order_handover_adapter.dart';
 import 'package:helper_app/core/tasks/task_type_adapter.dart';
 
 class TaskRegistry {
@@ -8,6 +9,7 @@ class TaskRegistry {
   static final Map<String, TaskTypeAdapter> adapters = {
     'inventory': InventoryTaskAdapter(),
     'orderassembly': OrderAssemblyTaskAdapter(),
+    'orderhandover': OrderHandoverTaskAdapter(),
   };
 
   static TaskTypeAdapter? resolveByTaskType(String? taskType) {
