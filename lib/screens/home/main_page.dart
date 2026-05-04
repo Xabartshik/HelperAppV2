@@ -235,6 +235,8 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
         context.push('/order-handover/active', extra: {
           'taskId': newTaskId,
           'assignmentId': 0, // Не важен, бэкенд сам найдет по workerId и taskId
+          'taskStatusIndex': TaskStatus.assigned.index, 
+          'assignmentStatusIndex': AssignmentStatus.assigned.index,
         });
       }
     } catch (e) {
