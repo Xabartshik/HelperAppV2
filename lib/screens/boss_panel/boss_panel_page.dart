@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
 import 'boss_panel_viewmodel.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
 
@@ -18,9 +19,11 @@ class BossPanelPage extends ConsumerWidget {
     final vm = ref.read(bossPanelViewModelProvider.notifier);
 
     // Список разделов для Drawer[cite: 1]
+// Список разделов для Drawer
     final List<Map<String, dynamic>> destinations = [
       {'title': 'Активные задачи', 'icon': Icons.assignment_outlined},
       {'title': 'Активные сотрудники', 'icon': Icons.people_outline},
+      {'title': 'Маршруты курьеров', 'icon': Icons.local_shipping_outlined}, // <-- ДОБАВЛЕНО
       {'title': 'Аналитика (WIP)', 'icon': Icons.bar_chart_rounded},
     ];
 
@@ -94,13 +97,14 @@ class BossPanelPage extends ConsumerWidget {
     );
   }
 
-  /// Переключатель контента[cite: 1]
   Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
     switch (state.currentTabIndex) {
       case 0:
         return _buildTasksList(state.activeTasks);
       case 1:
         return _buildEmployeesList(state.employeeWorkloads);
+      case 2:
+        return const CourierRouteBuilderScreen(); 
       default:
         return const Center(
           child: Text('Раздел находится в разработке', style: TextStyle(color: Colors.white54)),

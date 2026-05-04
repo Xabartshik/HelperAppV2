@@ -27,6 +27,12 @@ class ApiEndpoints {
   static const String bossPanelCreateInventoryByZone = 'v1/bosspanel/inventory/create-by-zone';
   static const String bossPanelAvailableOrders = 'v1/bosspanel/orders/available';
   static const String bossPanelCreateOrderAssembly = 'v1/bosspanel/tasks/order-assembly/create';
+  // Добавь в блок Boss Panel:
+  static const String bossPanelAvailableCouriers = 'v1/bosspanel/couriers/available';
+  static const String bossPanelReadyOrders = 'v1/bosspanel/orders/ready-for-dispatch';
+  
+  // Добавь туда же, где у тебя лежит initCustomerHandover:
+  static const String initCourierBatchHandover = 'v1/OrderHandover/init-courier-batch';
 
   // Inventory
   static String inventoryTaskDetails(int assignmentId) => 'v1/Inventory/assignment/$assignmentId/details';

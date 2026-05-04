@@ -424,6 +424,39 @@ class ApiClient {
     
     return response as Map<String, dynamic>;
   }
+  
+  Future<List<AvailableEmployeeDto>> getBossPanelAvailableCouriersAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelAvailableCouriers);
+    if (response == null || response is! List) return [];
+    return response.map((x) => AvailableEmployeeDto.fromJson(x)).toList();
+  }
+
+  Future<List<AvailableOrderDto>> getBossPanelReadyOrdersAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelReadyOrders);
+    if (response == null || response is! List) return [];
+    return response.map((x) => AvailableOrderDto.fromJson(x)).toList();
+  }
+
+  Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {
+    try {
+      final response = await postAsync(
+        ApiEndpoints.initCourierBatchHandover,
+        data: {
+          'orderIds': orderIds,
+          'courierId': courierId,
+          'branchId': branchId,
+        },
+      );
+      
+      if (response != null && response['taskId'] != null) {
+        return response['taskId'] as int;
+      }
+      return null;
+    } catch (e) {
+      Logger.w('Ошибка при формировании пакетной отгрузки курьеру: $e');
+      rethrow;
+    }
+  }
 
   Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId) async {
     try {

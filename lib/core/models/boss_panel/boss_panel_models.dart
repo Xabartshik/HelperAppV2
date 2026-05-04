@@ -70,6 +70,8 @@ class AvailableEmployeeDto with _$AvailableEmployeeDto {
     @Default(false) bool isAtWork,
     @Default(0) int activeTasksCount,
     @Default(false) bool isRecommended,
+    double? maxWeightKg,
+    String? vehicleName,
   }) = _AvailableEmployeeDto;
 
   factory AvailableEmployeeDto.fromJson(Map<String, dynamic> json) => _$AvailableEmployeeDtoFromJson(json);
@@ -105,14 +107,34 @@ class PositionCellDto with _$PositionCellDto {
   factory PositionCellDto.fromJson(Map<String, dynamic> json) => _$PositionCellDtoFromJson(json);
 }
 
+// ДОБАВЬ НОВУЮ МОДЕЛЬ ДЛЯ ТОВАРОВ
+@freezed
+class OrderItemDetailDto with _$OrderItemDetailDto {
+  const factory OrderItemDetailDto({
+    required int itemId,
+    @Default('') String name,
+    @Default(0) int quantity,
+    @Default(0.0) double weightKg,
+  }) = _OrderItemDetailDto;
+
+  factory OrderItemDetailDto.fromJson(Map<String, dynamic> json) => _$OrderItemDetailDtoFromJson(json);
+}
+
+// ОБНОВИ ЭТУ МОДЕЛЬ
 @freezed
 class AvailableOrderDto with _$AvailableOrderDto {
   const factory AvailableOrderDto({
     required int orderId,
-    @Default('') String customerName,
-    DateTime? deliveryDate,
-    @Default('') String type,
-    @Default(0) int itemsCount,
+    @Default('') String orderNumber,
+    DateTime? createdAt,
+    @Default('') String status,
+    @Default('') String deliveryType,
+    @Default('') String paymentType,
+    String? destinationAddress,
+    String? postamatAddress,
+    String? postamatCellNumber,
+    String? postamatCellSize,
+    @Default([]) List<OrderItemDetailDto> items, // Теперь тут живет список товаров
   }) = _AvailableOrderDto;
 
   factory AvailableOrderDto.fromJson(Map<String, dynamic> json) => _$AvailableOrderDtoFromJson(json);

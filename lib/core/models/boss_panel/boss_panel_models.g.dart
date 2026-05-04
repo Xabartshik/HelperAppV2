@@ -109,6 +109,8 @@ _$AvailableEmployeeDtoImpl _$$AvailableEmployeeDtoImplFromJson(
   isAtWork: json['isAtWork'] as bool? ?? false,
   activeTasksCount: (json['activeTasksCount'] as num?)?.toInt() ?? 0,
   isRecommended: json['isRecommended'] as bool? ?? false,
+  maxWeightKg: (json['maxWeightKg'] as num?)?.toDouble(),
+  vehicleName: json['vehicleName'] as String?,
 );
 
 Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
@@ -119,6 +121,8 @@ Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
   'isAtWork': instance.isAtWork,
   'activeTasksCount': instance.activeTasksCount,
   'isRecommended': instance.isRecommended,
+  'maxWeightKg': instance.maxWeightKg,
+  'vehicleName': instance.vehicleName,
 };
 
 _$CreateInventoryByZoneDtoImpl _$$CreateInventoryByZoneDtoImplFromJson(
@@ -177,26 +181,60 @@ Map<String, dynamic> _$$PositionCellDtoImplToJson(
   'thirdLevelStorage': instance.thirdLevelStorage,
 };
 
+_$OrderItemDetailDtoImpl _$$OrderItemDetailDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$OrderItemDetailDtoImpl(
+  itemId: (json['itemId'] as num).toInt(),
+  name: json['name'] as String? ?? '',
+  quantity: (json['quantity'] as num?)?.toInt() ?? 0,
+  weightKg: (json['weightKg'] as num?)?.toDouble() ?? 0.0,
+);
+
+Map<String, dynamic> _$$OrderItemDetailDtoImplToJson(
+  _$OrderItemDetailDtoImpl instance,
+) => <String, dynamic>{
+  'itemId': instance.itemId,
+  'name': instance.name,
+  'quantity': instance.quantity,
+  'weightKg': instance.weightKg,
+};
+
 _$AvailableOrderDtoImpl _$$AvailableOrderDtoImplFromJson(
   Map<String, dynamic> json,
 ) => _$AvailableOrderDtoImpl(
   orderId: (json['orderId'] as num).toInt(),
-  customerName: json['customerName'] as String? ?? '',
-  deliveryDate: json['deliveryDate'] == null
+  orderNumber: json['orderNumber'] as String? ?? '',
+  createdAt: json['createdAt'] == null
       ? null
-      : DateTime.parse(json['deliveryDate'] as String),
-  type: json['type'] as String? ?? '',
-  itemsCount: (json['itemsCount'] as num?)?.toInt() ?? 0,
+      : DateTime.parse(json['createdAt'] as String),
+  status: json['status'] as String? ?? '',
+  deliveryType: json['deliveryType'] as String? ?? '',
+  paymentType: json['paymentType'] as String? ?? '',
+  destinationAddress: json['destinationAddress'] as String?,
+  postamatAddress: json['postamatAddress'] as String?,
+  postamatCellNumber: json['postamatCellNumber'] as String?,
+  postamatCellSize: json['postamatCellSize'] as String?,
+  items:
+      (json['items'] as List<dynamic>?)
+          ?.map((e) => OrderItemDetailDto.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$$AvailableOrderDtoImplToJson(
   _$AvailableOrderDtoImpl instance,
 ) => <String, dynamic>{
   'orderId': instance.orderId,
-  'customerName': instance.customerName,
-  'deliveryDate': instance.deliveryDate?.toIso8601String(),
-  'type': instance.type,
-  'itemsCount': instance.itemsCount,
+  'orderNumber': instance.orderNumber,
+  'createdAt': instance.createdAt?.toIso8601String(),
+  'status': instance.status,
+  'deliveryType': instance.deliveryType,
+  'paymentType': instance.paymentType,
+  'destinationAddress': instance.destinationAddress,
+  'postamatAddress': instance.postamatAddress,
+  'postamatCellNumber': instance.postamatCellNumber,
+  'postamatCellSize': instance.postamatCellSize,
+  'items': instance.items,
 };
 
 _$CreateOrderAssemblyTaskDtoImpl _$$CreateOrderAssemblyTaskDtoImplFromJson(
