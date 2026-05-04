@@ -377,14 +377,35 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
       ),
     );
   }
-
-  // ... остальные методы (_confirmCompletion, _openScanner, banners) без изменений
   
-  void _confirmCompletion(OrderHandoverViewModel vm) async {
+void _confirmCompletion(OrderHandoverViewModel vm) async {
+    // Если это передача курьеру — требуем "цифровое рукопожатие"
+    if (ref.read(orderHandoverViewModelProvider(_args)).details?.handoverType == 'ToCourier') {
+      
+      // Открываем сканер (можешь использовать свой существующий экран для сканирования QR)
+      final String? scannedQr = await context.push<String>('/customer-qr-scanner');
+      
+      if (scannedQr != null && scannedQr.isNotEmpty) {
+        final (success, message) = await vm.completeCourierHandover(scannedQr);
+        
+        if (mounted) {
+          if (success) {
+            ref.read(mainViewModelProvider.notifier).refreshTasks();
+            context.pop();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
+          }
+        }
+      }
+      return; // Прерываем выполнение, чтобы не открылся стандартный диалог
+    }
+
+    // Стандартный диалог для выдачи клиентам (Самовывоз)
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _bgGray950,
+        backgroundColor: const Color(0xFF1C1C1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Завершить заказ?', style: TextStyle(color: Colors.white)),
         content: const Text(

@@ -12,6 +12,7 @@ import 'package:helper_app/core/models/user/current_user.dart';
 import 'package:helper_app/screens/order_assembly/customer_qr_scanner_page.dart';
 import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
 import 'package:helper_app/screens/order_handover/handover_barcode_scanner_page.dart';
+import 'package:helper_app/screens/tasks/global_pool_screen.dart';
 import '../services/auth_service.dart';
 import '../utils/logger.dart';
 
@@ -159,6 +160,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentStatusIndex: args['taskStatusIndex'] as int?,
           );
         },
+      ),
+      GoRoute(
+        path: '/global-pool',
+        name: 'global_pool',
+        builder: (context, state) => const GlobalPoolScreen(),
       ),
       GoRoute(
         path: '/order-assembly/scanner',

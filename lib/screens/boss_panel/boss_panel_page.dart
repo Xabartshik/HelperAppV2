@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
 import 'boss_panel_viewmodel.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
@@ -47,6 +48,7 @@ class BossPanelPage extends ConsumerWidget {
   }
 
   /// Боковое меню[cite: 1]
+/// Боковое меню
   Widget _buildNavigationDrawer(
     BuildContext context, 
     BossPanelState state, 
@@ -92,11 +94,26 @@ class BossPanelPage extends ConsumerWidget {
               },
             ),
           ),
+          
+          // --- НОВОЕ: Кнопка возврата на главный экран ---
+          const Divider(color: Colors.white24, height: 1),
+          ListTile(
+            leading: const Icon(Icons.arrow_back, color: Colors.white54),
+            title: const Text(
+              'На главный экран',
+              style: TextStyle(color: Colors.white54),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Сначала закрываем сам Drawer
+              context.pop();          // Возвращаемся на MainPage через GoRouter
+            },
+          ),
+          const SizedBox(height: 16), // Небольшой отступ от нижнего края экрана
+          // ------------------------------------------------
         ],
       ),
     );
   }
-
   Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
     switch (state.currentTabIndex) {
       case 0:

@@ -437,14 +437,27 @@ class ApiClient {
     return response.map((x) => AvailableOrderDto.fromJson(x)).toList();
   }
 
-  Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
-    final response = await getAsync(ApiEndpoints.globalPool(branchId));
+Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.globalPoolTasks(branchId));
     if (response == null || response is! List) return [];
     return response.map((x) => MobileBaseTaskDto.fromJson(x)).toList();
   }
 
-  Future<void> claimTaskAsync(int taskId, int workerId) async {
-    await postAsync(ApiEndpoints.claimTask(taskId, workerId));
+  Future<void> claimTaskFromPoolAsync(int taskId, int workerId) async {
+    await postAsync(ApiEndpoints.claimPoolTask(taskId, workerId));
+  }
+
+  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken) async {
+    try {
+      final url = ApiEndpoints.orderHandoverCompleteCourier(taskId);
+      await postAsync(url, data: {
+        'workerId': workerId,
+        'qrToken': qrToken,
+      });
+    } catch (e) {
+      Logger.w('Ошибка при подтверждении передачи курьеру по QR: $e');
+      rethrow;
+    }
   }
 
   Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {

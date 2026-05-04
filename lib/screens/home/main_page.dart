@@ -13,6 +13,7 @@ import '../../core/services/signalr_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/tasks/task_navigation_dispatcher.dart';
 import '../../screens/widgets/break_control_widget.dart';
+import '../../screens/widgets/pool_summary_widget.dart'; // ДОБАВЛЕН ИМПОРТ ВИДЖЕТА ПУЛА
 
 class MainPage extends ConsumerStatefulWidget {
   const MainPage({super.key});
@@ -40,27 +41,20 @@ class _MainPageState extends ConsumerState<MainPage> {
 
   void _setupSignalR() async {
     _signalRService.onNotificationReceived = (title, message, type) {
-      
-      // ПРИОРИТЕТ 1: Фоновая задача стала "Нормой".
-      // Без системных пушей и вибраций. Просто тихо обновляем список.
       if (type == 'priority_escalated_1') {
         ref.read(mainViewModelProvider.notifier).refreshTasks();
         return; 
       }
 
-      // Для остальных типов вызываем локальное (системное) уведомление и вибрацию.
       LocalNotificationService.showNotification(title, message, type);
 
-      // ПРИОРИТЕТ 3 или другие критические: Агрессивный оверлей на весь экран.
       if (type == 'high_priority' || type == 'helper_required' || type == 'priority_escalated_3') {
         _showCriticalTaskOverlay(context, title, message, type);
       } 
-      // ПРИОРИТЕТ 2 или дефолтные: Показываем внутриигровой Снекбар.
       else {
         _showNotificationSnackbar(title, message, type);
       }
       
-      // Обновляем список задач.
       ref.read(mainViewModelProvider.notifier).refreshTasks(); 
     };
 
@@ -194,14 +188,11 @@ class _MainPageState extends ConsumerState<MainPage> {
     );
   }
 
-  // Метод для обработки нажатия на кнопку "ВЫДАТЬ ЗАКАЗ"
-Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async {
-    // 1. Открываем сканер клиента
+  Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async {
     final String? scannedQr = await context.push<String>('/customer-qr-scanner');
     
-    if (scannedQr == null || scannedQr.isEmpty) return; // Закрыли сканер
+    if (scannedQr == null || scannedQr.isEmpty) return;
 
-    // 2. Показываем лоадер, пока бэкенд генерирует задачу
     if (!context.mounted) return;
     showDialog(
       context: context,
@@ -217,32 +208,27 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
         throw Exception("Данные сотрудника не найдены");
       }
 
-      // 3. Вызываем API для генерации задачи (Бэкенд сам создаст BaseTask и Assignment)
       final newTaskId = await apiClient.initCustomerHandoverAsync(
         scannedQr,
         currentUser!.employeeId!,
         currentUser.branchId!,
       );
 
-      // Закрываем лоадер
       if (context.mounted) Navigator.pop(context);
 
       if (newTaskId != null && context.mounted) {
-        // 4. Обновляем список на фоне
         ref.read(mainViewModelProvider.notifier).refreshTasks(isSilent: true);
         
-        // 5. Мгновенно перекидываем сотрудника в сгенерированную задачу
         context.push('/order-handover/active', extra: {
           'taskId': newTaskId,
-          'assignmentId': 0, // Не важен, бэкенд сам найдет по workerId и taskId
+          'assignmentId': 0, 
           'taskStatusIndex': TaskStatus.assigned.index, 
           'assignmentStatusIndex': AssignmentStatus.assigned.index,
         });
       }
     } catch (e) {
-      // Ошибка (например, QR просрочен)
       if (context.mounted) {
-        Navigator.pop(context); // закрываем лоадер
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('ApiException: ', '')),
@@ -267,7 +253,6 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
-      // ДОБАВЛЯЕМ КНОПКУ СЮДА:
       floatingActionButton: (state.isActiveShift && !isOnBreak && !isBoss)
           ? FloatingActionButton.extended(
               onPressed: () => _onScanCustomerQrPressed(context, ref),
@@ -285,7 +270,7 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
             _buildHeader(context, currentUser, isBoss, viewModel),
             if (!state.hasNetwork) _buildNetworkWarning(),
             _buildShiftBanner(context, state, viewModel),
-            _buildTasksToolbar(state, viewModel),
+            _buildTasksToolbar(state, viewModel, isOnBreak), // Передаем isOnBreak[cite: 4]
             if (state.errorMessage.isNotEmpty) _buildErrorText(state.errorMessage),
             
             Expanded(
@@ -480,7 +465,7 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
     );
   }
 
-  Widget _buildTasksToolbar(MainState state, MainViewModel viewModel) {
+  Widget _buildTasksToolbar(MainState state, MainViewModel viewModel, bool isOnBreak) {
     return Container(
       color: _bgGray950,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -490,6 +475,12 @@ Future<void> _onScanCustomerQrPressed(BuildContext context, WidgetRef ref) async
           if (state.isActiveShift) ...[
             const BreakControlWidget(), 
             const SizedBox(height: 16),
+          ],
+
+          // ДОБАВЛЯЕМ PoolSummaryWidget (если на смене и не на перерыве)
+          if (state.isActiveShift && !isOnBreak) ...[
+            const PoolSummaryWidget(),
+            const SizedBox(height: 8),
           ],
           
           Row(

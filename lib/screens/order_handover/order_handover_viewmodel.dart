@@ -131,6 +131,20 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
     }
   }
 
+  Future<(bool, String)> completeCourierHandover(String qrToken) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      // Имитация успешного вызова для примера:
+      await client.completeCourierHandoverAsync(arg.taskId, arg.workerId, qrToken); 
+      
+      return (true, 'Отгрузка успешно подтверждена!');
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return (false, e.toString());
+    }
+  }
+
   // --- Логика режима отмены ---
 
   /// Переключение режима отмены
