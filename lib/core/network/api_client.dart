@@ -437,6 +437,16 @@ class ApiClient {
     return response.map((x) => AvailableOrderDto.fromJson(x)).toList();
   }
 
+  Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.globalPool(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((x) => MobileBaseTaskDto.fromJson(x)).toList();
+  }
+
+  Future<void> claimTaskAsync(int taskId, int workerId) async {
+    await postAsync(ApiEndpoints.claimTask(taskId, workerId));
+  }
+
   Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {
     try {
       final response = await postAsync(

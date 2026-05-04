@@ -12,6 +12,9 @@ class ApiEndpoints {
       'v1/WorkerTasks/$workerId/$taskId/details';
   static String workerTaskPause(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/pause?workerId=$workerId';
   static String workerTaskCancel(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/cancel?workerId=$workerId';
+  // Общий пул задач
+  static String globalPool(int branchId) => 'v1/WorkerTasks/pool?branchId=$branchId';
+  static String claimTask(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/claim?workerId=$workerId';
 
 
 // // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)

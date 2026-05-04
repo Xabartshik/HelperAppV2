@@ -91,7 +91,7 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                     final isSelected = state.selectedOrderIds.contains(order.orderId);
                     
                     // Расчет веса конкретного заказа
-                    final orderWeight = order.items.fold<double>(0, (sum, item) => sum + (item.weightKg * item.quantity));
+                    final orderWeight = order.items.fold<double>(0.0, (sum, item) => sum + (item.weightKg * item.quantity));
 
                     return Card(
                       color: _cardBg,
