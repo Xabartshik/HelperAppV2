@@ -337,21 +337,29 @@ Future<void> _fetchPostamats() async {
     }
   }
 
-DateTime get minPickupTime {
-    final minMinutes = ((appConfig?.pickupWindowLimitHours ?? 0.5) * 60).toInt();
-    var minTime = DateTime.now().add(Duration(minutes: minMinutes));
+  DateTime get minPickupTime {
+      final prepHours = appConfig?.pickupWindowLimitHours ?? 1.0;
+      final prepMinutes = (prepHours * 60).toInt();
+      final now = DateTime.now().toLocal();
+      
+      // Время, когда заказ будет готов (сейчас + время на подготовку)
+      var minTime = now.add(Duration(minutes: prepMinutes));
 
-    // Если сейчас слишком рано (до 10:00), сдвигаем на 10:00 сегодня
-    if (minTime.hour < 10) {
-      minTime = DateTime(minTime.year, minTime.month, minTime.day, 10, 0);
-    } 
-    // Если сейчас слишком поздно (после 22:00), сдвигаем на 10:00 завтра
-    else if (minTime.hour >= 22) {
-      final nextDay = minTime.add(const Duration(days: 1));
-      minTime = DateTime(nextDay.year, nextDay.month, nextDay.day, 10, 0);
+      // Если с учетом сборки время выпадает до открытия (до 10:00)
+      if (minTime.hour < 10) {
+        return DateTime(minTime.year, minTime.month, minTime.day, 10, 0);
+      }
+
+      // Если с учетом сборки время выпадает на 22:00 или позже (закрытие)
+      if (minTime.hour >= 22) {
+        final tomorrow = minTime.add(const Duration(days: 1));
+        // Переносим строго на 10 утра следующего дня
+        return DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 10, 0);
+      }
+
+      return minTime;
     }
-    return minTime;
-  }
+
 
   void setDeliveryDate(DateTime date) {
     if (selectedDeliveryType == DeliveryType.courier) {

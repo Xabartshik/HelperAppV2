@@ -70,7 +70,9 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
     await prefs.setString(_roleKey, user.role.name);
     await prefs.setString(_firstNameKey, user.firstName);
     await prefs.setString(_lastNameKey, user.lastName);
-    await prefs.setInt(_branchId, user.branchId!);
+    if (user.branchId != null) {
+      await prefs.setInt(_branchId, user.branchId!); 
+    }
     if (user.workerRole != null) {
       await prefs.setString(_workerRoleKey, user.workerRole!.name);
     }

@@ -134,7 +134,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   }
 
   // --- ШАГ 1: ЛОКАЦИЯ ---
-Widget _buildStep1Location(CreateOrderViewModel vm) {
+  Widget _buildStep1Location(CreateOrderViewModel vm) {
     return Column(
       children: [
         Padding(
@@ -215,6 +215,7 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
       ],
     );
   }
+
   // --- ШАГ 2: ВИТРИНА ---
   Widget _buildStep2Catalog(CreateOrderViewModel vm) {
     return Column(
@@ -379,7 +380,7 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
         const SizedBox(height: 24),
         
         // --- АДРЕС ИЛИ ПОСТАМАТ ---
-// --- ВЫБОР ПОСТАМАТА ---
+        // --- ВЫБОР ПОСТАМАТА ---
         if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
           const Text(
             'Выберите терминал', 
@@ -452,74 +453,98 @@ Widget _buildStep1Location(CreateOrderViewModel vm) {
 
         // --- ДАТА И ВРЕМЯ ---
         if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
-          const Text('Ожидаемое время самовывоза', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () async {
-                final minAllowed = vm.minPickupTime; // Используем наш новый метод из VM
-                
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: vm.deliveryDate ?? minAllowed,
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 14)),
-                );
+          const SizedBox(height: 24),
+          const Text('Дата и время самовывоза', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 12),
+          
+          // --- ДИНАМИЧЕСКИЕ СТРОКИ ДЛЯ ОТОБРАЖЕНИЯ ---
+          Builder(
+            builder: (context) {
+              final minAllowed = vm.minPickupTime;
+              final now = DateTime.now();
+              final isToday = minAllowed.year == now.year && minAllowed.month == now.month && minAllowed.day == now.day;
+              
+              final dayStr = isToday ? 'сегодня' : '${minAllowed.day.toString().padLeft(2, '0')}.${minAllowed.month.toString().padLeft(2, '0')}';
+              final timeStr = "${minAllowed.hour.toString().padLeft(2, '0')}:${minAllowed.minute.toString().padLeft(2, '0')}";
+              final firstAllowedDate = DateTime(minAllowed.year, minAllowed.month, minAllowed.day);
 
-                if (date != null && context.mounted) {
-                  final time = await showTimePicker(
-                    context: context, 
-                    initialTime: TimeOfDay.fromDateTime(vm.deliveryDate ?? minAllowed),
-                  );
-
-                  if (time != null) {
-                    var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-
-                    // 1. ПРОВЕРКА ДИАПАЗОНА 10:00 - 22:00
-                    if (selected.hour < 10 || selected.hour >= 22) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Часы работы самовывоза: с 10:00 до 22:00'))
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        // Если ранее выбранная дата меньше минимально доступной, сбрасываем на минимальную
+                        initialDate: (vm.deliveryDate ?? minAllowed).isBefore(firstAllowedDate) 
+                            ? firstAllowedDate 
+                            : (vm.deliveryDate ?? minAllowed),
+                        // Блокируем выбор "сегодня", если минимальное время уже перенеслось на завтра
+                        firstDate: firstAllowedDate, 
+                        lastDate: firstAllowedDate.add(const Duration(days: 14)),
                       );
-                      // Принудительно ставим границы, если пользователь ошибся
-                      selected = DateTime(
-                        selected.year, 
-                        selected.month, 
-                        selected.day, 
-                        (selected.hour < 10) ? 10 : 21, 
-                        (selected.hour < 10) ? 0 : 59
-                      );
-                    }
 
-                    // 2. ПРОВЕРКА МИНИМАЛЬНОГО ВРЕМЕНИ (с учетом подготовки заказа)
-                    if (selected.isBefore(minAllowed)) {
-                      selected = minAllowed;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Выбрано слишком раннее время с учетом сборки.'))
-                      );
-                    }
+                      if (date != null && context.mounted) {
+                        final time = await showTimePicker(
+                          context: context, 
+                          initialTime: TimeOfDay.fromDateTime(
+                            (vm.deliveryDate ?? minAllowed).isBefore(minAllowed) ? minAllowed : (vm.deliveryDate ?? minAllowed)
+                          ),
+                        );
 
-                    vm.setDeliveryDate(selected);
-                  }
-                }
-            },
-             child: Container(
-               padding: const EdgeInsets.all(16),
-               decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
-               child: Row(
-                 children: [
-                   const Icon(Icons.access_time, color: _accent, size: 20),
-                   const SizedBox(width: 12),
-                   Text(
-                     vm.deliveryDate == null 
-                      ? 'Выберите дату и время' 
-                      : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
-                     style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
-                   ),
-                 ],
-               ),
-             ),
-           ),
-        ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
-           // Оставляем выбор даты и времени ТОЛЬКО для курьера
+                        if (time != null) {
+                          var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+
+                          // 1. Сначала проверяем рабочие часы магазина
+                          if (selected.hour >= 22 || selected.hour < 10) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Часы работы самовывоза: с 10:00 до 22:00'))
+                            );
+                            return; // Выходим и ничего не сохраняем
+                          }
+
+                          // 2. Затем проверяем, успеем ли мы собрать заказ
+                          if (selected.isBefore(minAllowed)) {
+                            selected = minAllowed;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Ближайшее время с учетом сборки — $dayStr в $timeStr'))
+                            );
+                          }
+
+                          vm.setDeliveryDate(selected);
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time, color: _accent, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            vm.deliveryDate == null 
+                              ? 'Выберите дату и время' 
+                              : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
+                            style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // --- ПОДСКАЗКА С МИНИМАЛЬНЫМ ВРЕМЕНЕМ ---
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 4),
+                    child: Text(
+                      'Ближайшее доступное время: $dayStr в $timeStr',
+                      style: TextStyle(color: _accent.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w400),
+                    ),
+                  ),
+                ],
+              );
+            }
+          ),
+        ] else if (vm.selectedDeliveryType == DeliveryType.express || vm.selectedDeliveryType == DeliveryType.courier) ...[
            const Text('Дата доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            GestureDetector(
