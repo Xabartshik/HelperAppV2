@@ -460,6 +460,21 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
     }
   }
 
+  /// Запрос на получение временного QR-кода курьера для приемки товаров
+  Future<Map<String, dynamic>?> getCourierPickupQrAsync(int courierId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.getCourierPickupQr(courierId));
+      
+      if (response != null && response is Map<String, dynamic>) {
+        return response; // Возвращаем Map, чтобы достать Token и ExpiresInSeconds
+      }
+      return null;
+    } catch (e) {
+      Logger.e('Ошибка при получении QR-кода для курьера $courierId', e);
+      rethrow;
+    }
+  }
+
   Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {
     try {
       final response = await postAsync(

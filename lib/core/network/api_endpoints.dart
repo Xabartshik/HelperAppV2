@@ -16,7 +16,9 @@ class ApiEndpoints {
 static String globalPoolTasks(int branchId) => 'v1/WorkerTasks/$branchId/pool';
   static String claimPoolTask(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/claim?workerId=$workerId';
 
-
+// --- Курьерские эндпоинты ---
+  static String getCourierPickupQr(int courierId) => 'v1/Courier/$courierId/pickup-qr';
+  
 // // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)
 // static String workerTaskDetails(int taskId, int workerId) => 
 //     'v1/WorkerTasks/$workerId/$taskId/details';

@@ -26,7 +26,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   final TextEditingController _searchController = TextEditingController();
   final Map<int, TextEditingController> _qtyControllers = {};
 
-  // Строгая цветовая палитра из TaskSelectionScreen
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
   static const Color _bgGray900 = Color(0xFF2C2C2E);
@@ -112,7 +111,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     }
   }
 
-  // --- ЗАГЛУШКА ПУСТОГО СОСТОЯНИЯ ---
   Widget _buildEmptyState(IconData icon, String message) {
     return Center(
       child: Padding(
@@ -133,7 +131,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  // --- ШАГ 1: ЛОКАЦИЯ ---
   Widget _buildStep1Location(CreateOrderViewModel vm) {
     return Column(
       children: [
@@ -216,7 +213,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  // --- ШАГ 2: ВИТРИНА ---
   Widget _buildStep2Catalog(CreateOrderViewModel vm) {
     return Column(
       children: [
@@ -355,7 +351,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  // --- ШАГ 3: ЛОГИСТИКА ---
   Widget _buildStep3Logistics(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -379,8 +374,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
         ),
         const SizedBox(height: 24),
         
-        // --- АДРЕС ИЛИ ПОСТАМАТ ---
-        // --- ВЫБОР ПОСТАМАТА ---
         if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
           const Text(
             'Выберите терминал', 
@@ -414,7 +407,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             ),
           ),
           
-          // Индикатор загрузки списка, если он еще пуст
           if (vm.isLoading && vm.postamats.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 8.0),
@@ -433,7 +425,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             onChanged: (val) => vm.setDestinationAddress(val),
           )
         ] else if (vm.selectedDeliveryType == DeliveryType.pickup || vm.selectedDeliveryType == DeliveryType.express) ...[
-           // Адрес берется из филиала
            const Text('Адрес выдачи (Филиал)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            Container(
@@ -451,13 +442,11 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
         const SizedBox(height: 24),
 
-        // --- ДАТА И ВРЕМЯ ---
         if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
           const SizedBox(height: 24),
           const Text('Дата и время самовывоза', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
           
-          // --- ДИНАМИЧЕСКИЕ СТРОКИ ДЛЯ ОТОБРАЖЕНИЯ ---
           Builder(
             builder: (context) {
               final minAllowed = vm.minPickupTime;
@@ -475,11 +464,9 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
-                        // Если ранее выбранная дата меньше минимально доступной, сбрасываем на минимальную
                         initialDate: (vm.deliveryDate ?? minAllowed).isBefore(firstAllowedDate) 
                             ? firstAllowedDate 
                             : (vm.deliveryDate ?? minAllowed),
-                        // Блокируем выбор "сегодня", если минимальное время уже перенеслось на завтра
                         firstDate: firstAllowedDate, 
                         lastDate: firstAllowedDate.add(const Duration(days: 14)),
                       );
@@ -495,15 +482,13 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                         if (time != null) {
                           var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
-                          // 1. Сначала проверяем рабочие часы магазина
                           if (selected.hour >= 22 || selected.hour < 10) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Часы работы самовывоза: с 10:00 до 22:00'))
                             );
-                            return; // Выходим и ничего не сохраняем
+                            return; 
                           }
 
-                          // 2. Затем проверяем, успеем ли мы собрать заказ
                           if (selected.isBefore(minAllowed)) {
                             selected = minAllowed;
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -532,7 +517,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                       ),
                     ),
                   ),
-                  // --- ПОДСКАЗКА С МИНИМАЛЬНЫМ ВРЕМЕНЕМ ---
                   Padding(
                     padding: const EdgeInsets.only(top: 8, left: 4),
                     child: Text(
@@ -549,10 +533,19 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
            const SizedBox(height: 8),
            GestureDetector(
              onTap: () async {
+                // Используем динамическое вычисление доступной даты
+                final firstAllowed = vm.firstAvailableDeliveryDate;
+                DateTime initial = vm.deliveryDate ?? firstAllowed;
+                
+                // Если текущая дата уже стала недоступной, сбрасываем initialDate на допустимую
+                if (initial.isBefore(firstAllowed)) {
+                  initial = firstAllowed;
+                }
+
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
+                  initialDate: initial,
+                  firstDate: firstAllowed, // Сегодня заблокируется, если слотов не осталось
                   lastDate: DateTime.now().add(const Duration(days: 14)),
                 );
                 if (date != null) vm.setDeliveryDate(date);
@@ -575,7 +568,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
            
            if (vm.deliveryDate != null) ...[
               const SizedBox(height: 16),
-              const Text('Окно доставки (Минимум 1 час на сборку)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+              const Text('Окно доставки (с учетом времени на подготовку)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               if (vm.availableSlots.isEmpty)
                 const Text('На выбранную дату нет доступных окон доставки', style: TextStyle(color: Colors.redAccent))
@@ -597,7 +590,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                 ),
            ]
         ] else if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
-           // Для постамата выводим информационное сообщение вместо выбора времени
            Container(
              padding: const EdgeInsets.all(16),
              decoration: BoxDecoration(
@@ -622,7 +614,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
         const SizedBox(height: 32),
 
-        // Оплата
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -667,7 +658,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  // --- ШАГ 4: ПРОВЕРКА И ИТОГ ---
   Widget _buildStep4Summary(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -778,7 +768,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  // --- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ ---
   Widget _buildBottomBar(CreateOrderViewModel vm) {
     final isLast = vm.currentStep == 3;
     final canProceed = vm.canProceedToNextStep();
@@ -813,7 +802,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                         vm.nextStep();
                       } else {
                         await vm.checkCapacityAndSubmit();
-                        // Если проверка габаритов провалилась, ошибка отрисуется в UI
                         if (vm.postamatCapacityOk == false) return; 
                         
                         if (!mounted) return;

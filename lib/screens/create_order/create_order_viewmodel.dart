@@ -31,7 +31,6 @@ enum DeliveryType {
   const DeliveryType(this.label);
   final String label;
 
-  // Метод для конвертации enum в строку, которую ожидает сервер C#
   String toServerString() {
     switch (this) {
       case DeliveryType.pickup:
@@ -83,7 +82,7 @@ class AvailableItem {
     required this.name,
     required this.price,
     required this.availableQuantity,
-    this.length = 100, // Значения по умолчанию, если сервер их не пришлет
+    this.length = 100, 
     this.width = 100,
     this.height = 100,
   });
@@ -124,28 +123,22 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
-  // --- Step 1: Филиалы ---
   List<Branch> branches = [];
   Branch? selectedBranch;
 
-  // --- Step 2: Товары ---
   List<AvailableItem> availableItems = [];
-  // Корзина: itemId -> количество
   Map<int, int> cart = {};
 
-  // --- Step 3: Логистика ---
   DeliveryType selectedDeliveryType = DeliveryType.pickup;
   List<Postamat> postamats = [];
   Postamat? selectedPostamat;
   DateTime? deliveryDate;
   String destinationAddress = '';
-  bool prepayNow = false; // true = Prepaid, false = Postpaid
+  bool prepayNow = false; 
   DeliverySlot? selectedSlot;
   List<DeliverySlot> availableSlots = [];
   AppConfigDto? appConfig;
 
-
-  // --- Step 4: Проверка ---
   bool isCheckingPostamatCapacity = false;
   bool? postamatCapacityOk;
   String? postamatCapacityError;
@@ -155,7 +148,6 @@ class CreateOrderViewModel extends ChangeNotifier {
       appConfig = await _apiClient.getAppConfigAsync();
     } catch (e) {
       Logger.e('Ошибка при загрузке конфига', e);
-      // Fallback значения, если бэкенд недоступен
       appConfig = AppConfigDto(
         pickupWindowLimitHours: 0.5, 
         deliveryWindowLimitHours: 1.0, 
@@ -168,12 +160,12 @@ class CreateOrderViewModel extends ChangeNotifier {
     }
     notifyListeners();
   }
+  
   Future<void> initialize() async {
     await _fetchConfig();
     await _fetchBranches();
   }
 
-  // --- Навигация и валидация ---
   void nextStep() {
     if (canProceedToNextStep()) {
       currentStep++;
@@ -200,20 +192,17 @@ class CreateOrderViewModel extends ChangeNotifier {
           return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;
         }
         if (selectedDeliveryType == DeliveryType.pickup) {
-          return deliveryDate != null; // Требуем выбрать время для самовывоза
+          return deliveryDate != null; 
         }
-        return true; // Express проходит без дополнительных условий
+        return true; 
       case 3: return canSubmitOrder;
       default: return false;
     }
   }
 
-  // --- Data Fetching ---
-
-Future<void> _fetchBranches() async {
+  Future<void> _fetchBranches() async {
     await _withLoading(() async {
       final response = await _apiClient.getAsync(ApiEndpoints.getBranches);
-      // Проверяем сам response, так как он и является списком
       if (response is List) {
         branches = response.map((json) => Branch.fromJson(json)).toList();
       }
@@ -223,16 +212,15 @@ Future<void> _fetchBranches() async {
   void selectBranch(Branch branch) {
     if (selectedBranch?.branchId == branch.branchId) return;
     selectedBranch = branch;
-    cart.clear(); // Очищаем корзину при смене филиала
+    cart.clear(); 
     _fetchItems();
   }
 
-Future<void> _fetchItems([String query = '']) async {
+  Future<void> _fetchItems([String query = '']) async {
     if (selectedBranch == null) return;
     await _withLoading(() async {
       final endpoint = ApiEndpoints.getAvailableItems(selectedBranch!.branchId, query: query);
       final response = await _apiClient.getAsync(endpoint);
-      // Проверяем сам response
       if (response is List) {
         availableItems = response.map((json) => AvailableItem.fromJson(json)).toList();
       }
@@ -243,18 +231,15 @@ Future<void> _fetchItems([String query = '']) async {
     await _fetchItems(query);
   }
 
-Future<void> _fetchPostamats() async {
+  Future<void> _fetchPostamats() async {
     if (postamats.isNotEmpty) return;
     await _withLoading(() async {
       final response = await _apiClient.getAsync(ApiEndpoints.getPostamats);
-      // Проверяем сам response
       if (response is List) {
         postamats = response.map((json) => Postamat.fromJson(json)).toList();
       }
     });
   }
-
-  // --- Cart Management ---
 
   void updateCartQuantity(int itemId, int delta, int maxQuantity) {
     int current = cart[itemId] ?? 0;
@@ -298,17 +283,35 @@ Future<void> _fetchPostamats() async {
       return count;
   }
 
-  // --- Logistics ---
-
   void setPostamat(Postamat postamat) {
     selectedPostamat = postamat;
     postamatCapacityOk = null;
     postamatCapacityError = null;
     notifyListeners();
   }
+
+  /// Возвращает первую доступную дату для календаря с учетом лимита из конфига
+/// Возвращает первую доступную дату для календаря с учетом лимита из конфига
+  DateTime get firstAvailableDeliveryDate {
+    final now = DateTime.now();
+    // Берем лимит времени из конфига (по умолчанию 1.0 час, если конфиг не загружен)
+    final limitHours = appConfig?.deliveryWindowLimitHours ?? 1.0;
+    final limitMinutes = (limitHours * 60).toInt();
+    
+    final minRequiredTime = now.add(Duration(minutes: limitMinutes));
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Проверяем, есть ли хотя бы одно окно СЕГОДНЯ, которое еще НЕ ЗАКОНЧИЛОСЬ
+    bool hasSlotsToday = defaultSlots.any((slot) {
+      final slotEndToday = today.add(Duration(hours: slot.endHour));
+      return slotEndToday.isAfter(minRequiredTime);
+    });
+    
+    return hasSlotsToday ? today : today.add(const Duration(days: 1));
+  }
   
-  // Метод для вычисления доступных слотов для Курьера/Постамата
-  void _calculateAvailableSlots() {
+  // Вычисляет доступные слоты для выбранного дня
+void _calculateAvailableSlots() {
     if (deliveryDate == null) {
       availableSlots = [];
       selectedSlot = null;
@@ -316,44 +319,53 @@ Future<void> _fetchPostamats() async {
     }
 
     final now = DateTime.now();
+    
+    // Приводим deliveryDate к локальному времени без смещения дней, 
+    // так как year, month, day у UTC-объекта соответствуют выбранной дате.
     final isToday = deliveryDate!.year == now.year && 
                     deliveryDate!.month == now.month && 
                     deliveryDate!.day == now.day;
 
     if (isToday) {
-      // Используем конфиг вместо хардкода (+ 1)
       final limitHours = appConfig?.deliveryWindowLimitHours ?? 1.0;
       final limitMinutes = (limitHours * 60).toInt();
-      
       final minRequiredTime = now.add(Duration(minutes: limitMinutes));
       
-      availableSlots = defaultSlots.where((slot) => slot.startHour >= minRequiredTime.hour).toList();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      // Доступны те слоты, которые еще не завершились
+      availableSlots = defaultSlots.where((slot) {
+        final slotEndToday = today.add(Duration(hours: slot.endHour));
+        return slotEndToday.isAfter(minRequiredTime);
+      }).toList();
     } else {
       availableSlots = List.from(defaultSlots); 
     }
 
-    if (selectedSlot != null && !availableSlots.contains(selectedSlot)) {
-      selectedSlot = null;
+    // Обязательно сбрасываем выбранный слот, если он больше недоступен в новом списке
+    if (selectedSlot != null) {
+      final stillAvailable = availableSlots.any((s) => s.id == selectedSlot!.id);
+      if (!stillAvailable) {
+        selectedSlot = null;
+      }
     }
   }
+
+
 
   DateTime get minPickupTime {
       final prepHours = appConfig?.pickupWindowLimitHours ?? 1.0;
       final prepMinutes = (prepHours * 60).toInt();
       final now = DateTime.now().toLocal();
       
-      // Время, когда заказ будет готов (сейчас + время на подготовку)
       var minTime = now.add(Duration(minutes: prepMinutes));
 
-      // Если с учетом сборки время выпадает до открытия (до 10:00)
       if (minTime.hour < 10) {
         return DateTime(minTime.year, minTime.month, minTime.day, 10, 0);
       }
 
-      // Если с учетом сборки время выпадает на 22:00 или позже (закрытие)
       if (minTime.hour >= 22) {
         final tomorrow = minTime.add(const Duration(days: 1));
-        // Переносим строго на 10 утра следующего дня
         return DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 10, 0);
       }
 
@@ -365,10 +377,9 @@ Future<void> _fetchPostamats() async {
     if (selectedDeliveryType == DeliveryType.courier) {
       deliveryDate = DateTime.utc(date.year, date.month, date.day);
     } else if (selectedDeliveryType == DeliveryType.pickup) {
-      // Ограничиваем часы в диапазоне 10-22
       int hour = date.hour;
       if (hour < 10) hour = 10;
-      if (hour >= 22) hour = 21; // 21:59 - крайнее время
+      if (hour >= 22) hour = 21; 
 
       deliveryDate = DateTime(date.year, date.month, date.day, hour, date.minute);
     } else {
@@ -379,21 +390,20 @@ Future<void> _fetchPostamats() async {
     notifyListeners();
   }
 
-void setDeliverySlot(DeliverySlot slot) {
+  void setDeliverySlot(DeliverySlot slot) {
     selectedSlot = slot;
     notifyListeners();
   }
 
   void setDeliveryType(DeliveryType type) {
     selectedDeliveryType = type;
-    deliveryDate = null; // Сбрасываем дату при смене типа
+    deliveryDate = null; 
     selectedSlot = null;
     
     if (type == DeliveryType.postamat) {
       _fetchPostamats();
     }
     
-    // Для самовывоза и экспресса адрес берется из филиала автоматически
     if (type == DeliveryType.pickup || type == DeliveryType.express) {
        destinationAddress = selectedBranch?.address ?? '';
     } else {
@@ -415,21 +425,18 @@ void setDeliverySlot(DeliverySlot slot) {
       notifyListeners();
   }
 
-  // --- Submission ---
-
   Future<void> checkCapacityAndSubmit() async {
     if (selectedDeliveryType == DeliveryType.postamat) {
       await _checkPostamatCapacity();
       if (postamatCapacityOk != true) {
-        return; // Если не влезло, останавливаемся
+        return; 
       }
     }
     
-    // Если дошли сюда, создаем заказ
     await _createOrder();
   }
 
-Future<void> _checkPostamatCapacity() async {
+  Future<void> _checkPostamatCapacity() async {
     if (selectedPostamat == null || cart.isEmpty) return;
 
     isCheckingPostamatCapacity = true;
@@ -457,7 +464,6 @@ Future<void> _checkPostamatCapacity() async {
       Logger.i('Проверка габаритов: $payload');
       final response = await _apiClient.postAsync(ApiEndpoints.checkPostamatCapacity, data: payload);
       
-      // response сам по себе содержит true или false
       if (response == true) {
          postamatCapacityOk = true;
       } else {
@@ -474,28 +480,28 @@ Future<void> _checkPostamatCapacity() async {
     }
   }
 
-  bool get canSubmitOrder {
+bool get canSubmitOrder {
     if (cart.isEmpty || selectedBranch == null) return false;
     
     if (selectedDeliveryType == DeliveryType.postamat) {
       return selectedPostamat != null && !isCheckingPostamatCapacity;
     }
-    if (selectedDeliveryType == DeliveryType.courier) {
+    if (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) {
+      // Принудительно обновляем слоты, чтобы проверить, не истекло ли время ожидания
+      _calculateAvailableSlots(); 
       return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;
     }
     if (selectedDeliveryType == DeliveryType.pickup) {
-      return deliveryDate != null; // Требуем время для самовывоза
+      return deliveryDate != null; 
     }
     
-    return true; // Для Express
+    return true; 
   }
 
-// Обновленный метод формирования заказа
   Future<bool> _createOrder() async {
     if (!canSubmitOrder) return false;
 
     return _withLoading<bool>(() async {
-      // Формируем DTO позиций с учетом цены
       final positions = cart.entries.map((entry) {
         final item = availableItems.firstWhere((i) => i.itemId == entry.key);
         return {
@@ -505,23 +511,19 @@ Future<void> _checkPostamatCapacity() async {
         };
       }).toList();
 
-      // Определение правильной даты для отправки на сервер
       String? dateToSubmit;
       if (deliveryDate != null) {
         if (selectedDeliveryType == DeliveryType.courier) {
-          // Курьер: Отправляем нашу чистую UTC дату как ISO 8601 (закончится на Z)
           dateToSubmit = deliveryDate!.toIso8601String();
         } else {
-          // Самовывоз: Конвертируем локальное выбранное время в UTC
           dateToSubmit = deliveryDate!.toUtc().toIso8601String();
         }
       }
 
-      // Формируем корневой DTO
       final payload = {
-        'customerId': customerId, // Заглушка
+        'customerId': customerId, 
         'branchId': selectedBranch!.branchId,
-        'deliveryDate': dateToSubmit, // <--- ИСПОЛЬЗУЕМ ВЫЧИСЛЕННУЮ ДАТУ
+        'deliveryDate': dateToSubmit, 
         'deliveryType': selectedDeliveryType.toServerString(),
         'paymentType': prepayNow ? 'Prepaid' : 'Postpaid',
         
@@ -530,10 +532,7 @@ Future<void> _checkPostamatCapacity() async {
             : (selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.address : null),
         
         'postamatId': selectedDeliveryType == DeliveryType.postamat ? selectedPostamat?.id : null,
-        
-        // НОВОЕ ПОЛЕ ДЛЯ C#
         'deliverySlotId': selectedDeliveryType == DeliveryType.courier ? selectedSlot?.id : null,
-        
         'totalPrice': cartTotalPrice, 
         'positions': positions
       };
@@ -545,8 +544,7 @@ Future<void> _checkPostamatCapacity() async {
     }, fallback: false);
   }
 
-  
-String branchSearchQuery = '';
+  String branchSearchQuery = '';
 
   List<Branch> get filteredBranches {
     if (branchSearchQuery.isEmpty) return branches;
