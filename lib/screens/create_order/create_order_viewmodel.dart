@@ -511,11 +511,20 @@ bool get canSubmitOrder {
         };
       }).toList();
 
+// Определение правильной даты для отправки на сервер
       String? dateToSubmit;
       if (deliveryDate != null) {
-        if (selectedDeliveryType == DeliveryType.courier) {
-          dateToSubmit = deliveryDate!.toIso8601String();
+        if (selectedDeliveryType == DeliveryType.courier && selectedSlot != null) {
+          // Собираем точное локальное время начала слота и переводим в UTC[cite: 8]
+          final localStart = DateTime(
+            deliveryDate!.year, 
+            deliveryDate!.month, 
+            deliveryDate!.day, 
+            selectedSlot!.startHour
+          );
+          dateToSubmit = localStart.toUtc().toIso8601String();
         } else {
+          // Самовывоз: Конвертируем локальное выбранное время в UTC[cite: 8]
           dateToSubmit = deliveryDate!.toUtc().toIso8601String();
         }
       }
