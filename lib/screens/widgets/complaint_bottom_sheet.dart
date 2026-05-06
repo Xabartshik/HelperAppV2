@@ -16,7 +16,8 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
   final TextEditingController _commentController = TextEditingController();
   
   // Храним ID выбранных товаров
-  final Set<int> _selectedItemIds = {};
+// Было: final Set<int> _selectedItemIds = {};
+  final Map<int, int> _problemItems = {}; // Измененная строка
   
   // Имитация прикрепленных фото (пока просто счетчик)
   int _photoCount = 0;
@@ -49,7 +50,7 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
       orderId: widget.order.orderId,
       reason: _selectedReason!,
       comment: _commentController.text.isNotEmpty ? _commentController.text : null,
-      problemItemIds: _selectedItemIds.toList(),
+      problemItemIds: _problemItems,
       photoPaths: List.generate(_photoCount, (index) => 'dummy_path_$index.jpg'), // Заглушка
     );
 
@@ -121,7 +122,7 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
-                      children: widget.order.positions.map((pos) => _buildItemCheckbox(pos)).toList(),
+                      children: widget.order.positions.map((pos) => _buildItemCounter(pos)).toList(),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -231,33 +232,56 @@ class _ComplaintBottomSheetState extends State<ComplaintBottomSheet> {
     );
   }
 
-  Widget _buildItemCheckbox(OrderPositionDto pos) {
-    final isSelected = _selectedItemIds.contains(pos.itemId);
+Widget _buildItemCounter(OrderPositionDto pos) {
+    final currentCount = _problemItems[pos.itemId] ?? 0;
+    final maxCount = pos.quantity;
     
-    return Theme(
-      data: Theme.of(context).copyWith(
-        unselectedWidgetColor: Colors.white38,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white12)),
       ),
-      child: CheckboxListTile(
-        title: Text(
-          pos.itemName ?? 'Неизвестный товар', 
-          style: const TextStyle(color: Colors.white, fontSize: 14)
-        ),
-        subtitle: Text('${pos.quantity} шт.', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-        value: isSelected,
-        activeColor: const Color(0xFF7C3AED),
-        checkColor: Colors.white,
-        controlAffinity: ListTileControlAffinity.leading,
-        onChanged: (bool? value) {
-          setState(() {
-            if (value == true) {
-              _selectedItemIds.add(pos.itemId);
-            } else {
-              _selectedItemIds.remove(pos.itemId);
-            }
-          });
-        },
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(pos.itemName ?? 'Неизвестный товар', style: const TextStyle(color: Colors.white, fontSize: 14)),
+                Text('В заказе: $maxCount шт.', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                onPressed: currentCount > 0 ? () {
+                  setState(() {
+                    if (currentCount == 1) {
+                      _problemItems.remove(pos.itemId);
+                    } else {
+                      _problemItems[pos.itemId] = currentCount - 1;
+                    }
+                  });
+                } : null,
+              ),
+              SizedBox(
+                width: 30,
+                child: Text('$currentCount', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                onPressed: currentCount < maxCount ? () {
+                  setState(() => _problemItems[pos.itemId] = currentCount + 1);
+                } : null,
+              ),
+            ],
+          )
+        ],
       ),
     );
   }
+
+
 }

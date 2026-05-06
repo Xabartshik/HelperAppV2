@@ -212,6 +212,7 @@ class _MainPageState extends ConsumerState<MainPage> {
         scannedQr,
         currentUser!.employeeId!,
         currentUser.branchId!,
+        0,
       );
 
       if (context.mounted) Navigator.pop(context);

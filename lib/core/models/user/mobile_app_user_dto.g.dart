@@ -53,6 +53,7 @@ const _$MobileUserRoleEnumMap = {
   MobileUserRole.supervisor: 2,
   MobileUserRole.admin: 3,
   MobileUserRole.customer: 4,
+  MobileUserRole.courier: 5,
   MobileUserRole.unknown: 0,
 };
 

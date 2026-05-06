@@ -10,7 +10,7 @@ class ComplaintDto with _$ComplaintDto {
     required int orderId,
     required String reason, // Выбранная причина (например: "Брак", "Недовоз")
     String? comment,        // Свободный комментарий пользователя
-    @Default([]) List<int> problemItemIds, // ID товаров, к которым относится жалоба
+    @Default({}) Map<int, int> problemItemIds, // ID товаров, к которым относится жалоба
     @Default([]) List<String> photoPaths,  // Локальные пути к прикрепленным фото (до загрузки на сервер)
   }) = _ComplaintDto;
 

@@ -475,6 +475,26 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
     }
   }
 
+  Future<List<OrderDto>> getCourierOrdersAsync(int courierId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.getCourierOrders(courierId));
+      if (response == null || response is! List) return [];
+      return response.map((x) => OrderDto.fromJson(x)).toList();
+    } catch (e) {
+      Logger.e('Ошибка загрузки заказов курьера $courierId', e);
+      throw Exception('Не удалось загрузить маршрутный лист');
+    }
+  }
+
+  Future<void> confirmDeliveryAsync(int orderId) async {
+    try {
+      await postAsync(ApiEndpoints.deliverCourierOrder(orderId));
+    } catch (e) {
+      Logger.e('Ошибка подтверждения доставки заказа $orderId', e);
+      rethrow;
+    }
+  }
+
   Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {
     try {
       final response = await postAsync(
@@ -496,7 +516,7 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
     }
   }
 
-  Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId) async {
+Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId, int expectedOrderId) async {
     try {
       final response = await postAsync(
         ApiEndpoints.initCustomerHandover,
@@ -504,6 +524,7 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
           'qrToken': qrToken,
           'workerId': workerId,
           'branchId': branchId,
+          'expectedOrderId': expectedOrderId,
         },
       );
       

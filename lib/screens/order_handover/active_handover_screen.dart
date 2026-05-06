@@ -45,6 +45,27 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     );
   }
 
+  // Переопределяем логику миксина: используем "живые" данные с бэкенда
+  @override
+  bool get canEditTask {
+    final state = ref.read(orderHandoverViewModelProvider(_args));
+    if (state.details != null) {
+      // 1 = InProgress, 2 = Completed
+      return state.details!.status == 1 || state.details!.status == 2; 
+    }
+    return super.canEditTask;
+  }
+
+  @override
+  bool get shouldShowStartButton {
+    final state = ref.read(orderHandoverViewModelProvider(_args));
+    if (state.details != null) {
+      // 0 = Assigned (назначена, но не начата)
+      return state.details!.status == 0; 
+    }
+    return super.shouldShowStartButton;
+  }
+
   @override
   BaseTaskScreenArgs get baseTaskArgs => BaseTaskScreenArgs(
         taskId: widget.taskId,
@@ -59,9 +80,10 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     initializeTaskStartState();
   }
 
-  @override
+@override
   Future<void> onTaskStarted() async {
-    await ref.read(orderHandoverViewModelProvider(_args).notifier).activateTask();
+    // Убрали activateTask(), так как базовый миксин УЖЕ активировал задачу на сервере
+    await ref.read(orderHandoverViewModelProvider(_args).notifier).loadTask();
   }
 
   @override
@@ -70,26 +92,34 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     final state = ref.watch(provider);
     final vm = ref.read(provider.notifier);
 
+    // Флаг ожидания напарника (если кооперативная задача и напарник еще не начал/не завершил)
+    final bool isWaitingForPartner = state.details?.isCooperative == true && 
+                                     canEditTask && 
+                                     state.details?.partnerStatus != 1 && // 1 = InProgress
+                                     state.details?.partnerStatus != 2;   // 2 = Completed
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       appBar: _buildAppBar(state, vm),
       body: state.isLoading && state.details == null
           ? const Center(child: CircularProgressIndicator(color: _handoverColor))
-          : Column(
-              children: [
-                _buildCooperationBanner(state.details),
-                _buildModeBanner(state),
-                if (!canEditTask) _buildStartTaskBanner(),
-                Expanded(
-                  child: RefreshIndicator(
-                    color: _handoverColor,
-                    onRefresh: () async => vm.loadTask(),
-                    child: _buildContent(state, vm),
-                  ),
+          : isWaitingForPartner 
+              ? _buildWaitingForPartnerScreen(state, vm)
+              : Column(
+                  children: [
+                    _buildCooperationBanner(state.details),
+                    _buildModeBanner(state),
+                    if (!canEditTask) _buildStartTaskBanner(),
+                    Expanded(
+                      child: RefreshIndicator(
+                        color: _handoverColor,
+                        onRefresh: () async => vm.loadTask(),
+                        child: _buildContent(state, vm),
+                      ),
+                    ),
+                    _buildBottomControls(state, vm),
+                  ],
                 ),
-                _buildBottomControls(state, vm),
-              ],
-            ),
     );
   }
 
@@ -126,6 +156,54 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
           onPressed: () => vm.loadTask(),
         ),
       ],
+    );
+  }
+
+  Widget _buildWaitingForPartnerScreen(OrderHandoverState state, OrderHandoverViewModel vm) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 80, height: 80,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const CircularProgressIndicator(color: Colors.amber, strokeWidth: 3),
+                  Icon(Icons.people_outline, color: Colors.amber.withOpacity(0.8), size: 40)
+                ]
+              )
+            ),
+            const SizedBox(height: 32),
+            const Text('Ожидание напарника', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                children: [
+                  const TextSpan(text: 'Вы подтвердили готовность.\nПожалуйста, дождитесь, пока '),
+                  TextSpan(text: state.details?.partnerName ?? 'ваш напарник', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                  const TextSpan(text: ' тоже нажмет кнопку «Начать» в своем приложении.')
+                ]
+              )
+            ),
+            const SizedBox(height: 48),
+            OutlinedButton.icon(
+              onPressed: () => vm.loadTask(),
+              icon: const Icon(Icons.refresh, color: Colors.white54),
+              label: const Text('Обновить статус', style: TextStyle(color: Colors.white54)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+              )
+            )
+          ]
+        )
+      )
     );
   }
 
@@ -173,8 +251,17 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     );
   }
 
-  Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
+Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
     if (state.details == null) return const SizedBox();
+
+    // Специальный экран для Помощника в выдаче
+    if (state.details!.itemsToScan.isEmpty && state.details!.isCooperative) {
+      return _buildHelperHandoverScreen(state);
+    }
+
+    if (state.details!.itemsToScan.isEmpty) {
+      return const Center(child: Text('Нет товаров в задаче', style: TextStyle(color: Colors.white54)));
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
@@ -185,6 +272,28 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
             ? _buildCancelItemCard(item, state, vm) 
             : _buildItemCard(item, state);
       },
+    );
+  }
+
+  Widget _buildHelperHandoverScreen(OrderHandoverState state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.handshake, color: _handoverColor, size: 80),
+            const SizedBox(height: 24),
+            const Text('Вы — помощник', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text(
+              'Помогайте сотруднику ${state.details?.partnerName ?? 'напарник'} с выдачей или погрузкой тяжелых заказов.\n\nВаша задача — физическая помощь. Сканирование товаров выполняет основной сотрудник. Ваша задача закроется вместе с его задачей.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -382,8 +491,8 @@ void _confirmCompletion(OrderHandoverViewModel vm) async {
     // Если это передача курьеру — требуем "цифровое рукопожатие"
     if (ref.read(orderHandoverViewModelProvider(_args)).details?.handoverType == 'ToCourier') {
       
-      // Открываем сканер (можешь использовать свой существующий экран для сканирования QR)
-      final String? scannedQr = await context.push<String>('/customer-qr-scanner');
+      // ИЗМЕНЕНИЕ: Используем "глупый" быстрый сканер вместо клиентского
+      final String? scannedQr = await context.push<String>('/shift-scanner');
       
       if (scannedQr != null && scannedQr.isNotEmpty) {
         final (success, message) = await vm.completeCourierHandover(scannedQr);
@@ -394,11 +503,12 @@ void _confirmCompletion(OrderHandoverViewModel vm) async {
             context.pop();
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.green));
           } else {
+            // Теперь, если будет 400, экран НЕ закроется, потому что задача еще жива в БД!
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.redAccent));
           }
         }
       }
-      return; // Прерываем выполнение, чтобы не открылся стандартный диалог
+      return; 
     }
 
     // Стандартный диалог для выдачи клиентам (Самовывоз)

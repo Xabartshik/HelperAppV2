@@ -10,7 +10,8 @@ enum MobileUserRole {
   @JsonValue(2) supervisor,
   @JsonValue(3) admin,
   @JsonValue(4) customer,
-  @JsonValue(0) unknown // Фолбэк для безопасности (если бэкенд пришлет неожиданное число)
+  @JsonValue(5) courier, // <-- НОВАЯ РОЛЬ
+  @JsonValue(0) unknown 
 }
 
 /// DTO пользователя из мобильного приложения

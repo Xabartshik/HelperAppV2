@@ -24,7 +24,7 @@ final List<DeliverySlot> defaultSlots = [
 
 enum DeliveryType {
   pickup('Самовывоз'),
-  express('Экспресс-доставка'),
+  express('Выдача в зал'),
   courier('Курьерская доставка'),
   postamat('Доставка в постамат');
 
@@ -303,7 +303,7 @@ class CreateOrderViewModel extends ChangeNotifier {
     
     // Проверяем, есть ли хотя бы одно окно СЕГОДНЯ, которое еще НЕ ЗАКОНЧИЛОСЬ
     bool hasSlotsToday = defaultSlots.any((slot) {
-      final slotEndToday = today.add(Duration(hours: slot.endHour));
+      final slotEndToday = today.add(Duration(hours: slot.startHour));
       return slotEndToday.isAfter(minRequiredTime);
     });
     
@@ -335,7 +335,7 @@ void _calculateAvailableSlots() {
       
       // Доступны те слоты, которые еще не завершились
       availableSlots = defaultSlots.where((slot) {
-        final slotEndToday = today.add(Duration(hours: slot.endHour));
+        final slotEndToday = today.add(Duration(hours: slot.startHour));
         return slotEndToday.isAfter(minRequiredTime);
       }).toList();
     } else {
@@ -486,8 +486,7 @@ bool get canSubmitOrder {
     if (selectedDeliveryType == DeliveryType.postamat) {
       return selectedPostamat != null && !isCheckingPostamatCapacity;
     }
-    if (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) {
-      // Принудительно обновляем слоты, чтобы проверить, не истекло ли время ожидания
+    if (selectedDeliveryType == DeliveryType.courier) {
       _calculateAvailableSlots(); 
       return destinationAddress.isNotEmpty && selectedSlot != null && deliveryDate != null;
     }

@@ -26,7 +26,7 @@ mixin _$ComplaintDto {
       throw _privateConstructorUsedError; // Выбранная причина (например: "Брак", "Недовоз")
   String? get comment =>
       throw _privateConstructorUsedError; // Свободный комментарий пользователя
-  List<int> get problemItemIds =>
+  Map<int, int> get problemItemIds =>
       throw _privateConstructorUsedError; // ID товаров, к которым относится жалоба
   List<String> get photoPaths => throw _privateConstructorUsedError;
 
@@ -51,7 +51,7 @@ abstract class $ComplaintDtoCopyWith<$Res> {
     int orderId,
     String reason,
     String? comment,
-    List<int> problemItemIds,
+    Map<int, int> problemItemIds,
     List<String> photoPaths,
   });
 }
@@ -94,7 +94,7 @@ class _$ComplaintDtoCopyWithImpl<$Res, $Val extends ComplaintDto>
             problemItemIds: null == problemItemIds
                 ? _value.problemItemIds
                 : problemItemIds // ignore: cast_nullable_to_non_nullable
-                      as List<int>,
+                      as Map<int, int>,
             photoPaths: null == photoPaths
                 ? _value.photoPaths
                 : photoPaths // ignore: cast_nullable_to_non_nullable
@@ -118,7 +118,7 @@ abstract class _$$ComplaintDtoImplCopyWith<$Res>
     int orderId,
     String reason,
     String? comment,
-    List<int> problemItemIds,
+    Map<int, int> problemItemIds,
     List<String> photoPaths,
   });
 }
@@ -160,7 +160,7 @@ class __$$ComplaintDtoImplCopyWithImpl<$Res>
         problemItemIds: null == problemItemIds
             ? _value._problemItemIds
             : problemItemIds // ignore: cast_nullable_to_non_nullable
-                  as List<int>,
+                  as Map<int, int>,
         photoPaths: null == photoPaths
             ? _value._photoPaths
             : photoPaths // ignore: cast_nullable_to_non_nullable
@@ -177,7 +177,7 @@ class _$ComplaintDtoImpl implements _ComplaintDto {
     required this.orderId,
     required this.reason,
     this.comment,
-    final List<int> problemItemIds = const [],
+    final Map<int, int> problemItemIds = const {},
     final List<String> photoPaths = const [],
   }) : _problemItemIds = problemItemIds,
        _photoPaths = photoPaths;
@@ -193,14 +193,14 @@ class _$ComplaintDtoImpl implements _ComplaintDto {
   @override
   final String? comment;
   // Свободный комментарий пользователя
-  final List<int> _problemItemIds;
+  final Map<int, int> _problemItemIds;
   // Свободный комментарий пользователя
   @override
   @JsonKey()
-  List<int> get problemItemIds {
-    if (_problemItemIds is EqualUnmodifiableListView) return _problemItemIds;
+  Map<int, int> get problemItemIds {
+    if (_problemItemIds is EqualUnmodifiableMapView) return _problemItemIds;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_problemItemIds);
+    return EqualUnmodifiableMapView(_problemItemIds);
   }
 
   // ID товаров, к которым относится жалоба
@@ -267,7 +267,7 @@ abstract class _ComplaintDto implements ComplaintDto {
     required final int orderId,
     required final String reason,
     final String? comment,
-    final List<int> problemItemIds,
+    final Map<int, int> problemItemIds,
     final List<String> photoPaths,
   }) = _$ComplaintDtoImpl;
 
@@ -281,7 +281,7 @@ abstract class _ComplaintDto implements ComplaintDto {
   @override
   String? get comment; // Свободный комментарий пользователя
   @override
-  List<int> get problemItemIds; // ID товаров, к которым относится жалоба
+  Map<int, int> get problemItemIds; // ID товаров, к которым относится жалоба
   @override
   List<String> get photoPaths;
 

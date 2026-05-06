@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/core/services/auth_service.dart';
 import 'login_viewmodel.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -40,7 +42,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
 
     if (success && mounted) {
-      context.go('/home');
+      final user = ref.read(currentUserProvider);
+
+      if (user?.role == MobileUserRole.courier) {
+        context.go('/courier-home');
+      } else if (user?.role == MobileUserRole.customer) {
+        context.go('/customer-home');
+      } else {
+        context.go('/home'); // Для админов, супервизоров и обычных работников
+}
     }
   }
 

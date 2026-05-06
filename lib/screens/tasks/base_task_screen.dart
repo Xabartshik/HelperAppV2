@@ -58,7 +58,7 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   @protected
   Future<void> onTaskStarted() async {}
 
-  @protected
+@protected
   Future<void> startTask() async {
     final args = baseTaskArgs;
     if (args.taskId <= 0 || args.workerId <= 0) return;
@@ -68,6 +68,10 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
 
     if (!success) {
       await ref.read(mainViewModelProvider.notifier).refreshTasks();
+      
+      // ИСПРАВЛЕНИЕ 1: Даже если мы получили false (ожидание напарника), 
+      // нам ОБЯЗАТЕЛЬНО нужно обновить детали задачи с сервера, чтобы отрисовать экран ожидания!
+      await onTaskStarted(); 
       return;
     }
 

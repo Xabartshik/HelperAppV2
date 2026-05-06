@@ -297,7 +297,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
-  Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     if (state.errorMessage.isNotEmpty) {
       return Center(
         child: Padding(
@@ -320,13 +320,42 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
         ),
       );
     }
-    if (state.allCellsPlaced) return _buildCompletionState(state, vm);
+    
+    if (state.allCellsPlaced && state.cells.isNotEmpty) return _buildCompletionState(state, vm);
+
+    // Специальный экран для Помощника в сборке
+    if (state.cells.isEmpty && state.isCooperative) {
+      return _buildHelperActiveScreen(state);
+    }
+
     if (state.cells.isEmpty) return const Center(child: Text('Нет ячеек в задаче', style: TextStyle(color: Colors.white54)));
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
       itemCount: state.cells.length,
       itemBuilder: (context, index) => _buildCellCard(state.cells[index], state, vm),
+    );
+  }
+
+  Widget _buildHelperActiveScreen(OrderAssemblyState state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.handshake, color: _primaryColor, size: 80),
+            const SizedBox(height: 24),
+            const Text('Вы — помощник', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text(
+              'Помогайте сотруднику ${state.partnerName ?? 'напарник'} с переноской тяжелых грузов.\n\nВам не нужно ничего сканировать. Ваша задача автоматически завершится, когда ведущий закончит сборку на своем терминале.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+            ),
+          ],
+        ),
+      ),
     );
   }
 

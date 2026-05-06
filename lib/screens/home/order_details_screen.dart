@@ -191,6 +191,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
               : 'Не назначено';
 
           final bool canShowQrCode = order.status == 'Ready' || 
+                                    (order.status == 'InTransit' && order.deliveryType == 'Delivery') ||
                                     (order.status == 'Assembly' && order.deliveryType == 'Express');
 
           return RefreshIndicator(

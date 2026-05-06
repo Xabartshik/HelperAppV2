@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/screens/courier/courier_home_page.dart';
 import 'package:helper_app/screens/home/all_orders_screen.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
 import 'package:helper_app/screens/home/order_details_screen.dart';
@@ -83,6 +84,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentStatusIndex: args['taskStatusIndex'] as int?,
           );
         },
+      ),
+      GoRoute(
+        path: '/courier-home',
+        name: 'courier_home',
+        builder: (context, state) => const CourierHomePage(),
       ),
       GoRoute(
         path: '/customer-qr-scanner',
@@ -221,7 +227,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 String _homeLocationFor(CurrentUser? user) {
   if (user == null) return '/login';
-  return user.role == MobileUserRole.customer ? '/customer-home' : '/home';
+
+  return switch (user.role) {
+    MobileUserRole.customer => '/customer-home',
+    MobileUserRole.courier => '/courier-home',
+    _ => '/home',
+  };
 }
 
 bool _isCustomerRoute(String path) {

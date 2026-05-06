@@ -351,7 +351,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  Widget _buildStep3Logistics(CreateOrderViewModel vm) {
+Widget _buildStep3Logistics(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -367,56 +367,22 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
               isExpanded: true,
               icon: const Icon(Icons.keyboard_arrow_down, color: _textGray),
               style: const TextStyle(color: Colors.white, fontSize: 16),
-              items: DeliveryType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))).toList(),
+              // Исключаем постамат из списка и переименовываем Экспресс
+              items: DeliveryType.values
+                  .where((t) => t != DeliveryType.postamat)
+                  .map((t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(t == DeliveryType.express ? 'Выдача в зал' : t.label),
+                      ))
+                  .toList(),
               onChanged: (val) => vm.setDeliveryType(val!),
             ),
           ),
         ),
         const SizedBox(height: 24),
         
-        if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
-          const Text(
-            'Выберите терминал', 
-            style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)
-          ),
-          const SizedBox(height: 8),
-          
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            decoration: BoxDecoration(
-              color: _bgGray900, 
-              borderRadius: BorderRadius.circular(12)
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<Postamat>(
-                value: vm.selectedPostamat,
-                hint: const Text(
-                  'Выберите адрес из списка', 
-                  style: TextStyle(color: _textGray)
-                ),
-                dropdownColor: _bgGray950,
-                isExpanded: true,
-                icon: const Icon(Icons.location_on_outlined, color: _accent),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                items: vm.postamats.map((p) => DropdownMenuItem(
-                  value: p, 
-                  child: Text(p.address, overflow: TextOverflow.ellipsis)
-                )).toList(),
-                onChanged: (val) => vm.setPostamat(val!),
-              ),
-            ),
-          ),
-          
-          if (vm.isLoading && vm.postamats.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 8.0),
-              child: LinearProgressIndicator(
-                color: _accent, 
-                backgroundColor: Colors.transparent
-              ),
-            ),
-            
-        ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
+        // Блок адреса
+        if (vm.selectedDeliveryType == DeliveryType.courier) ...[
           const Text('Адрес доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           TextField(
@@ -424,7 +390,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             decoration: _inputDecoration('Укажите город, улицу, дом, кв.'),
             onChanged: (val) => vm.setDestinationAddress(val),
           )
-        ] else if (vm.selectedDeliveryType == DeliveryType.pickup || vm.selectedDeliveryType == DeliveryType.express) ...[
+        ] else ...[
            const Text('Адрес выдачи (Филиал)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            Container(
@@ -442,154 +408,23 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
         const SizedBox(height: 24),
 
+        // Выбор времени: только для Самовывоза и Курьера[cite: 7, 8]
         if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
-          const SizedBox(height: 24),
           const Text('Дата и время самовывоза', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
-          
-          Builder(
-            builder: (context) {
-              final minAllowed = vm.minPickupTime;
-              final now = DateTime.now();
-              final isToday = minAllowed.year == now.year && minAllowed.month == now.month && minAllowed.day == now.day;
-              
-              final dayStr = isToday ? 'сегодня' : '${minAllowed.day.toString().padLeft(2, '0')}.${minAllowed.month.toString().padLeft(2, '0')}';
-              final timeStr = "${minAllowed.hour.toString().padLeft(2, '0')}:${minAllowed.minute.toString().padLeft(2, '0')}";
-              final firstAllowedDate = DateTime(minAllowed.year, minAllowed.month, minAllowed.day);
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: (vm.deliveryDate ?? minAllowed).isBefore(firstAllowedDate) 
-                            ? firstAllowedDate 
-                            : (vm.deliveryDate ?? minAllowed),
-                        firstDate: firstAllowedDate, 
-                        lastDate: firstAllowedDate.add(const Duration(days: 14)),
-                      );
-
-                      if (date != null && context.mounted) {
-                        final time = await showTimePicker(
-                          context: context, 
-                          initialTime: TimeOfDay.fromDateTime(
-                            (vm.deliveryDate ?? minAllowed).isBefore(minAllowed) ? minAllowed : (vm.deliveryDate ?? minAllowed)
-                          ),
-                        );
-
-                        if (time != null) {
-                          var selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
-
-                          if (selected.hour >= 22 || selected.hour < 10) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Часы работы самовывоза: с 10:00 до 22:00'))
-                            );
-                            return; 
-                          }
-
-                          if (selected.isBefore(minAllowed)) {
-                            selected = minAllowed;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Ближайшее время с учетом сборки — $dayStr в $timeStr'))
-                            );
-                          }
-
-                          vm.setDeliveryDate(selected);
-                        }
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.access_time, color: _accent, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            vm.deliveryDate == null 
-                              ? 'Выберите дату и время' 
-                              : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
-                            style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 4),
-                    child: Text(
-                      'Ближайшее доступное время: $dayStr в $timeStr',
-                      style: TextStyle(color: _accent.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w400),
-                    ),
-                  ),
-                ],
-              );
-            }
-          ),
-        ] else if (vm.selectedDeliveryType == DeliveryType.express || vm.selectedDeliveryType == DeliveryType.courier) ...[
+          _buildPickupDateTimePicker(vm),
+        ] else if (vm.selectedDeliveryType == DeliveryType.courier) ...[
            const Text('Дата доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
-           GestureDetector(
-             onTap: () async {
-                // Используем динамическое вычисление доступной даты
-                final firstAllowed = vm.firstAvailableDeliveryDate;
-                DateTime initial = vm.deliveryDate ?? firstAllowed;
-                
-                // Если текущая дата уже стала недоступной, сбрасываем initialDate на допустимую
-                if (initial.isBefore(firstAllowed)) {
-                  initial = firstAllowed;
-                }
-
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: initial,
-                  firstDate: firstAllowed, // Сегодня заблокируется, если слотов не осталось
-                  lastDate: DateTime.now().add(const Duration(days: 14)),
-                );
-                if (date != null) vm.setDeliveryDate(date);
-             },
-             child: Container(
-               padding: const EdgeInsets.all(16),
-               decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
-               child: Row(
-                 children: [
-                   const Icon(Icons.calendar_month, color: _accent, size: 20),
-                   const SizedBox(width: 12),
-                   Text(
-                     vm.deliveryDate == null ? 'Выберите дату' : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')}.${vm.deliveryDate!.year}', 
-                     style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
-                   ),
-                 ],
-               ),
-             ),
-           ),
-           
+           _buildCourierDatePicker(vm),
            if (vm.deliveryDate != null) ...[
               const SizedBox(height: 16),
-              const Text('Окно доставки (с учетом времени на подготовку)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
+              const Text('Окно доставки', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              if (vm.availableSlots.isEmpty)
-                const Text('На выбранную дату нет доступных окон доставки', style: TextStyle(color: Colors.redAccent))
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<DeliverySlot>(
-                      value: vm.selectedSlot,
-                      hint: const Text('Выберите время', style: TextStyle(color: _textGray)),
-                      dropdownColor: _bgGray950,
-                      isExpanded: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
-                      items: vm.availableSlots.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
-                      onChanged: (val) => vm.setDeliverySlot(val!),
-                    ),
-                  ),
-                ),
+              _buildSlotPicker(vm),
            ]
-        ] else if (vm.selectedDeliveryType == DeliveryType.postamat) ...[
+        ] else if (vm.selectedDeliveryType == DeliveryType.express) ...[
+           // Инфо-баннер для "Выдачи в зал" вместо выбора даты[cite: 7]
            Container(
              padding: const EdgeInsets.all(16),
              decoration: BoxDecoration(
@@ -599,11 +434,11 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
              ),
              child: const Row(
                children: [
-                 Icon(Icons.local_shipping_outlined, color: _accent, size: 24),
+                 Icon(Icons.flash_on, color: _accent, size: 24),
                  SizedBox(width: 16),
                  Expanded(
                    child: Text(
-                     'Доставка в постамат осуществляется в течение 1-4 дней. Мы пришлем уведомление, когда заказ будет готов к выдаче.', 
+                     'Заказ будет подготовлен и выдан в торговом зале сразу после подтверждения оплаты.', 
                      style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)
                    )
                  ),
@@ -614,50 +449,134 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
         const SizedBox(height: 32),
 
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: _bgGray900, 
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white12)
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Итого к оплате', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                  Text('${vm.cartTotalPrice.toStringAsFixed(0)} ₽', style: const TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.0),
-                child: Divider(color: Colors.white12, height: 1),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.credit_card, color: _textGray, size: 20),
-                      SizedBox(width: 8),
-                      Text('Оплатить сейчас', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    ],
-                  ),
-                  Switch(
-                    value: vm.prepayNow,
-                    activeColor: _accent,
-                    onChanged: (val) => vm.togglePrepay(val),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
+        // Блок оплаты[cite: 7]
+        _buildPaymentSummary(vm),
       ],
     );
   }
 
+  // Вспомогательные методы для чистоты кода основного блока
+  Widget _buildPickupDateTimePicker(CreateOrderViewModel vm) {
+    final minAllowed = vm.minPickupTime;
+    return GestureDetector(
+      onTap: () => _selectDateTime(vm, minAllowed),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.access_time, color: _accent, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              vm.deliveryDate == null 
+                ? 'Выберите дату и время' 
+                : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')} в ${vm.deliveryDate!.hour.toString().padLeft(2, '0')}:${vm.deliveryDate!.minute.toString().padLeft(2, '0')}', 
+              style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourierDatePicker(CreateOrderViewModel vm) {
+    return GestureDetector(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: vm.deliveryDate ?? vm.firstAvailableDeliveryDate,
+          firstDate: vm.firstAvailableDeliveryDate,
+          lastDate: DateTime.now().add(const Duration(days: 14)),
+        );
+        if (date != null) vm.setDeliveryDate(date);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_month, color: _accent, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              vm.deliveryDate == null ? 'Выберите дату' : '${vm.deliveryDate!.day.toString().padLeft(2, '0')}.${vm.deliveryDate!.month.toString().padLeft(2, '0')}.${vm.deliveryDate!.year}', 
+              style: TextStyle(color: vm.deliveryDate == null ? _textGray : Colors.white, fontSize: 16)
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlotPicker(CreateOrderViewModel vm) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<DeliverySlot>(
+          value: vm.selectedSlot,
+          hint: const Text('Выберите время', style: TextStyle(color: _textGray)),
+          dropdownColor: _bgGray950,
+          isExpanded: true,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          items: vm.availableSlots.map((s) => DropdownMenuItem(value: s, child: Text(s.name))).toList(),
+          onChanged: (val) => vm.setDeliverySlot(val!),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentSummary(CreateOrderViewModel vm) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Итого к оплате', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+              Text('${vm.cartTotalPrice.toStringAsFixed(0)} ₽', style: const TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12.0), child: Divider(color: Colors.white12, height: 1)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.credit_card, color: _textGray, size: 20),
+                  SizedBox(width: 8),
+                  Text('Оплатить сейчас', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                ],
+              ),
+              Switch(value: vm.prepayNow, activeColor: _accent, onChanged: (val) => vm.togglePrepay(val)),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectDateTime(CreateOrderViewModel vm, DateTime minAllowed) async {
+    final firstAllowedDate = DateTime(minAllowed.year, minAllowed.month, minAllowed.day);
+    final date = await showDatePicker(
+      context: context,
+      initialDate: (vm.deliveryDate ?? minAllowed).isBefore(firstAllowedDate) ? firstAllowedDate : (vm.deliveryDate ?? minAllowed),
+      firstDate: firstAllowedDate, 
+      lastDate: firstAllowedDate.add(const Duration(days: 14)),
+    );
+
+    if (date != null && context.mounted) {
+      final time = await showTimePicker(
+        context: context, 
+        initialTime: TimeOfDay.fromDateTime((vm.deliveryDate ?? minAllowed).isBefore(minAllowed) ? minAllowed : (vm.deliveryDate ?? minAllowed)),
+      );
+      if (time != null) {
+        final selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        vm.setDeliveryDate(selected);
+      }
+    }
+  }
   Widget _buildStep4Summary(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),

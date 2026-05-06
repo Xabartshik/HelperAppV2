@@ -18,7 +18,10 @@ static String globalPoolTasks(int branchId) => 'v1/WorkerTasks/$branchId/pool';
 
 // --- Курьерские эндпоинты ---
   static String getCourierPickupQr(int courierId) => 'v1/Courier/$courierId/pickup-qr';
-  
+  // Списки заказов курьера
+  static String getCourierOrders(int courierId) => 'v1/Courier/$courierId/orders';
+  // Подтверждение доставки
+  static String deliverCourierOrder(int orderId) => 'v1/Courier/orders/$orderId/deliver';
 // // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)
 // static String workerTaskDetails(int taskId, int workerId) => 
 //     'v1/WorkerTasks/$workerId/$taskId/details';

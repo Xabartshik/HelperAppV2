@@ -77,7 +77,6 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
     if (success && message.startsWith('FINISH:')) {
       shouldPop = true;
       message = message.substring(7);
-      await vm.completeTask();
     }
 
     setState(() {

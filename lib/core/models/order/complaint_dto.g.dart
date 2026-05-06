@@ -12,10 +12,10 @@ _$ComplaintDtoImpl _$$ComplaintDtoImplFromJson(Map<String, dynamic> json) =>
       reason: json['reason'] as String,
       comment: json['comment'] as String?,
       problemItemIds:
-          (json['problemItemIds'] as List<dynamic>?)
-              ?.map((e) => (e as num).toInt())
-              .toList() ??
-          const [],
+          (json['problemItemIds'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(int.parse(k), (e as num).toInt()),
+          ) ??
+          const {},
       photoPaths:
           (json['photoPaths'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -28,6 +28,8 @@ Map<String, dynamic> _$$ComplaintDtoImplToJson(_$ComplaintDtoImpl instance) =>
       'orderId': instance.orderId,
       'reason': instance.reason,
       'comment': instance.comment,
-      'problemItemIds': instance.problemItemIds,
+      'problemItemIds': instance.problemItemIds.map(
+        (k, e) => MapEntry(k.toString(), e),
+      ),
       'photoPaths': instance.photoPaths,
     };
