@@ -66,9 +66,9 @@ class ApiClient {
   }
   
   /// Единое завершение назначения работника (полиморфно для любой задачи)
-  Future<void> workerTaskCompleteAsync(int taskId, int workerId) async {
+  Future<void> workerTaskCompleteAsync(int taskId, int workerId, {Map<String, dynamic>? data}) async {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
-    await postAsync(url);
+    await postAsync(url, data: data ?? {});
   }
   Future<dynamic> workerTaskDetailsAsync(int taskId, int workerId) async {
     final url = ApiEndpoints.workerTaskDetails(taskId, workerId);

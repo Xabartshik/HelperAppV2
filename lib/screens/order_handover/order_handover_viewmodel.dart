@@ -119,11 +119,20 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
   }
 
   /// Завершение задачи выдачи
+/// Завершение задачи выдачи
   Future<(bool, String)> completeTask() async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
-      await client.workerTaskCompleteAsync(arg.taskId, arg.workerId);
+      
+      // Формируем payload с отмененными товарами (если они есть)
+      final payload = {
+        'cancelledLines': state.cancelledQuantities, // Map<int, int> { lineId: count }
+      };
+
+      // Передаем данные на сервер
+      await client.workerTaskCompleteAsync(arg.taskId, arg.workerId, data: payload);
+      
       return (true, 'Задача успешно завершена');
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
