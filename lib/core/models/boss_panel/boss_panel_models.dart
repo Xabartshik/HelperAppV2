@@ -130,6 +130,7 @@ class AvailableOrderDto with _$AvailableOrderDto {
     @Default('') String status,
     @Default('') String deliveryType,
     @Default('') String paymentType,
+    DateTime? deliveryDate,
     String? destinationAddress,
     String? postamatAddress,
     String? postamatCellNumber,

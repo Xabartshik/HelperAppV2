@@ -210,6 +210,9 @@ _$AvailableOrderDtoImpl _$$AvailableOrderDtoImplFromJson(
   status: json['status'] as String? ?? '',
   deliveryType: json['deliveryType'] as String? ?? '',
   paymentType: json['paymentType'] as String? ?? '',
+  deliveryDate: json['deliveryDate'] == null
+      ? null
+      : DateTime.parse(json['deliveryDate'] as String),
   destinationAddress: json['destinationAddress'] as String?,
   postamatAddress: json['postamatAddress'] as String?,
   postamatCellNumber: json['postamatCellNumber'] as String?,
@@ -230,6 +233,7 @@ Map<String, dynamic> _$$AvailableOrderDtoImplToJson(
   'status': instance.status,
   'deliveryType': instance.deliveryType,
   'paymentType': instance.paymentType,
+  'deliveryDate': instance.deliveryDate?.toIso8601String(),
   'destinationAddress': instance.destinationAddress,
   'postamatAddress': instance.postamatAddress,
   'postamatCellNumber': instance.postamatCellNumber,

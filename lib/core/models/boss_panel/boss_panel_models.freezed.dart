@@ -2280,6 +2280,7 @@ mixin _$AvailableOrderDto {
   String get status => throw _privateConstructorUsedError;
   String get deliveryType => throw _privateConstructorUsedError;
   String get paymentType => throw _privateConstructorUsedError;
+  DateTime? get deliveryDate => throw _privateConstructorUsedError;
   String? get destinationAddress => throw _privateConstructorUsedError;
   String? get postamatAddress => throw _privateConstructorUsedError;
   String? get postamatCellNumber => throw _privateConstructorUsedError;
@@ -2310,6 +2311,7 @@ abstract class $AvailableOrderDtoCopyWith<$Res> {
     String status,
     String deliveryType,
     String paymentType,
+    DateTime? deliveryDate,
     String? destinationAddress,
     String? postamatAddress,
     String? postamatCellNumber,
@@ -2339,6 +2341,7 @@ class _$AvailableOrderDtoCopyWithImpl<$Res, $Val extends AvailableOrderDto>
     Object? status = null,
     Object? deliveryType = null,
     Object? paymentType = null,
+    Object? deliveryDate = freezed,
     Object? destinationAddress = freezed,
     Object? postamatAddress = freezed,
     Object? postamatCellNumber = freezed,
@@ -2371,6 +2374,10 @@ class _$AvailableOrderDtoCopyWithImpl<$Res, $Val extends AvailableOrderDto>
                 ? _value.paymentType
                 : paymentType // ignore: cast_nullable_to_non_nullable
                       as String,
+            deliveryDate: freezed == deliveryDate
+                ? _value.deliveryDate
+                : deliveryDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
             destinationAddress: freezed == destinationAddress
                 ? _value.destinationAddress
                 : destinationAddress // ignore: cast_nullable_to_non_nullable
@@ -2413,6 +2420,7 @@ abstract class _$$AvailableOrderDtoImplCopyWith<$Res>
     String status,
     String deliveryType,
     String paymentType,
+    DateTime? deliveryDate,
     String? destinationAddress,
     String? postamatAddress,
     String? postamatCellNumber,
@@ -2441,6 +2449,7 @@ class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
     Object? status = null,
     Object? deliveryType = null,
     Object? paymentType = null,
+    Object? deliveryDate = freezed,
     Object? destinationAddress = freezed,
     Object? postamatAddress = freezed,
     Object? postamatCellNumber = freezed,
@@ -2473,6 +2482,10 @@ class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
             ? _value.paymentType
             : paymentType // ignore: cast_nullable_to_non_nullable
                   as String,
+        deliveryDate: freezed == deliveryDate
+            ? _value.deliveryDate
+            : deliveryDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
         destinationAddress: freezed == destinationAddress
             ? _value.destinationAddress
             : destinationAddress // ignore: cast_nullable_to_non_nullable
@@ -2508,6 +2521,7 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
     this.status = '',
     this.deliveryType = '',
     this.paymentType = '',
+    this.deliveryDate,
     this.destinationAddress,
     this.postamatAddress,
     this.postamatCellNumber,
@@ -2535,6 +2549,8 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
   @JsonKey()
   final String paymentType;
   @override
+  final DateTime? deliveryDate;
+  @override
   final String? destinationAddress;
   @override
   final String? postamatAddress;
@@ -2553,7 +2569,7 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
 
   @override
   String toString() {
-    return 'AvailableOrderDto(orderId: $orderId, orderNumber: $orderNumber, createdAt: $createdAt, status: $status, deliveryType: $deliveryType, paymentType: $paymentType, destinationAddress: $destinationAddress, postamatAddress: $postamatAddress, postamatCellNumber: $postamatCellNumber, postamatCellSize: $postamatCellSize, items: $items)';
+    return 'AvailableOrderDto(orderId: $orderId, orderNumber: $orderNumber, createdAt: $createdAt, status: $status, deliveryType: $deliveryType, paymentType: $paymentType, deliveryDate: $deliveryDate, destinationAddress: $destinationAddress, postamatAddress: $postamatAddress, postamatCellNumber: $postamatCellNumber, postamatCellSize: $postamatCellSize, items: $items)';
   }
 
   @override
@@ -2571,6 +2587,8 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
                 other.deliveryType == deliveryType) &&
             (identical(other.paymentType, paymentType) ||
                 other.paymentType == paymentType) &&
+            (identical(other.deliveryDate, deliveryDate) ||
+                other.deliveryDate == deliveryDate) &&
             (identical(other.destinationAddress, destinationAddress) ||
                 other.destinationAddress == destinationAddress) &&
             (identical(other.postamatAddress, postamatAddress) ||
@@ -2592,6 +2610,7 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
     status,
     deliveryType,
     paymentType,
+    deliveryDate,
     destinationAddress,
     postamatAddress,
     postamatCellNumber,
@@ -2624,6 +2643,7 @@ abstract class _AvailableOrderDto implements AvailableOrderDto {
     final String status,
     final String deliveryType,
     final String paymentType,
+    final DateTime? deliveryDate,
     final String? destinationAddress,
     final String? postamatAddress,
     final String? postamatCellNumber,
@@ -2646,6 +2666,8 @@ abstract class _AvailableOrderDto implements AvailableOrderDto {
   String get deliveryType;
   @override
   String get paymentType;
+  @override
+  DateTime? get deliveryDate;
   @override
   String? get destinationAddress;
   @override

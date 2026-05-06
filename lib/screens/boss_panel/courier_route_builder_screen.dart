@@ -80,6 +80,7 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
         ),
 
         // 2. СПИСОК ЗАКАЗОВ
+// 2. СПИСОК ЗАКАЗОВ
         Expanded(
           child: state.availableOrders.isEmpty
               ? const Center(child: Text('Нет доступных заказов', style: TextStyle(color: Colors.white54)))
@@ -92,6 +93,14 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                     
                     // Расчет веса конкретного заказа
                     final orderWeight = order.items.fold<double>(0.0, (sum, item) => sum + (item.weightKg * item.quantity));
+                    
+                    // Форматируем время доставки (если оно есть)
+                    String deliveryTimeString = '';
+                    if (order.deliveryDate != null) {
+                       final dt = order.deliveryDate!.toLocal();
+                       // Формат: День.Месяц до Часы:Минуты
+                       deliveryTimeString = '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')} до ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                    }
 
                     return Card(
                       color: _cardBg,
@@ -106,9 +115,42 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                         checkColor: Colors.white,
                         onChanged: (checked) => vm.toggleOrderSelection(order.orderId, checked == true),
                         title: Text('Заказ #${order.orderId}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text(
-                          '${order.destinationAddress ?? 'Без адреса'}\nВес: ${orderWeight.toStringAsFixed(1)} кг', 
-                          style: const TextStyle(color: Colors.white54, fontSize: 12)
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, color: Colors.white54, size: 14),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      order.destinationAddress ?? 'Без адреса', 
+                                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (deliveryTimeString.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.access_time, color: Colors.orangeAccent, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      deliveryTimeString, 
+                                      style: const TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 4),
+                              Text('Вес: ${orderWeight.toStringAsFixed(1)} кг', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          ),
                         ),
                         isThreeLine: true,
                       ),
@@ -116,7 +158,6 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                   },
                 ),
         ),
-
         // 3. ПОДВАЛ С ИНДИКАТОРОМ ВЕСА И КНОПКОЙ
         Container(
           padding: const EdgeInsets.all(16),
