@@ -64,7 +64,14 @@ class ApiClient {
       },
     ));
   }
-  
+  Future<void> rejectCourierOrderAsync(int orderId) async {
+    try {
+      await postAsync(ApiEndpoints.rejectCourierOrder(orderId));
+    } catch (e) {
+      Logger.e('Ошибка фиксации отказа от заказа $orderId', e);
+      rethrow;
+    }
+  }
   /// Единое завершение назначения работника (полиморфно для любой задачи)
   Future<void> workerTaskCompleteAsync(int taskId, int workerId, {Map<String, dynamic>? data}) async {
     final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
@@ -89,27 +96,49 @@ class ApiClient {
     final url = ApiEndpoints.workerTaskStart(taskId, workerId);
     await postAsync(url, data: {});
   }
-  void _handleResponseErrors(Response response) {
+void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {
       throw UnauthorizedException('Токен истёк или невалиден');
     }
     if (response.statusCode == 404) {
       throw NotFoundException('Ресурс не найден: ${response.requestOptions.path}');
     }
-    if (response.statusCode != null && response.statusCode! >= 400) {
-      throw ApiException('HTTP ошибка: ${response.statusCode}');
+
+    // Достаем текст ошибки из JSON ответа бэкенда
+    String serverMessage = 'HTTP ошибка: ${response.statusCode}';
+    if (response.data is Map) {
+      final msg = response.data['message'] ?? response.data['Message'] ?? response.data['error'];
+      final details = response.data['details'] ?? response.data['Details'];
+      
+      if (msg != null) serverMessage = msg.toString();
+      if (details != null) serverMessage += '\nДетали: $details';
     }
+
     if (response.statusCode == 409) {
-      // Пытаемся достать текст ошибки ('error': '...'), который мы отправляем из C#
-      final errorMessage = (response.data is Map && response.data['error'] != null) 
-          ? response.data['error'].toString() 
-          : 'Пользователь с такими данными уже существует';
-      throw ConflictException(errorMessage);
+      throw ConflictException(serverMessage);
     }
+    
     if (response.statusCode != null && response.statusCode! >= 400) {
-      throw ApiException('HTTP ошибка: ${response.statusCode}');
+      throw ApiException(serverMessage);
     }
   }
+
+  Future<void> updateCourierStatusAsync(int branchId, String checkType) async {
+    try {
+      await postAsync(
+        ApiEndpoints.updateCourierStatus,
+        data: {
+          'branchId': branchId,
+          'checkType': checkType,
+        },
+      );
+    } catch (e) {
+      Logger.w('Ошибка смены статуса транспорта: $e');
+      rethrow;
+    }
+  }
+  
+  
   Future<CheckIOEmployeeDto?> getLastCheckAsync(int employeeId) async {
     final response = await getAsync(ApiEndpoints.lastCheck(employeeId));
     if (response == null) return null;
@@ -447,18 +476,57 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
     await postAsync(ApiEndpoints.claimPoolTask(taskId, workerId));
   }
 
-  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken) async {
+// 1. Для обычной выдачи в магазине
+  Future<void> completeWorkerTaskAsync(int taskId, int workerId, {Map<int, int>? cancelledLines}) async {
     try {
-      final url = ApiEndpoints.orderHandoverCompleteCourier(taskId);
-      await postAsync(url, data: {
-        'workerId': workerId,
-        'qrToken': qrToken,
-      });
+      // Собираем чистый Map<String, dynamic>, который Dio 100% переварит
+      final Map<String, dynamic> requestData = {};
+      
+      if (cancelledLines != null && cancelledLines.isNotEmpty) {
+        final Map<String, dynamic> serializedLines = {};
+        cancelledLines.forEach((key, value) {
+          serializedLines[key.toString()] = value;
+        });
+        requestData['cancelledLines'] = serializedLines;
+      }
+
+      await postAsync(
+        ApiEndpoints.workerTaskComplete(taskId, workerId),
+        data: requestData.isNotEmpty ? requestData : null,
+      );
     } catch (e) {
-      Logger.w('Ошибка при подтверждении передачи курьеру по QR: $e');
+      Logger.w('Ошибка при завершении задачи: $e');
       rethrow;
     }
   }
+
+  // 2. Для курьерской доставки
+  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken, {Map<int, int>? cancelledLines}) async {
+    try {
+      final Map<String, dynamic> requestData = {
+        'qrToken': qrToken,
+        'courierId': workerId,
+      };
+
+      if (cancelledLines != null && cancelledLines.isNotEmpty) {
+        final Map<String, dynamic> serializedLines = {};
+        cancelledLines.forEach((key, value) {
+          serializedLines[key.toString()] = value;
+        });
+        requestData['rejectedQuantities'] = serializedLines;
+      }
+
+      await postAsync(
+        ApiEndpoints.courierPartialComplete,
+        data: requestData,
+      );
+    } catch (e) {
+      Logger.e('Ошибка подтверждения доставки курьером: $e');
+      rethrow;
+    }
+  }
+
+
 
   /// Запрос на получение временного QR-кода курьера для приемки товаров
   Future<Map<String, dynamic>?> getCourierPickupQrAsync(int courierId) async {

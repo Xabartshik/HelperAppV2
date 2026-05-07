@@ -107,6 +107,54 @@ Future<bool> scanShiftQr(String payload, int branchId, String checkType) async {
     }
   }
 
+  Future<bool> rejectOrder(int orderId) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.rejectCourierOrderAsync(orderId);
+      await loadOrders(isSilent: true); // Обновляем список, чтобы заказ исчез с экрана
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> setTransportStatus(String newCheckType) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      final user = ref.read(currentUserProvider);
+      
+      if (user == null) throw Exception('Пользователь не найден');
+
+      // 1. Отправляем статус на сервер
+      await client.updateCourierStatusAsync(user.branchId!, newCheckType);
+
+      // 2. Обновляем локальное состояние, чтобы UI мгновенно перерисовался
+      final newCheck = CheckIOEmployeeDto(
+        id: 0, 
+        employeeId: user.employeeId!,
+        branchId: user.branchId!,
+        checkType: newCheckType,
+        checkTimeStamp: DateTime.now(),
+      );
+      state = state.copyWith(isLoading: false, currentCheck: newCheck);
+
+      // 3. Если курьер вернулся на базу ('dock'), возможно у него забрали отказы.
+      // На всякий случай обновляем списки в фоне.
+      if (newCheckType == 'dock') {
+        await loadOrders(isSilent: true);
+      }
+
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при смене транспортного статуса', e);
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      return false;
+    }
+  }
+
   Future<bool> deliverOrder(int orderId) async {
     state = state.copyWith(isLoading: true);
     try {

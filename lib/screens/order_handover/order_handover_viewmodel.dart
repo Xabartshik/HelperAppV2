@@ -118,34 +118,38 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
     }
   }
 
-  /// Завершение задачи выдачи
-/// Завершение задачи выдачи
+  /// Завершение задачи выдачи в магазине
   Future<(bool, String)> completeTask() async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
       
-      // Формируем payload с отмененными товарами (если они есть)
-      final payload = {
-        'cancelledLines': state.cancelledQuantities, // Map<int, int> { lineId: count }
-      };
-
-      // Передаем данные на сервер
-      await client.workerTaskCompleteAsync(arg.taskId, arg.workerId, data: payload);
+      // Передаем собранные отмены через именованный параметр
+      await client.completeWorkerTaskAsync(
+        arg.taskId, 
+        arg.workerId,
+        cancelledLines: state.cancelledQuantities,
+      );
       
-      return (true, 'Задача успешно завершена');
+      return (true, 'Выдача успешно завершена!');
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return (false, e.toString());
     }
   }
 
-  Future<(bool, String)> completeCourierHandover(String qrToken) async {
+  /// Завершение отгрузки курьеру с QR-подтверждением
+Future<(bool, String)> completeCourierHandover(String qrToken) async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
-      // Имитация успешного вызова для примера:
-      await client.completeCourierHandoverAsync(arg.taskId, arg.workerId, qrToken); 
+      
+      await client.completeCourierHandoverAsync(
+        arg.taskId, 
+        arg.workerId, 
+        qrToken, 
+        cancelledLines: state.cancelledQuantities, // <-- ДОБАВЛЕНО ИМЯ ПАРАМЕТРА
+      ); 
       
       return (true, 'Отгрузка успешно подтверждена!');
     } catch (e) {
@@ -176,14 +180,15 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
   }
 
   /// Выбрать все несобранные товары для отмены
+/// Выбрать все товары для отмены (даже если они были отсканированы)
   void selectAllForCancellation() {
     if (state.details == null) return;
     
     final newMap = <int, int>{};
     for (var item in state.details!.itemsToScan) {
-      final remaining = item.quantity - item.scannedQuantity;
-      if (remaining > 0) {
-        newMap[item.lineId] = remaining;
+      // ИЗМЕНЕНИЕ: Записываем в отмену ВСЁ ожидаемое количество товара
+      if (item.quantity > 0) {
+        newMap[item.lineId] = item.quantity;
       }
     }
     

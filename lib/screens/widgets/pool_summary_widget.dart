@@ -1,3 +1,4 @@
+import 'dart:async'; // Обязательный импорт для таймера
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,14 @@ final globalPoolTasksProvider = FutureProvider.autoDispose<List<MobileBaseTaskDt
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser?.branchId == null) return [];
   
+  // Добавленный код Варианта 1: Настройка таймера автообновления раз в 5 минут
+  final timer = Timer.periodic(const Duration(minutes: 5), (t) {
+    ref.invalidateSelf(); // Заставляет провайдер перезагрузить данные
+  });
+
+  // Очистка таймера при уничтожении провайдера
+  ref.onDispose(() => timer.cancel());
+
   final client = ref.watch(apiClientProvider);
   return await client.getGlobalPoolTasksAsync(currentUser!.branchId!);
 });

@@ -22,6 +22,11 @@ static String globalPoolTasks(int branchId) => 'v1/WorkerTasks/$branchId/pool';
   static String getCourierOrders(int courierId) => 'v1/Courier/$courierId/orders';
   // Подтверждение доставки
   static String deliverCourierOrder(int orderId) => 'v1/Courier/orders/$orderId/deliver';
+  // Отказ от доставки
+  static String rejectCourierOrder(int orderId) => 'v1/Courier/orders/$orderId/reject';
+  static const String updateCourierStatus = 'QrCheckIn/status';
+  // В класс ApiEndpoints добавь:
+static const String courierPartialComplete = 'v1/CourierDelivery/partial-complete';
 // // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)
 // static String workerTaskDetails(int taskId, int workerId) => 
 //     'v1/WorkerTasks/$workerId/$taskId/details';

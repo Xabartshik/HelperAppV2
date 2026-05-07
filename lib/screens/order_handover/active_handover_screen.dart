@@ -80,7 +80,7 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     initializeTaskStartState();
   }
 
-@override
+  @override
   Future<void> onTaskStarted() async {
     // Убрали activateTask(), так как базовый миксин УЖЕ активировал задачу на сервере
     await ref.read(orderHandoverViewModelProvider(_args).notifier).loadTask();
@@ -124,6 +124,7 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
   }
 
   AppBar _buildAppBar(OrderHandoverState state, OrderHandoverViewModel vm) {
+    final isCourier = state.details?.handoverType == 'ToCourier';
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +146,7 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
         onPressed: () => context.pop(),
       ),
       actions: [
-        if (state.isCancelMode)
+        if (state.isCancelMode && !isCourier)
           TextButton(
             onPressed: () => vm.selectAllForCancellation(),
             child: const Text('ОТМЕНИТЬ ВСЁ', 
@@ -207,51 +208,7 @@ class _ActiveHandoverScreenState extends ConsumerState<ActiveHandoverScreen>
     );
   }
 
-  Widget _buildModeBanner(OrderHandoverState state) {
-    final details = state.details;
-    if (details == null) return const SizedBox();
-    final isCourier = details.handoverType == 'ToCourier';
-    final activeColor = state.isCancelMode ? _cancelColor : _handoverColor;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: activeColor.withValues(alpha: 0.12),
-        border: Border(bottom: BorderSide(color: activeColor, width: 2)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            state.isCancelMode ? Icons.edit_note : (isCourier ? Icons.local_shipping : Icons.person), 
-            color: activeColor, 
-            size: 28
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  state.isCancelMode ? 'Редактирование отмен' : (isCourier ? 'Передача курьеру' : 'Выдача клиенту'),
-                  style: TextStyle(color: activeColor, fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  state.isCancelMode 
-                    ? 'Уменьшите количество, чтобы вернуть товар в сборку' 
-                    : 'Цель: ${details.targetName}',
-                  style: const TextStyle(color: Colors.white54, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
+  Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
     if (state.details == null) return const SizedBox();
 
     // Специальный экран для Помощника в выдаче
@@ -301,7 +258,10 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
     final cancelled = state.cancelledQuantities[item.lineId] ?? 0;
     final isDone = (item.scannedQuantity + cancelled) >= item.quantity;
     final statusColor = isDone ? Colors.green : Colors.white54;
-
+    int effectiveScanned = item.scannedQuantity;
+    if (effectiveScanned + cancelled > item.quantity) {
+      effectiveScanned = item.quantity - cancelled;
+    }
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -346,7 +306,7 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
             ),
           ),
           Text(
-            '${item.scannedQuantity} / ${item.quantity}',
+            '$effectiveScanned / ${item.quantity}',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -359,8 +319,16 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
   }
 
   Widget _buildCancelItemCard(HandoverItemDto item, OrderHandoverState state, OrderHandoverViewModel vm) {
-    final cancelled = state.cancelledQuantities[item.lineId] ?? 0;
-    final maxAvailable = item.quantity - item.scannedQuantity;
+final cancelled = state.cancelledQuantities[item.lineId] ?? 0;
+    
+    // ИЗМЕНЕНИЕ 1: Разрешаем отменять вплоть до полного количества товара в позиции
+    final maxAvailable = item.quantity;
+
+    // ИЗМЕНЕНИЕ 2: Виртуально уменьшаем количество "отсканированного", если отмена его перекрывает
+    int effectiveScanned = item.scannedQuantity;
+    if (effectiveScanned + cancelled > item.quantity) {
+      effectiveScanned = item.quantity - cancelled;
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -377,7 +345,7 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.itemName, style: const TextStyle(color: Colors.white, fontSize: 14)),
-                Text('Отсканировано: ${item.scannedQuantity} / ${item.quantity}', 
+                Text('Отсканировано: $effectiveScanned / ${item.quantity}',
                   style: const TextStyle(color: Colors.white38, fontSize: 11)),
               ],
             ),
@@ -408,6 +376,8 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
   Widget _buildBottomControls(OrderHandoverState state, OrderHandoverViewModel vm) {
     if (!canEditTask) return const SizedBox();
 
+    final isCourier = state.details?.handoverType == 'ToCourier';
+
     return Container(
       padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 16),
       decoration: const BoxDecoration(
@@ -416,7 +386,7 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
       ),
       child: Column(
         children: [
-          if (state.isCancelMode)
+          if (state.isCancelMode && !isCourier)
             ElevatedButton(
               onPressed: () => vm.toggleCancelMode(),
               style: ElevatedButton.styleFrom(
@@ -445,7 +415,7 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
             Row(
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: isCourier ? 1 : 3,
                   child: ElevatedButton.icon(
                     onPressed: state.allItemsScanned ? null : () => _openScanner(state, vm),
                     icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
@@ -459,26 +429,28 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () => vm.toggleCancelMode(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _bgGray900,
-                      minimumSize: const Size(0, 54),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      side: BorderSide(color: state.cancelledQuantities.isNotEmpty ? Colors.amber : _cancelColor, width: 1),
-                    ),
-                    child: Text(
-                      state.cancelledQuantities.isNotEmpty ? 'ПРАВКА' : 'ОТМЕНА', 
-                      style: TextStyle(
-                        color: state.cancelledQuantities.isNotEmpty ? Colors.amber : _cancelColor, 
-                        fontWeight: FontWeight.bold
-                      )
+                if (!isCourier) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: () => vm.toggleCancelMode(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _bgGray900,
+                        minimumSize: const Size(0, 54),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: state.cancelledQuantities.isNotEmpty ? Colors.amber : _cancelColor, width: 1),
+                      ),
+                      child: Text(
+                        state.cancelledQuantities.isNotEmpty ? 'ПРАВКА' : 'ОТМЕНА', 
+                        style: TextStyle(
+                          color: state.cancelledQuantities.isNotEmpty ? Colors.amber : _cancelColor, 
+                          fontWeight: FontWeight.bold
+                        )
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ],
@@ -487,7 +459,7 @@ Widget _buildContent(OrderHandoverState state, OrderHandoverViewModel vm) {
     );
   }
   
-void _confirmCompletion(OrderHandoverViewModel vm) async {
+  void _confirmCompletion(OrderHandoverViewModel vm) async {
     // Если это передача курьеру — требуем "цифровое рукопожатие"
     if (ref.read(orderHandoverViewModelProvider(_args)).details?.handoverType == 'ToCourier') {
       
@@ -582,6 +554,50 @@ void _confirmCompletion(OrderHandoverViewModel vm) async {
                 style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
             ]),
           )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeBanner(OrderHandoverState state) {
+    final details = state.details;
+    if (details == null) return const SizedBox();
+    final isCourier = details.handoverType == 'ToCourier';
+    final activeColor = state.isCancelMode ? _cancelColor : _handoverColor;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: activeColor.withValues(alpha: 0.12),
+        border: Border(bottom: BorderSide(color: activeColor, width: 2)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            state.isCancelMode ? Icons.edit_note : (isCourier ? Icons.local_shipping : Icons.person), 
+            color: activeColor, 
+            size: 28
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  state.isCancelMode ? 'Редактирование отмен' : (isCourier ? 'Передача курьеру' : 'Выдача клиенту'),
+                  style: TextStyle(color: activeColor, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  state.isCancelMode 
+                    ? 'Уменьшите количество, чтобы вернуть товар в сборку' 
+                    : 'Цель: ${details.targetName}',
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

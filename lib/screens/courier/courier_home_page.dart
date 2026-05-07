@@ -126,6 +126,54 @@ ElevatedButton(
   }
 
 
+Widget _buildTransportBanner(BuildContext context, CourierState state, WidgetRef ref) {
+    final lastType = state.currentCheck?.checkType ?? 'out';
+    
+    // Если смена закрыта ('out') - не показываем этот баннер вообще
+    if (lastType == 'out') return const SizedBox.shrink();
+
+    final isDriving = lastType == 'dispatch';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      color: isDriving ? Colors.orange.shade800 : Colors.blue.shade800,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Icon(isDriving ? Icons.local_shipping : Icons.warehouse, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isDriving ? 'НА МАРШРУТЕ' : 'НА БАЗЕ (ПАНДУС)',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: isDriving ? Colors.orange.shade800 : Colors.blue.shade800,
+              elevation: 0,
+            ),
+            onPressed: state.isLoading ? null : () async {
+               // Переключаем статус: если ехал -> на базу, если был на базе -> в путь
+               final newStatus = isDriving ? 'dock' : 'dispatch';
+               await ref.read(courierViewModelProvider.notifier).setTransportStatus(newStatus);
+            },
+            child: state.isLoading 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(isDriving ? 'ВЕРНУЛСЯ' : 'В ПУТЬ!'),
+          ),
+        ],
+      ),
+    );
+  }
+
 void _showQrCodeDialog(BuildContext context, WidgetRef ref) async {
     // 1. Захватываем навигатор заранее, как в рабочем экране
     final navigator = Navigator.of(context, rootNavigator: true);
@@ -255,6 +303,7 @@ Widget build(BuildContext context) {
         // Отображаем баннер смены, если данные загружены или уже есть информация о чеке (смене)
         if (!state.isLoading || state.currentCheck != null)
           _buildShiftBanner(context, state, ref),
+          _buildTransportBanner(context, state, ref),
 
         const SizedBox(height: 8),
 
@@ -319,20 +368,40 @@ Widget build(BuildContext context) {
                     Expanded(child: Text(order.destinationAddress ?? 'Адрес не указан', style: const TextStyle(color: Colors.white70, fontSize: 14))),
                   ],
                 ),
-                if (isInTransit) ...[
+if (isInTransit) ...[
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _confirmDelivery(context, ref, order.orderId),
-                      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                      label: const Text('ДОСТАВЛЕНО КЛИЕНТУ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  Row(
+                    children: [
+                      // Кнопка "Отказ"
+                      Expanded(
+                        flex: 1,
+                        child: ElevatedButton(
+                          onPressed: () => _confirmRejection(context, ref, order.orderId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent.withValues(alpha: 0.15),
+                            side: const BorderSide(color: Colors.redAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Icon(Icons.close, color: Colors.redAccent),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      // Кнопка "Доставлено"
+                      Expanded(
+                        flex: 4,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _confirmDelivery(context, ref, order.orderId),
+                          icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                          label: const Text('ДОСТАВЛЕНО', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      )
+                    ],
                   )
                 ] else ...[
                    const SizedBox(height: 12),
@@ -344,6 +413,57 @@ Widget build(BuildContext context) {
         },
       ),
     );
+  }
+
+  void _confirmRejection(BuildContext context, WidgetRef ref, int orderId) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Отказ клиента?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Клиент отказался от заказа или его нет на месте? Товары останутся в багажнике для возврата на склад.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('ДА, ОТКАЗ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => const Center(child: CircularProgressIndicator(color: _primaryColor)),
+      );
+
+      final success = await ref.read(courierViewModelProvider.notifier).rejectOrder(orderId);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Снимаем лоадер
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Отказ зафиксирован. Товар в багажнике.'), backgroundColor: Colors.orange)
+          );
+            } else {
+          // Читаем реальную ошибку из ViewModel!
+          final errorMsg = ref.read(courierViewModelProvider).errorMessage;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(errorMsg.isNotEmpty ? errorMsg : 'Ошибка при фиксации отказа'), backgroundColor: Colors.redAccent)
+          );
+        }
+      }
+    }
   }
 
 void _confirmDelivery(BuildContext context, WidgetRef ref, int orderId) async {
