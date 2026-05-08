@@ -467,7 +467,7 @@ if (isInTransit) ...[
   }
 
 void _confirmDelivery(BuildContext context, WidgetRef ref, int orderId) async {
-    final String? customerQrToken = await context.push<String>('/shift-scanner');
+    final String? customerQrToken = await context.push<String>('/customer-qr-scanner');
     
     if (customerQrToken != null && customerQrToken.isNotEmpty && context.mounted) {
       final navigator = Navigator.of(context, rootNavigator: true);

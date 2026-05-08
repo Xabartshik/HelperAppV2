@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/network/api_client.dart';
+import 'package:helper_app/screens/widgets/pool_summary_widget.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/task_service.dart';
 import '../../core/models/tasks/task_models.dart';
@@ -246,6 +247,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
     }
 
     try {
+      ref.invalidate(globalPoolTasksProvider);
       final currentUser = ref.read(currentUserProvider);
       if (currentUser == null) {
         if (!isSilent) state = state.copyWith(isBusy: false);
