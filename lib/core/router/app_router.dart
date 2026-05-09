@@ -13,6 +13,7 @@ import 'package:helper_app/core/models/user/current_user.dart';
 import 'package:helper_app/screens/order_assembly/customer_qr_scanner_page.dart';
 import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
 import 'package:helper_app/screens/order_handover/handover_barcode_scanner_page.dart';
+import 'package:helper_app/screens/return_to_stock/active_return_screen.dart';
 import 'package:helper_app/screens/tasks/global_pool_screen.dart';
 import '../services/auth_service.dart';
 import '../utils/logger.dart';
@@ -89,6 +90,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/courier-home',
         name: 'courier_home',
         builder: (context, state) => const CourierHomePage(),
+      ),
+      GoRoute(
+        path: '/return-to-stock/active',
+        name: 'return_to_stock_active',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return ActiveReturnScreen(
+            assignmentId: args['assignmentId'] as int? ?? 0,
+            taskId: args['taskId'] as int? ?? 0,
+            taskStatusIndex: args['taskStatusIndex'] as int?,
+            assignmentStatusIndex: args['assignmentStatusIndex'] as int?,
+          );
+        },
       ),
       GoRoute(
         path: '/customer-qr-scanner',

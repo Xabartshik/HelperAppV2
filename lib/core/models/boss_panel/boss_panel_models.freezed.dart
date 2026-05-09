@@ -1111,6 +1111,7 @@ mixin _$AvailableEmployeeDto {
   bool get isRecommended => throw _privateConstructorUsedError;
   double? get maxWeightKg => throw _privateConstructorUsedError;
   String? get vehicleName => throw _privateConstructorUsedError;
+  bool get isOnRoute => throw _privateConstructorUsedError;
 
   /// Serializes this AvailableEmployeeDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1137,6 +1138,7 @@ abstract class $AvailableEmployeeDtoCopyWith<$Res> {
     bool isRecommended,
     double? maxWeightKg,
     String? vehicleName,
+    bool isOnRoute,
   });
 }
 
@@ -1165,6 +1167,7 @@ class _$AvailableEmployeeDtoCopyWithImpl<
     Object? isRecommended = null,
     Object? maxWeightKg = freezed,
     Object? vehicleName = freezed,
+    Object? isOnRoute = null,
   }) {
     return _then(
       _value.copyWith(
@@ -1196,6 +1199,10 @@ class _$AvailableEmployeeDtoCopyWithImpl<
                 ? _value.vehicleName
                 : vehicleName // ignore: cast_nullable_to_non_nullable
                       as String?,
+            isOnRoute: null == isOnRoute
+                ? _value.isOnRoute
+                : isOnRoute // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -1219,6 +1226,7 @@ abstract class _$$AvailableEmployeeDtoImplCopyWith<$Res>
     bool isRecommended,
     double? maxWeightKg,
     String? vehicleName,
+    bool isOnRoute,
   });
 }
 
@@ -1243,6 +1251,7 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
     Object? isRecommended = null,
     Object? maxWeightKg = freezed,
     Object? vehicleName = freezed,
+    Object? isOnRoute = null,
   }) {
     return _then(
       _$AvailableEmployeeDtoImpl(
@@ -1274,6 +1283,10 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
             ? _value.vehicleName
             : vehicleName // ignore: cast_nullable_to_non_nullable
                   as String?,
+        isOnRoute: null == isOnRoute
+            ? _value.isOnRoute
+            : isOnRoute // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -1290,6 +1303,7 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     this.isRecommended = false,
     this.maxWeightKg,
     this.vehicleName,
+    this.isOnRoute = false,
   });
 
   factory _$AvailableEmployeeDtoImpl.fromJson(Map<String, dynamic> json) =>
@@ -1313,10 +1327,13 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
   final double? maxWeightKg;
   @override
   final String? vehicleName;
+  @override
+  @JsonKey()
+  final bool isOnRoute;
 
   @override
   String toString() {
-    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended, maxWeightKg: $maxWeightKg, vehicleName: $vehicleName)';
+    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended, maxWeightKg: $maxWeightKg, vehicleName: $vehicleName, isOnRoute: $isOnRoute)';
   }
 
   @override
@@ -1337,7 +1354,9 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
             (identical(other.maxWeightKg, maxWeightKg) ||
                 other.maxWeightKg == maxWeightKg) &&
             (identical(other.vehicleName, vehicleName) ||
-                other.vehicleName == vehicleName));
+                other.vehicleName == vehicleName) &&
+            (identical(other.isOnRoute, isOnRoute) ||
+                other.isOnRoute == isOnRoute));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1351,6 +1370,7 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     isRecommended,
     maxWeightKg,
     vehicleName,
+    isOnRoute,
   );
 
   /// Create a copy of AvailableEmployeeDto
@@ -1380,6 +1400,7 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
     final bool isRecommended,
     final double? maxWeightKg,
     final String? vehicleName,
+    final bool isOnRoute,
   }) = _$AvailableEmployeeDtoImpl;
 
   factory _AvailableEmployeeDto.fromJson(Map<String, dynamic> json) =
@@ -1399,6 +1420,8 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
   double? get maxWeightKg;
   @override
   String? get vehicleName;
+  @override
+  bool get isOnRoute;
 
   /// Create a copy of AvailableEmployeeDto
   /// with the given fields replaced by the non-null parameter values.

@@ -42,6 +42,8 @@ String taskTypeToRussian(TaskType type) {
       return 'Подготовка заказа к выдаче';
     case TaskType.orderHandover: // <-- ДОБАВЛЕНО
       return 'Выдача / Передача заказа';
+    case TaskType.returnToStock: // <-- ДОБАВЛЕНО
+      return 'Возврат на полку';
     case TaskType.receipt:
       return 'Приёмка';
     case TaskType.movement:
@@ -108,8 +110,35 @@ static TaskCardVm fromTask(TaskItemBase task) {
     if (task is OrderHandoverTaskItem) { 
       return _mapOrderHandoverTaskToCard(task);
     }
+    if (task is ReturnToStockTaskItem) {
+      return _mapReturnToStockTaskToCard(task);
+    }
     return _mapGenericTaskToCard(task);
   }
+
+static TaskCardVm _mapReturnToStockTaskToCard(ReturnToStockTaskItem task) {
+    return TaskCardVm(
+      kind: task.type.name,
+      navigationId: task.assignmentId,
+      title: task.title,
+      subtitle: task.description,
+      status: task.status,
+      statusText: assignmentStatusToRussian(task.assignmentStatus),
+      priority: task.priority,
+      deadline: task.deadline,
+      completedSteps: task.completedLinesCount,
+      totalSteps: task.totalLines,
+      primaryMetric: task.totalLines > 0 ? '${task.completedLinesCount}/${task.totalLines} позиций' : 'Ждет выполнения',
+      createdAt: task.createdAt,
+      badges: {
+        'Тип': 'Складской возврат',
+        'Статус': assignmentStatusToRussian(task.assignmentStatus),
+        if (task.isCooperative) 'Напарник': task.partnerName ?? 'Ожидание',
+      },
+      rawTask: task,
+    );
+  }
+  
 static TaskCardVm _mapOrderHandoverTaskToCard(OrderHandoverTaskItem task) {
     final isCourier = task.handoverType == 'ToCourier';
     

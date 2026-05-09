@@ -111,6 +111,7 @@ _$AvailableEmployeeDtoImpl _$$AvailableEmployeeDtoImplFromJson(
   isRecommended: json['isRecommended'] as bool? ?? false,
   maxWeightKg: (json['maxWeightKg'] as num?)?.toDouble(),
   vehicleName: json['vehicleName'] as String?,
+  isOnRoute: json['isOnRoute'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
@@ -123,6 +124,7 @@ Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
   'isRecommended': instance.isRecommended,
   'maxWeightKg': instance.maxWeightKg,
   'vehicleName': instance.vehicleName,
+  'isOnRoute': instance.isOnRoute,
 };
 
 _$CreateInventoryByZoneDtoImpl _$$CreateInventoryByZoneDtoImplFromJson(

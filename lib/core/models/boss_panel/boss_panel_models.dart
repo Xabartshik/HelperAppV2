@@ -72,6 +72,7 @@ class AvailableEmployeeDto with _$AvailableEmployeeDto {
     @Default(false) bool isRecommended,
     double? maxWeightKg,
     String? vehicleName,
+    @Default(false) bool isOnRoute,
   }) = _AvailableEmployeeDto;
 
   factory AvailableEmployeeDto.fromJson(Map<String, dynamic> json) => _$AvailableEmployeeDtoFromJson(json);

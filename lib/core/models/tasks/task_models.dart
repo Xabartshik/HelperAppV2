@@ -4,6 +4,7 @@ enum TaskType {
   inventory,
   orderAssembly,
   orderHandover,
+  returnToStock,
   receipt,
   movement,
   shipping,
@@ -278,6 +279,36 @@ class OrderHandoverTaskItem extends TaskItemBase {
     required this.assignmentId,
     required this.orderId,
     required this.handoverType,
+    required this.totalLines,
+    this.completedLinesCount = 0,
+    super.details,
+  });
+}
+
+class ReturnToStockTaskItem extends TaskItemBase {
+  final int assignmentId;
+  final bool isCooperative;
+  final String? partnerName;
+  final int totalLines;
+  final int completedLinesCount;
+
+  ReturnToStockTaskItem({
+    required super.taskId,
+    required super.type,
+    required super.branchId,
+    required super.title,
+    super.description,
+    required super.status,
+    required super.assignmentStatus,
+    required super.priority,
+    super.deadline,
+    required super.createdAt,
+    super.completedAt,
+    required super.assignedToEmployeeId,
+    required super.assignedAt,
+    required this.assignmentId,
+    this.isCooperative = false,
+    this.partnerName,
     required this.totalLines,
     this.completedLinesCount = 0,
     super.details,
