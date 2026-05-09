@@ -43,7 +43,17 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                 ),
                 dropdownColor: _cardBg,
                 style: const TextStyle(color: Colors.white),
-                items: state.couriers.map((c) => DropdownMenuItem(value: c.employeeId, child: Text(c.fullName))).toList(),
+                items: state.couriers.map((c) => DropdownMenuItem(
+                  value: c.employeeId,
+                  enabled: !c.isOnRoute, // Блокируем нажатие, если курьер в пути
+                  child: Text(
+                    c.isOnRoute ? '${c.fullName} (В пути)' : '${c.fullName} (На базе)',
+                    style: TextStyle(
+                      color: c.isOnRoute ? Colors.white38 : Colors.white, // Делаем тусклым, если недоступен
+                      fontStyle: c.isOnRoute ? FontStyle.italic : FontStyle.normal,
+                    ),
+                  ),
+                )).toList(),
                 onChanged: (val) => vm.selectCourier(val),
               ),
               

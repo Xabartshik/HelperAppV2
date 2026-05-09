@@ -253,7 +253,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         if (!isSilent) state = state.copyWith(isBusy: false);
         return;
       }
-
+      await _fetchBreakStatus();
       final taskService = ref.read(taskServiceProvider);
       final tasks = await taskService.getTasksForCurrentUserAsync(currentUser.employeeId!);
 

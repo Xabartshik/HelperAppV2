@@ -70,27 +70,33 @@ class CourierRouteBuilderViewModel extends AutoDisposeNotifier<CourierRouteBuild
     return total;
   }
 
-  Future<void> loadData() async {
-    state = state.copyWith(isLoading: true, errorMessage: '');
-    try {
-      final client = ref.read(apiClientProvider);
-      
-      // Грузим параллельно
-      final results = await Future.wait([
-        client.getBossPanelAvailableCouriersAsync(),
-        client.getBossPanelReadyOrdersAsync(),
-      ]);
+Future<void> loadData() async {
+  state = state.copyWith(isLoading: true, errorMessage: '');
+  try {
+    final client = ref.read(apiClientProvider);
+    
+    final results = await Future.wait([
+      client.getBossPanelAvailableCouriersAsync(),
+      client.getBossPanelReadyOrdersAsync(),
+    ]);
 
-      state = state.copyWith(
-        isLoading: false,
-        couriers: results[0] as List<AvailableEmployeeDto>,
-        availableOrders: results[1] as List<AvailableOrderDto>,
-      );
-    } catch (e) {
-      Logger.e('Ошибка загрузки данных для формирования маршрута: $e');
-      state = state.copyWith(isLoading: false, errorMessage: 'Ошибка сети: $e');
-    }
+    // Получаем и сортируем курьеров
+    final couriersList = results[0] as List<AvailableEmployeeDto>;
+    couriersList.sort((a, b) {
+      if (a.isOnRoute == b.isOnRoute) return 0;
+      return a.isOnRoute ? 1 : -1; // Сначала те, кто на базе (false), потом те, кто в пути (true)
+    });
+
+    state = state.copyWith(
+      isLoading: false,
+      couriers: couriersList,
+      availableOrders: results[1] as List<AvailableOrderDto>,
+    );
+  } catch (e) {
+    Logger.e('Ошибка загрузки данных для формирования маршрута: $e');
+    state = state.copyWith(isLoading: false, errorMessage: 'Ошибка сети: $e');
   }
+}
 
   void toggleOrderSelection(int orderId, bool isSelected) {
     final newSet = Set<int>.from(state.selectedOrderIds);
