@@ -48,7 +48,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     );
   }
 
-  Future<void> _register() async {
+Future<void> _register() async {
     FocusScope.of(context).unfocus();
 
     final firstName = _firstNameController.text.trim();
@@ -58,7 +58,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // 1. Проверка обязательных полей (логика как в C# сервисе)
+    // 1. Проверка обязательных полей
     if (login.isEmpty || password.isEmpty) {
       _showError('Логин и пароль обязательны для заполнения.');
       return;
@@ -68,13 +68,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       return;
     }
 
-    // 2. Проверка: хотя бы телефон или Email
-    if (phone.isEmpty && email.isEmpty) {
-      _showError('Укажите хотя бы номер телефона или Email.');
+    // 2. Строгая проверка телефона (теперь он обязателен)
+    if (phone.isEmpty) {
+      _showError('Номер телефона обязателен для заполнения.');
       return;
     }
 
-    // 3. Валидация Email (RegExp из MobileAppUserService.cs)
+    // 3. Валидация Телефона
+    final phoneRegExp = RegExp(r'^\+?[\d\s\-\(\)]{10,20}$');
+    if (!phoneRegExp.hasMatch(phone)) {
+      _showError('Введите корректный номер телефона (10-20 цифр).');
+      return;
+    }
+
+    // 4. Валидация Email (Email остается необязательным, но проверяется, если введен)
     if (email.isNotEmpty) {
       final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
       if (!emailRegExp.hasMatch(email)) {
@@ -83,20 +90,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       }
     }
 
-    // 4. Валидация Телефона (RegExp из MobileAppUserService.cs)
-    if (phone.isNotEmpty) {
-      final phoneRegExp = RegExp(r'^\+?[\d\s\-\(\)]{10,20}$');
-      if (!phoneRegExp.hasMatch(phone)) {
-        _showError('Введите корректный номер телефона (10-20 цифр).');
-        return;
-      }
-    }
-
     final request = RegisterRequest(
       firstName: firstName,
       lastName: lastName,
       login: login,
-      phone: phone.isEmpty ? null : phone,
+      phone: phone, // Теперь всегда передаем строку (не null)
       email: email.isEmpty ? null : email,
       password: password,
     );
@@ -167,7 +165,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _phoneController,
-                  label: 'Телефон',
+                  label: 'Телефон *',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                 ),

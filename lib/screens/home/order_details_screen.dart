@@ -5,7 +5,7 @@ import 'package:helper_app/core/services/order_service.dart';
 import 'package:helper_app/core/network/api_client.dart'; 
 import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart'; 
-import 'package:helper_app/screens/widgets/complaint_bottom_sheet.dart'; 
+// Импорт complaint_bottom_sheet удален
 
 class OrderDetailsScreen extends ConsumerStatefulWidget {
   final int orderId;
@@ -50,13 +50,75 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
     }
   }
 
-  /// Метод получения QR-кода с защитой от блокировки потока
-  Future<void> _showPickupQrCode(BuildContext context, int orderId) async {
-    // Используем локальный навигатор, чтобы избежать проблем с контекстом
+  // Метод для отмены заказа
+  Future<void> _cancelOrder(int orderId) async {
+    // Показываем диалог подтверждения
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Отмена заказа', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Вы уверены, что хотите отменить этот заказ? Это действие нельзя будет отменить.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Нет', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Да, отменить', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     final navigator = Navigator.of(context, rootNavigator: true);
 
     try {
-      // 1. Показываем лоадер
+      // Показываем лоадер
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Colors.redAccent),
+        ),
+      );
+
+      final apiClient = ref.read(apiClientProvider);
+      await apiClient.postAsync('Orders/$orderId/cancel');
+      
+      // Закрываем лоадер
+      navigator.pop();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Заказ успешно отменен'), backgroundColor: Colors.green),
+        );
+        // Обновляем данные на экране
+        ref.invalidate(orderDetailsProvider(widget.orderId));
+      }
+    } catch (e) {
+      if (navigator.canPop()) navigator.pop(); // Закрываем лоадер при ошибке
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка при отмене: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  /// Метод получения QR-кода с защитой от блокировки потока
+  Future<void> _showPickupQrCode(BuildContext context, int orderId) async {
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    try {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -68,13 +130,11 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       final apiClient = ref.read(apiClientProvider);
       final response = await apiClient.getAsync('Orders/$orderId/pickup-qr');
       
-      // 2. Закрываем лоадер сразу после получения ответа
       navigator.pop();
 
       if (response != null && response['qrToken'] != null) {
         final String qrToken = response['qrToken'];
         
-        // 3. Небольшая задержка перед открытием нового диалога для стабильности UI
         await Future.delayed(const Duration(milliseconds: 100));
         
         if (mounted) {
@@ -84,7 +144,6 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         throw 'Токен не найден в ответе сервера';
       }
     } catch (e) {
-      // Пытаемся закрыть лоадер, если он всё еще висит
       if (navigator.canPop()) navigator.pop();
 
       if (mounted) {
@@ -107,7 +166,6 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
           textAlign: TextAlign.center,
         ),
         content: SizedBox(
-          // Фиксируем ширину, чтобы избежать пересчетов layout
           width: 250, 
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -127,10 +185,10 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 child: QrImageView(
                   data: qrToken,
                   version: QrVersions.auto,
-                  size: 250.0, // Слегка увеличим размер (было 200)
-                  errorCorrectionLevel: QrErrorCorrectLevel.L, // ВАЖНО: Низкий уровень коррекции
-                  backgroundColor: Colors.white, // Гарантируем контрастный фон
-                  padding: const EdgeInsets.all(12), // Гарантируем "тихую зону" вокруг кода
+                  size: 250.0, 
+                  errorCorrectionLevel: QrErrorCorrectLevel.L, 
+                  backgroundColor: Colors.white, 
+                  padding: const EdgeInsets.all(12), 
                 ),
               ),
               const SizedBox(height: 16),
@@ -257,20 +315,19 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                if (order.status == 'Completed')
-                  OutlinedButton.icon(
-                    onPressed: () => showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => ComplaintBottomSheet(order: order),
-                    ),
-                    icon: const Icon(Icons.report_problem_outlined, color: Colors.redAccent),
-                    label: const Text('Сообщить о проблеме', style: TextStyle(color: Colors.redAccent)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.redAccent),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                // Кнопка отмены заказа
+                if (order.status != 'Completed' && order.status != 'Canceled')
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _cancelOrder(order.orderId),
+                      icon: const Icon(Icons.cancel_outlined, color: Colors.redAccent),
+                      label: const Text('Отменить заказ', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Colors.redAccent),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
                   ),
               ],
