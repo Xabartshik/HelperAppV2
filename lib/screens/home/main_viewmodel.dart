@@ -254,6 +254,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         return;
       }
       await _fetchBreakStatus();
+      await checkShiftStatus();
       final taskService = ref.read(taskServiceProvider);
       final tasks = await taskService.getTasksForCurrentUserAsync(currentUser.employeeId!);
 

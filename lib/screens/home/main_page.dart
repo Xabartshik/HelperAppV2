@@ -695,7 +695,7 @@ class _MainPageState extends ConsumerState<MainPage> {
     if (deadlineUtc == null) return null;
     final now = DateTime.now().toLocal();
     final left = deadlineUtc.difference(now);
-    final dateText = _formatDate(deadlineUtc);
+    final dateText = _formatDate(deadlineUtc.toLocal());
 
     if (status == TaskStatus.completed) {
       return ('Дедлайн: $dateText', Colors.white70);

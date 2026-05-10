@@ -135,11 +135,17 @@ class _ActiveReturnScreenState extends ConsumerState<ActiveReturnScreen>
     await ref.read(returnToStockViewModelProvider(_args).notifier).loadTask();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
     final provider = returnToStockViewModelProvider(_args);
     final state = ref.watch(provider);
     final vm = ref.read(provider.notifier);
+
+    // Флаг ожидания напарника (если задача кооперативная и напарник еще не начал/не завершил)
+    final bool isWaitingForPartner = state.details?.isCooperative == true && 
+                                     canEditTask && 
+                                     state.details?.partnerStatus != 1 && // 1 = InProgress
+                                     state.details?.partnerStatus != 2;   // 2 = Completed
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
@@ -163,20 +169,97 @@ class _ActiveReturnScreenState extends ConsumerState<ActiveReturnScreen>
       ),
       body: state.isLoading && state.details == null
           ? const Center(child: CircularProgressIndicator(color: _returnColor))
-          : Column(
-              children: [
-                _buildModeBanner(),
-                if (!canEditTask) _buildStartTaskBanner(),
-                Expanded(
-                  child: RefreshIndicator(
-                    color: _returnColor,
-                    onRefresh: () async => vm.loadTask(),
-                    child: _buildContent(state, vm),
-                  ),
+          : isWaitingForPartner 
+              ? _buildWaitingForPartnerScreen(state, vm) // Экран блокировки
+              : Column(
+                  children: [
+                    _buildCooperationBanner(state.details), // Баннер "Тяжелый товар"
+                    _buildModeBanner(),
+                    if (!canEditTask) _buildStartTaskBanner(),
+                    Expanded(
+                      child: RefreshIndicator(
+                        color: _returnColor,
+                        onRefresh: () async => vm.loadTask(),
+                        child: _buildContent(state, vm),
+                      ),
+                    ),
+                    _buildBottomControls(state, vm),
+                  ],
                 ),
-                _buildBottomControls(state, vm),
-              ],
+    );
+  }
+
+Widget _buildWaitingForPartnerScreen(ReturnToStockState state, ReturnToStockViewModel vm) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 80, height: 80,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const CircularProgressIndicator(color: Colors.amber, strokeWidth: 3),
+                  Icon(Icons.people_outline, color: Colors.amber.withOpacity(0.8), size: 40)
+                ]
+              )
             ),
+            const SizedBox(height: 32),
+            const Text('Ожидание напарника', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                children: [
+                  const TextSpan(text: 'Вы взяли тяжелый возврат в работу.\nПожалуйста, дождитесь, пока '),
+                  TextSpan(text: state.details?.partnerName ?? 'ваш напарник', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                  const TextSpan(text: ' тоже нажмет кнопку «Начать» в своем приложении.')
+                ]
+              )
+            ),
+            const SizedBox(height: 48),
+            OutlinedButton.icon(
+              onPressed: () => vm.loadTask(),
+              icon: const Icon(Icons.refresh, color: Colors.white54),
+              label: const Text('Обновить статус', style: TextStyle(color: Colors.white54)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.white24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)
+              )
+            )
+          ]
+        )
+      )
+    );
+  }
+
+  Widget _buildCooperationBanner(ReturnTaskDetailsDto? details) {
+    if (details == null || !details.isCooperative) return const SizedBox();
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.amber.withValues(alpha: 0.05),
+        border: Border(bottom: BorderSide(color: Colors.amber.withValues(alpha: 0.4), width: 1))
+      ),
+      child: ExpansionTile(
+        leading: const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+        title: const Text('Тяжелый возврат!', 
+          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 14)),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Divider(color: Colors.white10),
+              Text('Напарник: ${details.partnerName ?? 'Поиск в пуле...'}', 
+                style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+            ]),
+          )
+        ],
+      ),
     );
   }
 

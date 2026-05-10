@@ -375,9 +375,42 @@ void _handleResponseErrors(Response response) {
     return WorkerAssemblyTaskDto.fromJson(response);
   }
 
-  Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
-    final request = ScanPickRequest(lineId: lineId, barcode: barcode);
-    await postAsync(ApiEndpoints.orderAssemblyScanPick, data: request.toJson());
+Future<void> scanAssemblyPickAsync(int assignmentId, int lineId, String barcode) async {
+    try {
+      await postAsync(ApiEndpoints.orderAssemblyScanPick(assignmentId), data: {
+        'lineId': lineId,
+        'barcode': barcode,
+      });
+    } catch (e) {
+      Logger.w('Ошибка при сканировании товара сборки: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> scanAssemblyPlaceAsync(int assignmentId, int lineId, String cellCode) async {
+    try {
+      await postAsync(ApiEndpoints.orderAssemblyScanPlace(assignmentId), data: {
+        'lineId': lineId,
+        'cellCode': cellCode,
+      });
+    } catch (e) {
+      Logger.w('Ошибка при сканировании ячейки сборки: $e');
+      rethrow;
+    }
+  }
+
+Future<void> scanReturnItemAsync(int assignmentId, int lineId, String barcode) async {
+    await postAsync(ApiEndpoints.returnScanItem(assignmentId), data: {
+      'lineId': lineId,
+      'barcode': barcode,
+    });
+  }
+
+  Future<void> scanReturnCellAsync(int assignmentId, int lineId, String cellCode) async {
+    await postAsync(ApiEndpoints.returnScanCell(assignmentId), data: {
+      'lineId': lineId,
+      'cellCode': cellCode,
+    });
   }
 
   Future<void> orderAssemblyScanPlaceBulkAsync(int assignmentId, String cellCode) async {

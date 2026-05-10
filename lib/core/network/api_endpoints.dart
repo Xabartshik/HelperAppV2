@@ -59,7 +59,9 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
   static String orderAssemblyStart(int id) => 'v1/OrderAssembly/assignment/$id/start';
   static String orderAssemblyPause(int id) => 'v1/OrderAssembly/assignment/$id/pause';
   static String orderAssemblyCancel(int id) => 'v1/OrderAssembly/assignment/$id/cancel';
-  static const String orderAssemblyScanPick = 'v1/OrderAssembly/scan-pick';
+// --- Эндпоинты сборки (Order Assembly) ---
+  static String orderAssemblyScanPick(int assignmentId) => 'v1/OrderAssembly/assignment/$assignmentId/scan-pick';
+  static String orderAssemblyScanPlace(int assignmentId) => 'v1/OrderAssembly/assignment/$assignmentId/scan-place';
   static const String orderAssemblyScanPlaceBulk = 'v1/OrderAssembly/scan-place-bulk';
   static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
   static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
@@ -92,4 +94,8 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
     // Специфичный метод для закрытия задачи курьера по QR
   static String orderHandoverCompleteCourier(int taskId) => 
       'v1/OrderHandover/$taskId/complete-courier';
+
+    // --- Эндпоинты возврата (Return to Stock) ---
+  static String returnScanItem(int assignmentId) => 'v1/Return/assignment/$assignmentId/scan-item';
+  static String returnScanCell(int assignmentId) => 'v1/Return/assignment/$assignmentId/scan-cell';
 }

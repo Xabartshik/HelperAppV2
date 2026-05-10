@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart'; 
-import 'package:go_router/go_router.dart';
 import 'order_assembly_viewmodel.dart';
 import '../home/main_viewmodel.dart';
 import '../../core/utils/logger.dart';
@@ -41,16 +40,18 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
   }
 
   void _initScanner() {
-    // Получаем текущее состояние для первоначальной настройки
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);
     final state = ref.read(orderAssemblyViewModelProvider(args));
+
+    // Квадратный режим (QR) нужен для размещения ячеек и для экспресс-выдачи
+    final bool isQrMode = state.mode != AssemblyMode.pick || state.isExpress;
 
     _scannerController = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
       facing: CameraFacing.back,
       torchEnabled: false,
-      // Оптимизируем форматы: для Express только QR, иначе только линейные штрих-коды
-      formats: state.isExpress && state.mode != AssemblyMode.pick
+      // Оптимизируем форматы: если не сбор, то ищем только QR-коды
+      formats: isQrMode
           ? [BarcodeFormat.qrCode]
           : [BarcodeFormat.ean13, BarcodeFormat.code128, BarcodeFormat.code39],
     );
@@ -63,7 +64,7 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     super.dispose();
   }
 
-void _handleCode(String code) async {
+  void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
     
     HapticFeedback.lightImpact();
@@ -97,22 +98,16 @@ void _handleCode(String code) async {
     bool shouldPop = false;
     bool shouldPopTwice = false;
 
-    // --- ПЕРЕХВАТЧИК ОШИБОК ДЛЯ КРАСИВОГО UI ---
     if (!success) {
-      // 1. Счищаем технический мусор из строки, если он пришел от ApiClient
       message = message.replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
-
-      // 2. Ищем ключевые слова бэкенда и заменяем на пользовательский текст
       if (message.toLowerCase().contains('не принадлежит')) {
         message = '⚠️ Чужой заказ!\n\nЭтот QR-код относится к другому заказу.';
       } else if (message.toLowerCase().contains('истек')) {
         message = '⏱ Время вышло!\n\nПопросите клиента обновить QR-код на экране.';
       } else if (message.contains('400') || message.toLowerCase().contains('формат')) {
-        // Резервный вариант, если текст с бэкенда потерялся и дошла только голая 400
-        message = '⚠️ Неверный QR-код!\n\nОтсканируйте код из приложения клиента.';
+        message = '⚠️ Неверный код!\n\nПроверьте, что вы сканируете нужный объект.';
       }
     }
-    // ---------------------------------------------
 
     if (success && message.startsWith('FINISH:')) {
       shouldPop = true;
@@ -149,22 +144,21 @@ void _handleCode(String code) async {
     final state = ref.watch(orderAssemblyViewModelProvider(args));
     
     final isPick = state.mode == AssemblyMode.pick;
-    final isExpressPlace = !isPick && state.isExpress;
+    final isQrMode = !isPick; // И ячейки, и экспресс используют QR
     final activeColor = isPick ? _pickColor : _placeColor;
 
     final modeTitle = isPick 
         ? 'Сбор товаров' 
-        : (isExpressPlace ? 'Выдача клиенту' : 'Размещение ячеек');
+        : (state.isExpress ? 'Выдача клиенту' : 'Размещение ячеек');
         
     final hint = isPick 
         ? 'Сканируйте штрих-код товара' 
-        : (isExpressPlace ? 'Наведите камеру на QR-код покупателя' : 'Сканируйте код ячейки выдачи');
+        : (state.isExpress ? 'Наведите камеру на QR-код покупателя' : 'Сканируйте QR-код ячейки');
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
@@ -175,17 +169,15 @@ void _handleCode(String code) async {
             },
           ),
 
-          // 2. Затемнение и "прицел"[cite: 9]
           Positioned.fill(
             child: CustomPaint(
               painter: ScannerOverlayPainter(
                 primaryColor: activeColor,
-                isSquare: isExpressPlace,
+                isSquare: isQrMode, // Устанавливаем квадратное окно
               ),
             ),
           ),
 
-          // 3. Верхняя панель (С фонариком)[cite: 9]
           Positioned(
             top: 0,
             left: 0,
@@ -220,7 +212,6 @@ void _handleCode(String code) async {
                       ],
                     ),
                   ),
-                  // Кнопка фонарика[cite: 9]
                   IconButton(
                     icon: const Icon(Icons.flash_on, color: Colors.white),
                     onPressed: () => _scannerController.toggleTorch(),
@@ -230,7 +221,6 @@ void _handleCode(String code) async {
             ),
           ),
 
-          // 4. Нижняя панель
           Positioned(
             bottom: 0,
             left: 0,
@@ -254,7 +244,7 @@ void _handleCode(String code) async {
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: _bgOffBlack,
-                      hintText: isPick ? 'Введите штрих-код...' : (state.isExpress ? 'Введите QR-токен...' : 'Код ячейки...'),
+                      hintText: isPick ? 'Введите штрих-код...' : 'Введите код...',
                       hintStyle: const TextStyle(color: Colors.white38),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
@@ -279,14 +269,12 @@ void _handleCode(String code) async {
             ),
           ),
 
-          // 5. Оверлей загрузки
           if (_isProcessing && !_showSuccessOverlay)
             Container(
               color: Colors.black54,
               child: const Center(child: CircularProgressIndicator()),
             ),
 
-          // 6. Оверлей успеха/ошибки
           if (_showSuccessOverlay)
             GestureDetector(
               onTap: () {
@@ -339,6 +327,7 @@ class ScannerOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Если квадрат — размер 260x260, если штрих-код — 320x160
     final double windowWidth = isSquare ? 260.0 : 320.0;
     final double windowHeight = isSquare ? 260.0 : 160.0;
 
@@ -360,7 +349,6 @@ class ScannerOverlayPainter extends CustomPainter {
     const double cornerLen = 25.0;
     const double radius = 20.0;
 
-    // Отрисовка уголков[cite: 9]
     canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
     canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
     canvas.drawPath(Path()..moveTo(rect.left, rect.bottom - cornerLen)..lineTo(rect.left, rect.bottom - radius)..quadraticBezierTo(rect.left, rect.bottom, rect.left + radius, rect.bottom)..lineTo(rect.left + cornerLen, rect.bottom), paint);

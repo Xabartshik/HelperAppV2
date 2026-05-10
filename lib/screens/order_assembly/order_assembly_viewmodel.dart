@@ -254,30 +254,35 @@ class OrderAssemblyViewModel
   // Режим Сбора (Pick Mode)
   // -----------------------------------------------------------------------
 
-  Future<(bool, String)> processScanPick(String barcode) async {
+Future<(bool, String)> processScanPick(String barcode) async {
     if (state.mode != AssemblyMode.pick) {
       return (false, 'Неверный режим: ожидается режим «Сбор»');
     }
 
-    if (barcode.trim().isEmpty) return (false, 'Пустой штрихкод');
+    final trimmedBarcode = barcode.trim();
+    if (trimmedBarcode.isEmpty) return (false, 'Пустой штрихкод');
 
     AssemblyItemVm? foundItem;
+    // Ищем товар в ячейках сборки
     for (final cell in state.cells) {
       foundItem = cell.items.firstWhereOrNull(
-        (i) => i.barcode == barcode && !i.isDone,
+        (i) => i.barcode == trimmedBarcode && !i.isDone,
       );
       if (foundItem != null) break;
     }
 
     if (foundItem == null) {
-      Logger.w('OrderAssembly: штрихкод $barcode не найден в задаче');
-      return (false, 'Товар со штрихкодом «$barcode» не найден в задаче');
+      Logger.w('OrderAssembly: штрихкод $trimmedBarcode не найден в задаче');
+      return (false, 'Товар со штрихкодом «$trimmedBarcode» не найден в задаче');
     }
 
     try {
       final client = ref.read(apiClientProvider);
-      await client.orderAssemblyScanPickAsync(foundItem.lineId, barcode);
+      
+      // Вызываем специфичный метод контроллера сборки
+      await client.scanAssemblyPickAsync(arg.assignmentId, foundItem.lineId, trimmedBarcode);
 
+      // Локальное обновление для мгновенного отклика UI
       foundItem.collectedQuantity++;
       if (foundItem.collectedQuantity >= foundItem.quantity) {
         foundItem.status = OrderAssemblyLineStatus.picked;
@@ -292,38 +297,40 @@ class OrderAssemblyViewModel
       
       return (true, isAllDone ? 'FINISH:$msg' : msg);
     } catch (e) {
-      Logger.e('OrderAssembly: ошибка scanPick barcode=$barcode', e);
+      Logger.e('OrderAssembly: ошибка scanPick barcode=$trimmedBarcode', e);
       return (false, 'Ошибка сервера: $e');
     }
   }
-
   // -----------------------------------------------------------------------
   // Режим Размещения (Place Mode)
   // -----------------------------------------------------------------------
 
-  Future<(bool, String)> processScanPlace(String cellCode) async {
+Future<(bool, String)> processScanPlace(String scannedCellCode) async {
     if (state.mode != AssemblyMode.place) {
       return (false, 'Неверный режим: ожидается режим «Размещение»');
     }
 
-    if (cellCode.trim().isEmpty) return (false, 'Пустой код ячейки');
+    final trimmedCode = scannedCellCode.trim();
+    if (trimmedCode.isEmpty) return (false, 'Пустой код ячейки');
 
-    final scannedId = int.tryParse(cellCode.trim());
-    
+    // Ищем ячейку в стейте по строковому коду (QR-коду)
     final cell = state.cells.firstWhereOrNull(
-      (c) => (scannedId != null && c.targetPositionId == scannedId) || 
-             (c.cellCode == cellCode && !c.isPlaced),
+      (c) => c.cellCode == trimmedCode && !c.isPlaced,
     );
 
     if (cell == null) {
-      Logger.w('OrderAssembly: ячейка $cellCode не найдена или уже размещена');
-      return (false, 'Ячейка «$cellCode» не найдена или уже обработана');
+      Logger.w('OrderAssembly: ячейка $trimmedCode не найдена или уже размещена');
+      return (false, 'Ячейка «$trimmedCode» не найдена или уже обработана');
     }
 
     try {
       final client = ref.read(apiClientProvider);
-      await client.orderAssemblyScanPlaceBulkAsync(cell.assignmentId, cellCode);
+      
+      // Отправляем скан в контроллер сборки. 
+      // Передаем ID первой линии этой ячейки (бэкенд привяжет всё назначение к этой позиции).
+      await client.scanAssemblyPlaceAsync(arg.assignmentId, cell.items.first.lineId, trimmedCode);
 
+      // Массово обновляем статус всех товаров в этой ячейке локально
       for (final item in cell.items) {
         if (item.isPicked) {
           item.status = OrderAssemblyLineStatus.placed;
@@ -334,15 +341,18 @@ class OrderAssemblyViewModel
       _recalculateProgress();
       _triggerRebuild();
 
-      Logger.i('OrderAssembly: ячейка $cellCode успешно размещена');
-      final name = cell.cellDisplayName.isNotEmpty ? cell.cellDisplayName : cellCode;
-      return (true, '📦 Ячейка «$name» размещена');
+      Logger.i('OrderAssembly: ячейка $trimmedCode успешно размещена');
+      final name = cell.cellDisplayName.isNotEmpty ? cell.cellDisplayName : trimmedCode;
+      final isAllPlaced = state.allCellsPlaced;
+      final msg = '📦 Ячейка «$name» размещена';
+      
+      // Если все готово, добавляем префикс FINISH:
+      return (true, isAllPlaced ? 'FINISH:$msg' : msg);
     } catch (e) {
-      Logger.e('OrderAssembly: ошибка scanPlaceBulk cellCode=$cellCode', e);
+      Logger.e('OrderAssembly: ошибка scanPlace cellCode=$trimmedCode', e);
       return (false, 'Ошибка сервера: $e');
     }
   }
-
   // -----------------------------------------------------------------------
   // Экспресс-выдача (Express Handover)
   // -----------------------------------------------------------------------
