@@ -110,4 +110,37 @@ class ReturnToStockViewModel extends AutoDisposeFamilyNotifier<ReturnToStockStat
       return (false, e.toString());
     }
   }
+
+  // Сканирование штрих-кода товара (Pick)
+  Future<(bool, String)> processScanItem(int lineId, String barcode) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.scanReturnItemAsync(arg.assignmentId, lineId, barcode.trim());
+      
+      await loadTask(); // Обновляем данные с сервера
+      return (true, 'Товар подтвержден');
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return (false, e.toString());
+    }
+  }
+
+  // Сканирование QR-кода ячейки (Place)
+  Future<(bool, String)> processScanCell(int lineId, String cellCode) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.scanReturnCellAsync(arg.assignmentId, lineId, cellCode.trim());
+      
+      await loadTask();
+      // Проверяем, все ли позиции теперь размещены для автозакрытия
+      final allDone = state.details?.itemsToScan.every((i) => i.scannedQuantity > 0 && i.targetCellCode != null) ?? false;
+      
+      return (true, allDone ? 'FINISH:Размещено в ячейке $cellCode' : 'Размещено в ячейке $cellCode');
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return (false, e.toString());
+    }
+  }
 }

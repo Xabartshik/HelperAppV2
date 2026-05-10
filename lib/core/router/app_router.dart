@@ -14,6 +14,7 @@ import 'package:helper_app/screens/order_assembly/customer_qr_scanner_page.dart'
 import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
 import 'package:helper_app/screens/order_handover/handover_barcode_scanner_page.dart';
 import 'package:helper_app/screens/return_to_stock/active_return_screen.dart';
+import 'package:helper_app/screens/return_to_stock/return_barcode_scanner_page.dart';
 import 'package:helper_app/screens/tasks/global_pool_screen.dart';
 import '../services/auth_service.dart';
 import '../utils/logger.dart';
@@ -104,6 +105,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      GoRoute(
+          path: '/return-scanner',
+          builder: (context, state) {
+            // Получаем аргументы из поля extra
+            final extra = state.extra as Map<String, dynamic>;
+            return ReturnBarcodeScannerPage(
+              assignmentId: extra['assignmentId'] as int,
+              taskId: extra['taskId'] as int,
+              workerId: extra['workerId'] as int,
+              lineId: extra['lineId'] as int,
+              isCellScan: extra['isCellScan'] as bool? ?? false,
+            );
+          },
+        ),
       GoRoute(
         path: '/customer-qr-scanner',
         name: 'customer_qr_scanner',

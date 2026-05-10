@@ -43,60 +43,6 @@ class _ActiveReturnScreenState extends ConsumerState<ActiveReturnScreen>
     );
   }
 
-  void _showCellInputDialog(BuildContext context, ReturnToStockViewModel vm, int lineId, String currentCell) {
-    final controller = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1C1C1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Укажите ячейку', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Предложено: $currentCell', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Введите ID или скан...',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: const Color(0xFF141414),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                prefixIcon: const Icon(Icons.qr_code, color: Colors.white54),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx), 
-            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.white54))
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newId = int.tryParse(controller.text.trim());
-              if (newId != null && newId > 0) {
-                vm.updateTargetCell(lineId, newId); // Сохраняем во ViewModel
-              }
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _returnColor),
-            child: const Text('СОХРАНИТЬ', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      )
-    );
-  }
 
   @override
   bool get canEditTask {
@@ -281,9 +227,22 @@ Widget _buildContent(ReturnToStockState state, ReturnToStockViewModel vm) {
         // Получаем ручную ячейку, если кладовщик ее изменил
         final manualCellId = state.manualTargetCells[item.lineId];
         
+        // === ВАША НОВАЯ ПЕРЕМЕННАЯ ===
+        final bool isItemPicked = item.scannedQuantity > 0;
+        
         return GestureDetector(
-          onTap: () {
-            if (canEditTask && !isDone) vm.processLocalScan(item.lineId);
+          onTap: () async {
+            if (canEditTask && !isDone) {
+              final result = await context.push<bool>('/return-scanner', extra: {
+                'assignmentId': widget.assignmentId,
+                'taskId': widget.taskId,
+                'workerId': _args.workerId, // Используем _args.workerId
+                'lineId': item.lineId,
+                'isCellScan': false, 
+              });
+              
+              if (result == true) vm.loadTask();
+            }
           },
           child: Container(
             margin: const EdgeInsets.only(bottom: 10),
@@ -338,10 +297,35 @@ Widget _buildContent(ReturnToStockState state, ReturnToStockViewModel vm) {
                   ),
                 ),
                 if (canEditTask)
+                  // === ВАШ ОБНОВЛЕННЫЙ БЛОК КНОПКИ ===
                   IconButton(
-                    icon: const Icon(Icons.qr_code_scanner, color: _returnColor),
-                    tooltip: 'Изменить ячейку',
-                    onPressed: () => _showCellInputDialog(context, vm, item.lineId, item.targetCellCode),
+                    icon: Icon(
+                      Icons.qr_code_scanner, 
+                      color: isItemPicked ? Colors.amber : Colors.white24, // Подсвечиваем цветом, если доступно
+                    ),
+                    tooltip: isItemPicked ? 'Сканировать ячейку' : 'Сначала отсканируйте товар',
+                    onPressed: isItemPicked 
+                      ? () async {
+                          final result = await context.push<bool>('/return-scanner', extra: {
+                            'assignmentId': widget.assignmentId,
+                            'taskId': widget.taskId,
+                            'workerId': _args.workerId, // Используем _args.workerId
+                            'lineId': item.lineId,
+                            'isCellScan': true,
+                          });
+
+                          if (result == true) vm.loadTask();
+                        }
+                      : () {
+                          // Блокировка: показываем подсказку
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Сначала отсканируйте штрих-код самого товара!'),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                   )
                 else
                   Text('${item.quantity} шт', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -352,7 +336,7 @@ Widget _buildContent(ReturnToStockState state, ReturnToStockViewModel vm) {
       },
     );
   }
-  
+   
   Widget _buildBottomControls(ReturnToStockState state, ReturnToStockViewModel vm) {
     if (!canEditTask) return const SizedBox();
 
