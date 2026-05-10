@@ -472,11 +472,25 @@ Future<void> scanReturnItemAsync(int assignmentId, int lineId, String barcode) a
       throw Exception('Ошибка загрузки заказов: $e');
     }
   }
-
-  Future<void> orderAssemblyExpressHandoverAsync(int assignmentId, String qrToken) async {
-    final request = {'qrToken': qrToken};
-    await postAsync(ApiEndpoints.orderAssemblyExpressHandover(assignmentId), data: request);
+  
+Future<void> orderAssemblyExpressHandoverAsync(
+  int assignmentId, 
+  String qrToken, 
+  Map<int, int>? cancelledLines,
+) async {
+  try {
+    await postAsync(
+      ApiEndpoints.orderAssemblyExpressHandover(assignmentId),
+      data: {
+        'qrToken': qrToken,
+        'cancelledLines': cancelledLines, // Передаем Map<int, int>
+      },
+    );
+  } catch (e) {
+    Logger.w('Ошибка при экспресс-выдаче заказа: $e');
+    rethrow;
   }
+}
 
   Future<Map<String, dynamic>> orderHandoverScanAsync(int taskId, int workerId, String barcode) async {
     final url = ApiEndpoints.orderHandoverScan(taskId, workerId);

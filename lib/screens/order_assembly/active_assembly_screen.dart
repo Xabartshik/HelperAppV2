@@ -127,7 +127,11 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
                         child: _buildContent(state, vm),
                       ),
                     ),
-                    _buildBarcodeInput(state, vm),
+                    // Показываем особые кнопки, если это этап выдачи экспресс-заказа
+                    if (state.isExpress && state.mode == AssemblyMode.place && canEditTask)
+                      _buildExpressBottomControls(state, vm)
+                    else
+                      _buildBarcodeInput(state, vm),
                   ],
                 ),
     );
@@ -297,7 +301,7 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
-Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+  Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     if (state.errorMessage.isNotEmpty) {
       return Center(
         child: Padding(
@@ -421,12 +425,16 @@ Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final parentCell = state.cells.firstWhere((c) => c.items.any((i) => i.lineId == item.lineId));
     final isPickMode = state.mode == AssemblyMode.pick;
     
-    // Модификация текста ячейки для Express: скрываем подпись под товаром в режиме выдачи
+    // Модификация текста ячейки для Express
     final cellText = isPickMode 
         ? 'Забрать из: ${item.sourceCellCode}' 
         : (state.isExpress ? '' : 'Положить в: ${parentCell.cellDisplayName}');
     
     final cellTextColor = isPickMode ? Colors.orangeAccent : Colors.blueAccent;
+
+    // Параметры для счетчика отмены
+    final int cancelledQty = state.cancelledQuantities[item.lineId] ?? 0;
+    final int maxAvailable = item.collectedQuantity;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -445,6 +453,44 @@ Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
                 ],
                 const SizedBox(height: 4),
                 Text('${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.', style: TextStyle(color: statusColor, fontSize: 11)),
+                
+                // === СЧЕТЧИКИ ОТМЕНЫ ===
+                if (state.isExpress && state.mode == AssemblyMode.place && state.isCancelMode)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.1),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Отказ:', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              onPressed: () => vm.updateCancelledQuantity(item.lineId, cancelledQty - 1, maxAvailable),
+                            ),
+                            Text(
+                              '$cancelledQty шт.',
+                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.redAccent),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              onPressed: () => vm.updateCancelledQuantity(item.lineId, cancelledQty + 1, maxAvailable),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -488,12 +534,55 @@ Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     return buildTaskNotStartedBanner(backgroundColor: _bgGray900, actionColor: _primaryColor, margin: const EdgeInsets.fromLTRB(12, 8, 12, 8), subtitle: 'Доступен только просмотр деталей.');
   }
 
-  /// Поле ввода с поддержкой Экспресс-подсказки
+  /// Нижняя панель для экспресс-выдачи с кнопками режима отмены
+  Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      decoration: const BoxDecoration(
+        color: _bgGray950,
+        border: Border(top: BorderSide(color: Colors.white12)),
+      ),
+      child: Row(
+        children: [
+          // Кнопка включения/выключения режима отмены
+          Expanded(
+            flex: 1,
+            child: OutlinedButton.icon(
+              onPressed: () => vm.toggleCancelMode(),
+              icon: Icon(state.isCancelMode ? Icons.close : Icons.edit_note, color: state.isCancelMode ? Colors.redAccent : Colors.orange, size: 20),
+              label: Text(state.isCancelMode ? 'Отмена' : 'Изменить', style: TextStyle(color: state.isCancelMode ? Colors.redAccent : Colors.orange)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: state.isCancelMode ? Colors.redAccent : Colors.orange),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Основная кнопка сканирования QR клиента
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              onPressed: () => _openScanner(state, vm),
+              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+              label: Text(state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: state.isCancelMode ? Colors.orange : _placeColor,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Поле ввода со сканером
   Widget _buildBarcodeInput(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final isPick = state.mode == AssemblyMode.pick;
     final activeColor = isPick ? _pickColor : _placeColor;
     
-    // Динамический хинт в зависимости от типа заказа
     final hint = isPick 
         ? 'Штрихкод товара...' 
         : (state.isExpress ? 'QR-код клиента...' : 'Код ячейки выдачи...');
@@ -547,15 +636,19 @@ Widget _buildContent(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     );
   }
 
-  void _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+  Future<void> _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) async {
     if (!canEditTask) return;
-    context.push('/order-assembly/scanner', extra: {
+    final result = await context.push<bool>('/order-assembly/scanner', extra: {
       'assignmentId': widget.assignmentId,
       'userId': _args.userId,
     });
+    // Если результат true, обновление интерфейса произойдет при возврате
+    if (result == true) {
+       vm.loadTask();
+    }
   }
 
-  /// Обработка сканирования с поддержкой Экспресс-выдачи
+  /// Обработка ввода и отправка сканов
   Future<void> _handleBarcodeSubmit(
       String value, OrderAssemblyState state, OrderAssemblyViewModel vm) async {
     if (!canEditTask) return;

@@ -12,10 +12,10 @@ import '../../core/utils/logger.dart';
 
 /// Режим работы экрана ActiveAssemblyScreen
 enum AssemblyMode {
-  /// Сотрудник собирает товары из хранилища в тележку поштучно[cite: 4]
+  /// Сотрудник собирает товары из хранилища в тележку поштучно 
   pick,
 
-  /// Все товары собраны — сотрудник размещает их по ячейкам выдачи[cite: 4]
+  /// Все товары собраны — сотрудник размещает их по ячейкам выдачи 
   place,
 }
 
@@ -23,7 +23,7 @@ enum AssemblyMode {
 // View-модели (VM) для UI-отображения
 // ---------------------------------------------------------------------------
 
-/// VM для отображения одного товара на экране[cite: 4]
+/// VM для отображения одного товара на экране 
 class AssemblyItemVm {
   final int lineId;
   final int itemId;
@@ -50,7 +50,7 @@ class AssemblyItemVm {
   bool get isMissing => status == OrderAssemblyLineStatus.discrepancy;
   bool get isDone => isPicked || isMissing;
 
-  /// Текстовое отображение статуса[cite: 4]
+  /// Текстовое отображение статуса 
   String get statusText {
     switch (status) {
       case OrderAssemblyLineStatus.pending:
@@ -65,7 +65,7 @@ class AssemblyItemVm {
   }
 }
 
-/// VM для отображения одной ячейки выдачи с её товарами[cite: 4]
+/// VM для отображения одной ячейки выдачи с её товарами 
 class CellPlacementVm {
   final int assignmentId;
   final int targetPositionId;
@@ -96,31 +96,35 @@ class CellPlacementVm {
 // Стейт экрана сборки
 // ---------------------------------------------------------------------------
 
-/// Иммутабельное состояние экрана сборки заказов[cite: 4]
+/// Иммутабельное состояние экрана сборки заказов 
 class OrderAssemblyState {
   final bool isLoading;
   final String errorMessage;
 
-  /// Режим работы: Сбор или Размещение[cite: 4]
+  /// Режим работы: Сбор или Размещение 
   final AssemblyMode mode;
   final bool isCooperative; 
   final String? partnerName;
   final AssignmentStatus? partnerStatus;
   
-  /// Текущая задача сборки[cite: 4]
+  /// Текущая задача сборки 
   final WorkerAssemblyTaskDto? task;
 
-  /// Тип доставки (загружается отдельно из деталей заказа)[cite: 4]
+  /// Тип доставки (загружается отдельно из деталей заказа) 
   final String? deliveryType;
 
-  /// Сгруппированные ячейки с товарами[cite: 4]
+  /// Сгруппированные ячейки с товарами 
   final List<CellPlacementVm> cells;
 
-  /// Флаг: все товары собраны (можно переходить к размещению)[cite: 4]
+  /// Флаг: все товары собраны (можно переходить к размещению) 
   final bool allItemsPicked;
 
-  /// Флаг: все ячейки заполнены (можно завершать задачу)[cite: 4]
+  /// Флаг: все ячейки заполнены (можно завершать задачу) 
   final bool allCellsPlaced;
+
+  // === ДОБАВЛЕННЫЕ ПОЛЯ ДЛЯ ОТМЕН ===
+  final bool isCancelMode; 
+  final Map<int, int> cancelledQuantities; 
 
   const OrderAssemblyState({
     this.isLoading = false,
@@ -134,6 +138,8 @@ class OrderAssemblyState {
     this.isCooperative = false,
     this.partnerName,
     this.partnerStatus,
+    this.isCancelMode = false,
+    this.cancelledQuantities = const {},
   });
 
   OrderAssemblyState copyWith({
@@ -148,6 +154,8 @@ class OrderAssemblyState {
     bool? isCooperative,
     String? partnerName,
     AssignmentStatus? partnerStatus,
+    bool? isCancelMode,
+    Map<int, int>? cancelledQuantities,
   }) {
     return OrderAssemblyState(
       isLoading: isLoading ?? this.isLoading,
@@ -161,15 +169,17 @@ class OrderAssemblyState {
       isCooperative: isCooperative ?? this.isCooperative,
       partnerName: partnerName ?? this.partnerName,
       partnerStatus: partnerStatus ?? this.partnerStatus,
+      isCancelMode: isCancelMode ?? this.isCancelMode,
+      cancelledQuantities: cancelledQuantities ?? this.cancelledQuantities,
     );
   }
 
-  /// Общий прогресс сбора: количество собранных / всего[cite: 4]
+  /// Общий прогресс сбора: количество собранных / всего 
   int get totalItems => cells.fold(0, (s, c) => s + c.totalItems);
   int get pickedItems => cells.fold(0, (s, c) => s + c.pickedCount + c.missingCount);
   int get placedCells => cells.where((c) => c.isPlaced).length;
 
-  /// Проверка на экспресс-доставку[cite: 4]
+  /// Проверка на экспресс-доставку 
   bool get isExpress => deliveryType == 'Express';
 }
 
@@ -206,7 +216,7 @@ class OrderAssemblyViewModel
     try {
       final client = ref.read(apiClientProvider);
       
-      // 1. Загружаем детали задачи сборки[cite: 4]
+      // 1. Загружаем детали задачи сборки 
       final task = await client.getOrderAssemblyTaskDetailsAsync(arg.assignmentId);
 
       if (task == null) {
@@ -218,7 +228,7 @@ class OrderAssemblyViewModel
         return;
       }
 
-      // 2. Загружаем детали заказа, чтобы определить DeliveryType[cite: 4]
+      // 2. Загружаем детали заказа, чтобы определить DeliveryType 
       String? fetchedDeliveryType;
       try {
         final orderDetails = await client.getOrderByIdAsync(task.orderId);
@@ -254,7 +264,7 @@ class OrderAssemblyViewModel
   // Режим Сбора (Pick Mode)
   // -----------------------------------------------------------------------
 
-Future<(bool, String)> processScanPick(String barcode) async {
+  Future<(bool, String)> processScanPick(String barcode) async {
     if (state.mode != AssemblyMode.pick) {
       return (false, 'Неверный режим: ожидается режим «Сбор»');
     }
@@ -301,11 +311,12 @@ Future<(bool, String)> processScanPick(String barcode) async {
       return (false, 'Ошибка сервера: $e');
     }
   }
+
   // -----------------------------------------------------------------------
   // Режим Размещения (Place Mode)
   // -----------------------------------------------------------------------
 
-Future<(bool, String)> processScanPlace(String scannedCellCode) async {
+  Future<(bool, String)> processScanPlace(String scannedCellCode) async {
     if (state.mode != AssemblyMode.place) {
       return (false, 'Неверный режим: ожидается режим «Размещение»');
     }
@@ -353,11 +364,26 @@ Future<(bool, String)> processScanPlace(String scannedCellCode) async {
       return (false, 'Ошибка сервера: $e');
     }
   }
+
   // -----------------------------------------------------------------------
-  // Экспресс-выдача (Express Handover)
+  // Экспресс-выдача (Express Handover) & Логика отмен
   // -----------------------------------------------------------------------
 
-  /// Обрабатывает сканирование QR-кода клиента для экспресс-выдачи[cite: 4]
+  void toggleCancelMode() {
+    state = state.copyWith(isCancelMode: !state.isCancelMode);
+  }
+
+  void updateCancelledQuantity(int lineId, int quantity, int maxAvailable) {
+    final newMap = Map<int, int>.from(state.cancelledQuantities);
+    if (quantity <= 0) {
+      newMap.remove(lineId);
+    } else {
+      newMap[lineId] = quantity > maxAvailable ? maxAvailable : quantity;
+    }
+    state = state.copyWith(cancelledQuantities: newMap);
+  }
+
+  /// Обрабатывает сканирование QR-кода клиента для экспресс-выдачи 
   Future<(bool, String)> processExpressHandover(String qrToken) async {
     if (state.mode != AssemblyMode.place) {
       return (false, 'Неверный режим: ожидается размещение/выдача');
@@ -365,19 +391,29 @@ Future<(bool, String)> processScanPlace(String scannedCellCode) async {
 
     if (qrToken.trim().isEmpty) return (false, 'Пустой QR-код');
 
+    state = state.copyWith(isLoading: true);
+    
     try {
       final client = ref.read(apiClientProvider);
       
-      // Отправка запроса на сервер для валидации выдачи[cite: 4]
-      await client.orderAssemblyExpressHandoverAsync(arg.assignmentId, qrToken);
+      // Отправляем запрос на сервер, передавая отмененные строки (если они есть)
+      await client.orderAssemblyExpressHandoverAsync(
+        arg.assignmentId,
+        qrToken,
+        state.cancelledQuantities.isNotEmpty ? state.cancelledQuantities : null,
+      );
 
-      // Обновляем локальное состояние[cite: 4]
-      state = state.copyWith(allCellsPlaced: true);
+      // Обновляем локальное состояние 
+      state = state.copyWith(
+        allCellsPlaced: true,
+        isLoading: false,
+      );
       
-      return (true, 'FINISH_EXPRESS:✅ Товар передан клиенту, заказ завершен!');
+      return (true, 'FINISH_EXPRESS:✅ Заказ успешно выдан!');
     } catch (e) {
       Logger.e('OrderAssembly: ошибка express handover qr=$qrToken', e);
-      return (false, 'Ошибка валидации QR: $e');
+      state = state.copyWith(isLoading: false);
+      return (false, 'Ошибка выдачи заказа: $e');
     }
   }
 
