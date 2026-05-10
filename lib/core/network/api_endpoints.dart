@@ -98,4 +98,7 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
     // --- Эндпоинты возврата (Return to Stock) ---
   static String returnScanItem(int assignmentId) => 'v1/Return/assignment/$assignmentId/scan-item';
   static String returnScanCell(int assignmentId) => 'v1/Return/assignment/$assignmentId/scan-cell';
+
+  static String orderAssemblyVerifyQr(int assignmentId) => 
+      'v1/OrderAssembly/assignment/$assignmentId/verify-qr';
 }

@@ -60,6 +60,8 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
+
+
   @override
   void initState() {
     super.initState();
@@ -420,6 +422,88 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
     );
   }
 
+Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+  if (state.mode == AssemblyMode.pick) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: ElevatedButton.icon(
+        onPressed: () => context.push('/assembly-scanner', extra: {
+          'assignmentId': widget.assignmentId,
+          'userId': ref.read(currentUserProvider)?. employeeId ?? 0,
+        }),
+        icon: const Icon(Icons.barcode_reader, color: Colors.white),
+        label: const Text('Сканировать товар', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0D9488),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  // Режим размещения (Place)
+  return Container(
+    padding: const EdgeInsets.all(16),
+    child: state.isExpress 
+      ? Row( // Для экспресса добавляем кнопку "Изменить" (Cancel Mode)
+          children: [
+            Expanded(
+              flex: 1,
+              child: OutlinedButton.icon(
+                onPressed: () => vm.toggleCancelMode(),
+                icon: Icon(state.isCancelMode ? Icons.close : Icons.edit_note, 
+                  color: state.isCancelMode ? Colors.redAccent : Colors.orange),
+                label: Text(state.isCancelMode ? 'Отмена' : 'Изменить', 
+                  style: TextStyle(color: state.isCancelMode ? Colors.redAccent : Colors.orange)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: state.isCancelMode ? Colors.redAccent : Colors.orange),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  // Вызываем сканер и ждем QR-код клиента
+                  final result = await context.push<String>('/assembly-scanner', extra: {
+                    'assignmentId': widget.assignmentId,
+                    'userId': ref.read(currentUserProvider)?. employeeId ?? 0,
+                  });
+                  
+                  if (result != null && mounted) {
+                    _showFinalConfirmation();
+                  }
+                },
+                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                label: Text(state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ', 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: state.isCancelMode ? Colors.orange : const Color(0xFF0D9488),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
+          ],
+        )
+      : ElevatedButton.icon( // Обычное размещение по ячейкам
+          onPressed: () => context.push('/assembly-scanner', extra: {
+            'assignmentId': widget.assignmentId,
+            'userId': ref.read(currentUserProvider)?. employeeId ?? 0,
+          }),
+          icon: const Icon(Icons.grid_view, color: Colors.white),
+          label: const Text('Разместить в ячейку', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF59E0B),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+  );
+}
+
   Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final statusColor = item.isMissing ? Colors.redAccent : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
     final parentCell = state.cells.firstWhere((c) => c.items.any((i) => i.lineId == item.lineId));
@@ -535,49 +619,120 @@ class _ActiveAssemblyScreenState extends ConsumerState<ActiveAssemblyScreen>
   }
 
   /// Нижняя панель для экспресс-выдачи с кнопками режима отмены
-  Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+  // ЕСЛИ КЛИЕНТ ЕЩЕ НЕ ВЕРИФИЦИРОВАН
+  if (!state.isCustomerVerified) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      decoration: const BoxDecoration(
-        color: _bgGray950,
-        border: Border(top: BorderSide(color: Colors.white12)),
+      padding: const EdgeInsets.all(16),
+      child: ElevatedButton.icon(
+        onPressed: () => _openScanner(state, vm), // Откроет сканер для QR клиента
+        icon: const Icon(Icons.qr_code_scanner),
+        label: const Text('ОТСКАНИРОВАТЬ QR КЛИЕНТА ДЛЯ ДОСТУПА'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.indigoAccent,
+          minimumSize: const Size(double.infinity, 56),
+        ),
       ),
-      child: Row(
-        children: [
-          // Кнопка включения/выключения режима отмены
-          Expanded(
-            flex: 1,
-            child: OutlinedButton.icon(
-              onPressed: () => vm.toggleCancelMode(),
-              icon: Icon(state.isCancelMode ? Icons.close : Icons.edit_note, color: state.isCancelMode ? Colors.redAccent : Colors.orange, size: 20),
-              label: Text(state.isCancelMode ? 'Отмена' : 'Изменить', style: TextStyle(color: state.isCancelMode ? Colors.redAccent : Colors.orange)),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: state.isCancelMode ? Colors.redAccent : Colors.orange),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+    );
+  }
+
+  // ЕСЛИ КЛИЕНТ УЖЕ ПОДТВЕРЖДЕН — ПОКАЗЫВАЕМ ВАШУ ПАНЕЛЬ УПРАВЛЕНИЯ
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+    decoration: const BoxDecoration(
+      color: _bgGray950,
+      border: Border(top: BorderSide(color: Colors.white12)),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          flex: 1,
+          child: OutlinedButton.icon(
+            onPressed: () => vm.toggleCancelMode(),
+            icon: Icon(state.isCancelMode ? Icons.close : Icons.edit_note, 
+                       color: state.isCancelMode ? Colors.redAccent : Colors.orange),
+            label: Text(state.isCancelMode ? 'Отмена' : 'Изменить'),
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: state.isCancelMode ? Colors.redAccent : Colors.orange),
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
-          const SizedBox(width: 12),
-          // Основная кнопка сканирования QR клиента
-          Expanded(
-            flex: 2,
-            child: ElevatedButton.icon(
-              onPressed: () => _openScanner(state, vm),
-              icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-              label: Text(state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: state.isCancelMode ? Colors.orange : _placeColor,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            onPressed: () => _showFinalConfirmation(), // Просто подтверждение, без сканера
+            icon: const Icon(Icons.done_all),
+            label: Text(state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: state.isCancelMode ? Colors.orange : _pickColor,
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Добавить в _ActiveAssemblyScreenState
+void _showFinalConfirmation() async { // <-- УБРАЛИ АРГУМЕНТЫ
+    final args = (
+      assignmentId: widget.assignmentId,
+      userId: ref.read(currentUserProvider)?. employeeId ?? 0,
+    );
+    
+    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
+    final state = ref.read(orderAssemblyViewModelProvider(args));
+
+    // Достаем сохраненный токен из состояния
+    final String qrToken = state.tempQrToken ?? '';
+    if (qrToken.isEmpty) return; 
+
+    final int cancelledCount = state.cancelledQuantities.values.fold(0, (a, b) => a + b);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1C1E),
+        title: const Text('Подтверждение выдачи', style: TextStyle(color: Colors.white)),
+        content: Text(
+          cancelledCount > 0 
+            ? 'Выдать заказ клиенту?\n\nВнимание: Будет отменено товаров: $cancelledCount шт.'
+            : 'Выдать заказ клиенту в полном объеме?',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Назад', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              
+              // Используем сохраненный токен для финальной выдачи
+              final result = await vm.processExpressHandover(qrToken);
+              
+              if (result.$1 && mounted) {
+                Navigator.pop(context); // Возвращаемся в список задач
+              } else if (!result.$1 && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(result.$2), backgroundColor: Colors.redAccent),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cancelledCount > 0 ? Colors.orange : const Color(0xFF0D9488),
+            ),
+            child: const Text('Да, выдать', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
-
   /// Поле ввода со сканером
   Widget _buildBarcodeInput(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final isPick = state.mode == AssemblyMode.pick;

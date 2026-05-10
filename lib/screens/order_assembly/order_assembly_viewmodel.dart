@@ -99,7 +99,9 @@ class CellPlacementVm {
 /// Иммутабельное состояние экрана сборки заказов 
 class OrderAssemblyState {
   final bool isLoading;
+  final bool isCustomerVerified;
   final String errorMessage;
+  final String? tempQrToken;
 
   /// Режим работы: Сбор или Размещение 
   final AssemblyMode mode;
@@ -139,6 +141,8 @@ class OrderAssemblyState {
     this.partnerName,
     this.partnerStatus,
     this.isCancelMode = false,
+    this.isCustomerVerified = false,
+    this.tempQrToken,
     this.cancelledQuantities = const {},
   });
 
@@ -154,8 +158,10 @@ class OrderAssemblyState {
     bool? isCooperative,
     String? partnerName,
     AssignmentStatus? partnerStatus,
+    bool? isCustomerVerified,
     bool? isCancelMode,
     Map<int, int>? cancelledQuantities,
+    String? tempQrToken,
   }) {
     return OrderAssemblyState(
       isLoading: isLoading ?? this.isLoading,
@@ -170,7 +176,9 @@ class OrderAssemblyState {
       partnerName: partnerName ?? this.partnerName,
       partnerStatus: partnerStatus ?? this.partnerStatus,
       isCancelMode: isCancelMode ?? this.isCancelMode,
+      isCustomerVerified: isCustomerVerified ?? this.isCustomerVerified,
       cancelledQuantities: cancelledQuantities ?? this.cancelledQuantities,
+      tempQrToken: tempQrToken ?? this.tempQrToken,
     );
   }
 
@@ -364,10 +372,64 @@ class OrderAssemblyViewModel
       return (false, 'Ошибка сервера: $e');
     }
   }
+Future<(bool, String)> verifyQrToken(String qrToken) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.orderAssemblyVerifyQrAsync(arg.assignmentId, qrToken);
+      state = state.copyWith(isLoading: false);
+      return (true, 'QR-код подтвержден');
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return (false, e.toString());
+    }
+  }
 
   // -----------------------------------------------------------------------
   // Экспресс-выдача (Express Handover) & Логика отмен
   // -----------------------------------------------------------------------
+  // 1. Предварительная проверка QR-кода
+Future<(bool, String)> processExpressHandover(String qrToken) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      
+      // Вызываем новый метод проверки (код метода для ApiClient ниже)
+      await client.orderAssemblyVerifyQrAsync(arg.assignmentId, qrToken);
+
+      state = state.copyWith(
+        isCustomerVerified: true, 
+        tempQrToken: qrToken, 
+        isLoading: false
+      );
+      
+      return (true, '✅ Клиент подтвержден. Теперь проверьте состав заказа и нажмите «Выдать».');
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return (false, 'Ошибка проверки: $e');
+    }
+  }
+
+
+
+Future<(bool, String)> finalizeExpressHandover() async {
+    if (state.tempQrToken == null) return (false, 'QR-код не был отсканирован');
+    
+    state = state.copyWith(isLoading: true);
+    try {
+      final client = ref.read(apiClientProvider);
+      await client.orderAssemblyExpressHandoverAsync(
+        arg.assignmentId,
+        state.tempQrToken!, 
+        state.cancelledQuantities.isNotEmpty ? state.cancelledQuantities : null,
+      );
+
+      return (true, 'FINISH_EXPRESS:✅ Заказ успешно выдан!');
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+      return (false, 'Ошибка выдачи: $e');
+    }
+  }
 
   void toggleCancelMode() {
     state = state.copyWith(isCancelMode: !state.isCancelMode);
@@ -384,38 +446,38 @@ class OrderAssemblyViewModel
   }
 
   /// Обрабатывает сканирование QR-кода клиента для экспресс-выдачи 
-  Future<(bool, String)> processExpressHandover(String qrToken) async {
-    if (state.mode != AssemblyMode.place) {
-      return (false, 'Неверный режим: ожидается размещение/выдача');
-    }
+  // Future<(bool, String)> processExpressHandover(String qrToken) async {
+  //   if (state.mode != AssemblyMode.place) {
+  //     return (false, 'Неверный режим: ожидается размещение/выдача');
+  //   }
 
-    if (qrToken.trim().isEmpty) return (false, 'Пустой QR-код');
+  //   if (qrToken.trim().isEmpty) return (false, 'Пустой QR-код');
 
-    state = state.copyWith(isLoading: true);
+  //   state = state.copyWith(isLoading: true);
     
-    try {
-      final client = ref.read(apiClientProvider);
+  //   try {
+  //     final client = ref.read(apiClientProvider);
       
-      // Отправляем запрос на сервер, передавая отмененные строки (если они есть)
-      await client.orderAssemblyExpressHandoverAsync(
-        arg.assignmentId,
-        qrToken,
-        state.cancelledQuantities.isNotEmpty ? state.cancelledQuantities : null,
-      );
+  //     // Отправляем запрос на сервер, передавая отмененные строки (если они есть)
+  //     await client.orderAssemblyExpressHandoverAsync(
+  //       arg.assignmentId,
+  //       qrToken,
+  //       state.cancelledQuantities.isNotEmpty ? state.cancelledQuantities : null,
+  //     );
 
-      // Обновляем локальное состояние 
-      state = state.copyWith(
-        allCellsPlaced: true,
-        isLoading: false,
-      );
+  //     // Обновляем локальное состояние 
+  //     state = state.copyWith(
+  //       allCellsPlaced: true,
+  //       isLoading: false,
+  //     );
       
-      return (true, 'FINISH_EXPRESS:✅ Заказ успешно выдан!');
-    } catch (e) {
-      Logger.e('OrderAssembly: ошибка express handover qr=$qrToken', e);
-      state = state.copyWith(isLoading: false);
-      return (false, 'Ошибка выдачи заказа: $e');
-    }
-  }
+  //     return (true, 'FINISH_EXPRESS:✅ Заказ успешно выдан!');
+  //   } catch (e) {
+  //     Logger.e('OrderAssembly: ошибка express handover qr=$qrToken', e);
+  //     state = state.copyWith(isLoading: false);
+  //     return (false, 'Ошибка выдачи заказа: $e');
+  //   }
+  // }
 
   // -----------------------------------------------------------------------
   // Остальные методы

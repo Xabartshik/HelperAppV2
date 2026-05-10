@@ -472,6 +472,17 @@ Future<void> scanReturnItemAsync(int assignmentId, int lineId, String barcode) a
       throw Exception('Ошибка загрузки заказов: $e');
     }
   }
+Future<void> orderAssemblyVerifyQrAsync(int assignmentId, String qrToken) async {
+    try {
+      await postAsync(
+        ApiEndpoints.orderAssemblyVerifyQr(assignmentId),
+        data: { 'qrToken': qrToken },
+      );
+    } catch (e) {
+      Logger.w('Ошибка при верификации QR: $e');
+      rethrow;
+    }
+  }
   
 Future<void> orderAssemblyExpressHandoverAsync(
   int assignmentId, 
@@ -479,11 +490,16 @@ Future<void> orderAssemblyExpressHandoverAsync(
   Map<int, int>? cancelledLines,
 ) async {
   try {
+    // Преобразуем Map<int, int> в Map<String, int>, чтобы JSON смог его прочитать
+    final Map<String, dynamic>? formattedCancelledLines = cancelledLines?.map(
+      (key, value) => MapEntry(key.toString(), value),
+    );
+
     await postAsync(
       ApiEndpoints.orderAssemblyExpressHandover(assignmentId),
       data: {
         'qrToken': qrToken,
-        'cancelledLines': cancelledLines, // Передаем Map<int, int>
+        'cancelledLines': formattedCancelledLines, // Теперь ключи — строки
       },
     );
   } catch (e) {
@@ -491,7 +507,6 @@ Future<void> orderAssemblyExpressHandoverAsync(
     rethrow;
   }
 }
-
   Future<Map<String, dynamic>> orderHandoverScanAsync(int taskId, int workerId, String barcode) async {
     final url = ApiEndpoints.orderHandoverScan(taskId, workerId);
     

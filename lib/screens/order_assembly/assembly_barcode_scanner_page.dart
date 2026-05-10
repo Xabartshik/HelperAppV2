@@ -64,9 +64,22 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     super.dispose();
   }
 
-  void _handleCode(String code) async {
+void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
-    
+
+    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
+    final state = ref.read(orderAssemblyViewModelProvider(args));
+
+    // --- НОВАЯ ЛОГИКА ЭКСПРЕСС-ВЫДАЧИ ---
+    // Если это экспресс-заказ, просто возвращаем токен на главный экран
+    if (state.isExpress) {
+      HapticFeedback.mediumImpact();
+      Navigator.pop(context, code);
+      return; 
+    }
+    // ------------------------------------
+
+    // --- СТАНДАРТНАЯ ЛОГИКА ДЛЯ СБОРА И РАЗМЕЩЕНИЯ ---
     HapticFeedback.lightImpact();
     
     setState(() {
@@ -74,19 +87,12 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
       _message = 'Обработка...';
     });
 
-    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
-    final provider = orderAssemblyViewModelProvider(args);
-    final vm = ref.read(provider.notifier);
-    final state = ref.read(provider);
-
+    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
     (bool, String) result;
 
     if (state.mode == AssemblyMode.pick) {
       Logger.i('AssemblyScanner: сканирование товара $code');
       result = await vm.processScanPick(code);
-    } else if (state.isExpress) {
-      Logger.i('AssemblyScanner: сканирование QR-кода клиента $code');
-      result = await vm.processExpressHandover(code);
     } else {
       Logger.i('AssemblyScanner: сканирование ячейки $code');
       result = await vm.processScanPlace(code);
@@ -96,15 +102,10 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     
     var (success, message) = result;
     bool shouldPop = false;
-    bool shouldPopTwice = false;
 
     if (!success) {
       message = message.replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
-      if (message.toLowerCase().contains('не принадлежит')) {
-        message = '⚠️ Чужой заказ!\n\nЭтот QR-код относится к другому заказу.';
-      } else if (message.toLowerCase().contains('истек')) {
-        message = '⏱ Время вышло!\n\nПопросите клиента обновить QR-код на экране.';
-      } else if (message.contains('400') || message.toLowerCase().contains('формат')) {
+      if (message.contains('400') || message.toLowerCase().contains('формат')) {
         message = '⚠️ Неверный код!\n\nПроверьте, что вы сканируете нужный объект.';
       }
     }
@@ -112,10 +113,6 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     if (success && message.startsWith('FINISH:')) {
       shouldPop = true;
       message = message.substring(7);
-    } else if (success && message.startsWith('FINISH_EXPRESS:')) {
-      shouldPop = true;
-      shouldPopTwice = true;
-      message = message.substring(15);
     }
 
     setState(() {
@@ -129,14 +126,11 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
           Navigator.pop(context); 
-          if (shouldPopTwice) {
-            ref.read(mainViewModelProvider.notifier).refreshTasks();
-            Navigator.pop(context, true); 
-          }
         }
       });
     }
   }
+
   
   @override
   Widget build(BuildContext context) {
