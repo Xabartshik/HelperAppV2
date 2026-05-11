@@ -634,25 +634,98 @@ Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssembl
     return buildTaskNotStartedBanner(backgroundColor: _bgGray900, actionColor: _primaryColor, margin: const EdgeInsets.fromLTRB(12, 8, 12, 8), subtitle: 'Доступен только просмотр деталей.');
   }
 
-  /// Нижняя панель для экспресс-выдачи с кнопками режима отмены
-Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
-    // ЕСЛИ КЛИЕНТ ЕЩЕ НЕ ВЕРИФИЦИРОВАН
+/// Нижняя панель для экспресс-выдачи с кнопками режима отмены
+  Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
+    // 1. КРАСИВАЯ КНОПКА ВЕРИФИКАЦИИ (ЕСЛИ КЛИЕНТ ЕЩЕ НЕ ПОДТВЕРЖДЕН)
     if (!state.isCustomerVerified) {
       return Container(
-        padding: const EdgeInsets.all(16),
-        child: ElevatedButton.icon(
-          onPressed: () => _openScanner(state, vm), // Откроет сканер для QR клиента
-          icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('ОТСКАНИРОВАТЬ QR КЛИЕНТА ДЛЯ ДОСТУПА'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigoAccent,
-            minimumSize: const Size(double.infinity, 56),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        decoration: const BoxDecoration(
+          color: _bgGray950,
+          border: Border(top: BorderSide(color: Colors.white12, width: 0.5)),
+        ),
+        child: InkWell(
+          onTap: () => _openScanner(state, vm),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            decoration: BoxDecoration(
+              // Динамичный градиент для привлечения внимания
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF6366F1), // Indigo
+                  const Color(0xFF8B5CF6), // Violet
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Иконка в красивой подложке
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                // Текстовый блок
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'ВЫДАЧА ЗАКАЗА',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Отсканируйте QR покупателя',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Стрелочка "вперед"
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white.withOpacity(0.5),
+                  size: 18,
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    // ЕСЛИ КЛИЕНТ УЖЕ ПОДТВЕРЖДЕН — ПОКАЗЫВАЕМ ПАНЕЛЬ УПРАВЛЕНИЯ
+    // 2. ПАНЕЛЬ УПРАВЛЕНИЯ ОТМЕНАМИ (ЕСЛИ КЛИЕНТ УЖЕ ПОДТВЕРЖДЕН)
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       decoration: const BoxDecoration(
@@ -661,7 +734,6 @@ Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewMo
       ),
       child: Row(
         children: [
-          // === ИЗМЕНЕНИЕ: Дизайн кнопки "Правка / Отмена" приведен к стилю экрана выдачи ===
           Expanded(
             flex: 2,
             child: ElevatedButton(
@@ -672,14 +744,15 @@ Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewMo
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 side: BorderSide(
                   color: state.cancelledQuantities.isNotEmpty ? Colors.amber : Colors.redAccent, 
-                  width: 1
+                  width: 1.5, // Немного толще рамка для акцента
                 ),
               ),
               child: Text(
                 state.cancelledQuantities.isNotEmpty ? 'ПРАВКА' : 'ОТМЕНА', 
                 style: TextStyle(
                   color: state.cancelledQuantities.isNotEmpty ? Colors.amber : Colors.redAccent, 
-                  fontWeight: FontWeight.bold
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
                 )
               ),
             ),
@@ -691,13 +764,18 @@ Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewMo
               onPressed: () => _showFinalConfirmation(state, vm),
               icon: const Icon(Icons.done_all, color: Colors.white),
               label: Text(
-                state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)
+                state.isCancelMode ? 'ВЫДАТЬ С ОТМЕНАМИ' : 'ВЫДАТЬ ЗАКАЗ',
+                style: const TextStyle(
+                  color: Colors.white, 
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 14,
+                )
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: state.isCancelMode ? Colors.orange : const Color(0xFF0D9488),
                 minimumSize: const Size(0, 54),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 4,
               ),
             ),
           ),
@@ -705,6 +783,7 @@ Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewMo
       ),
     );
   }
+
 // Добавить в _ActiveAssemblyScreenState
 void _showFinalConfirmation(OrderAssemblyState state, OrderAssemblyViewModel vm) async {
     // Достаем сохраненный токен из состояния напрямую

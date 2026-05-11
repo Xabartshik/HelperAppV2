@@ -66,6 +66,7 @@ _$EmployeeWorkloadDtoImpl _$$EmployeeWorkloadDtoImplFromJson(
   fullName: json['fullName'] as String? ?? '',
   isAtWork: json['isAtWork'] as bool? ?? false,
   activeTasksCount: (json['activeTasksCount'] as num?)?.toInt() ?? 0,
+  totalComplexity: (json['totalComplexity'] as num?)?.toDouble() ?? 0.0,
   activeTasks:
       (json['activeTasks'] as List<dynamic>?)
           ?.map((e) => ActiveTaskBriefDto.fromJson(e as Map<String, dynamic>))
@@ -80,6 +81,7 @@ Map<String, dynamic> _$$EmployeeWorkloadDtoImplToJson(
   'fullName': instance.fullName,
   'isAtWork': instance.isAtWork,
   'activeTasksCount': instance.activeTasksCount,
+  'totalComplexity': instance.totalComplexity,
   'activeTasks': instance.activeTasks,
 };
 

@@ -18,6 +18,9 @@ _$OrderDtoImpl _$$OrderDtoImplFromJson(Map<String, dynamic> json) =>
       deliveryDate: json['deliveryDate'] == null
           ? null
           : DateTime.parse(json['deliveryDate'] as String),
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
       deliverySlotId: (json['deliverySlotId'] as num?)?.toInt(),
       destinationAddress: json['destinationAddress'] as String?,
       postamatId: (json['postamatId'] as num?)?.toInt(),
@@ -39,6 +42,7 @@ Map<String, dynamic> _$$OrderDtoImplToJson(_$OrderDtoImpl instance) =>
       'status': instance.status,
       'totalPrice': instance.totalPrice,
       'deliveryDate': instance.deliveryDate?.toIso8601String(),
+      'createdAt': instance.createdAt?.toIso8601String(),
       'deliverySlotId': instance.deliverySlotId,
       'destinationAddress': instance.destinationAddress,
       'postamatId': instance.postamatId,

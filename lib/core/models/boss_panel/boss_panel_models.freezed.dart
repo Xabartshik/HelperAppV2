@@ -616,6 +616,7 @@ mixin _$EmployeeWorkloadDto {
   String get fullName => throw _privateConstructorUsedError;
   bool get isAtWork => throw _privateConstructorUsedError;
   int get activeTasksCount => throw _privateConstructorUsedError;
+  double get totalComplexity => throw _privateConstructorUsedError;
   List<ActiveTaskBriefDto> get activeTasks =>
       throw _privateConstructorUsedError;
 
@@ -641,6 +642,7 @@ abstract class $EmployeeWorkloadDtoCopyWith<$Res> {
     String fullName,
     bool isAtWork,
     int activeTasksCount,
+    double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
   });
 }
@@ -664,6 +666,7 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
     Object? fullName = null,
     Object? isAtWork = null,
     Object? activeTasksCount = null,
+    Object? totalComplexity = null,
     Object? activeTasks = null,
   }) {
     return _then(
@@ -684,6 +687,10 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
                 ? _value.activeTasksCount
                 : activeTasksCount // ignore: cast_nullable_to_non_nullable
                       as int,
+            totalComplexity: null == totalComplexity
+                ? _value.totalComplexity
+                : totalComplexity // ignore: cast_nullable_to_non_nullable
+                      as double,
             activeTasks: null == activeTasks
                 ? _value.activeTasks
                 : activeTasks // ignore: cast_nullable_to_non_nullable
@@ -708,6 +715,7 @@ abstract class _$$EmployeeWorkloadDtoImplCopyWith<$Res>
     String fullName,
     bool isAtWork,
     int activeTasksCount,
+    double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
   });
 }
@@ -730,6 +738,7 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
     Object? fullName = null,
     Object? isAtWork = null,
     Object? activeTasksCount = null,
+    Object? totalComplexity = null,
     Object? activeTasks = null,
   }) {
     return _then(
@@ -750,6 +759,10 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
             ? _value.activeTasksCount
             : activeTasksCount // ignore: cast_nullable_to_non_nullable
                   as int,
+        totalComplexity: null == totalComplexity
+            ? _value.totalComplexity
+            : totalComplexity // ignore: cast_nullable_to_non_nullable
+                  as double,
         activeTasks: null == activeTasks
             ? _value._activeTasks
             : activeTasks // ignore: cast_nullable_to_non_nullable
@@ -767,6 +780,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     this.fullName = '',
     this.isAtWork = false,
     this.activeTasksCount = 0,
+    this.totalComplexity = 0.0,
     final List<ActiveTaskBriefDto> activeTasks = const [],
   }) : _activeTasks = activeTasks,
        super._();
@@ -785,6 +799,9 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
   @override
   @JsonKey()
   final int activeTasksCount;
+  @override
+  @JsonKey()
+  final double totalComplexity;
   final List<ActiveTaskBriefDto> _activeTasks;
   @override
   @JsonKey()
@@ -796,7 +813,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
 
   @override
   String toString() {
-    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, activeTasks: $activeTasks)';
+    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, totalComplexity: $totalComplexity, activeTasks: $activeTasks)';
   }
 
   @override
@@ -812,6 +829,8 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
                 other.isAtWork == isAtWork) &&
             (identical(other.activeTasksCount, activeTasksCount) ||
                 other.activeTasksCount == activeTasksCount) &&
+            (identical(other.totalComplexity, totalComplexity) ||
+                other.totalComplexity == totalComplexity) &&
             const DeepCollectionEquality().equals(
               other._activeTasks,
               _activeTasks,
@@ -826,6 +845,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     fullName,
     isAtWork,
     activeTasksCount,
+    totalComplexity,
     const DeepCollectionEquality().hash(_activeTasks),
   );
 
@@ -852,6 +872,7 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
     final String fullName,
     final bool isAtWork,
     final int activeTasksCount,
+    final double totalComplexity,
     final List<ActiveTaskBriefDto> activeTasks,
   }) = _$EmployeeWorkloadDtoImpl;
   const _EmployeeWorkloadDto._() : super._();
@@ -867,6 +888,8 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
   bool get isAtWork;
   @override
   int get activeTasksCount;
+  @override
+  double get totalComplexity;
   @override
   List<ActiveTaskBriefDto> get activeTasks;
 

@@ -155,6 +155,19 @@ void _handleResponseErrors(Response response) {
   // Делаем геттер публичным, чтобы к нему можно было обратиться из MainPage
   String get baseUrl => _cachedBaseUrl ?? 'http://localhost:5000';
 
+  Future<List<EmployeeWorkloadDto>> getDetailedBranchWorkloadAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.branchWorkload(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((x) => EmployeeWorkloadDto.fromJson(x)).toList();
+  }
+
+  Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
+  // Путь к созданному ранее эндпоинту
+  final response = await getAsync('Orders/branch/$branchId');
+  if (response == null || response is! List) return [];
+  return response.map((json) => OrderDto.fromJson(json)).toList();
+}
+
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) {
       _dio.options.baseUrl = _cachedBaseUrl!; // Обязательно обновляем baseUrl у Dio

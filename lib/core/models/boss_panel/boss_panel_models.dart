@@ -41,6 +41,7 @@ class EmployeeWorkloadDto with _$EmployeeWorkloadDto {
     @Default('') String fullName,
     @Default(false) bool isAtWork,
     @Default(0) int activeTasksCount,
+    @Default(0.0) double totalComplexity,
     @Default([]) List<ActiveTaskBriefDto> activeTasks,
   }) = _EmployeeWorkloadDto;
 

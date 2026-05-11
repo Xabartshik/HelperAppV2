@@ -29,6 +29,7 @@ mixin _$OrderDto {
   String get status => throw _privateConstructorUsedError;
   double get totalPrice => throw _privateConstructorUsedError;
   DateTime? get deliveryDate => throw _privateConstructorUsedError;
+  DateTime? get createdAt => throw _privateConstructorUsedError;
   int? get deliverySlotId => throw _privateConstructorUsedError; // Добавлено
   String? get destinationAddress =>
       throw _privateConstructorUsedError; // Добавлено
@@ -60,6 +61,7 @@ abstract class $OrderDtoCopyWith<$Res> {
     String status,
     double totalPrice,
     DateTime? deliveryDate,
+    DateTime? createdAt,
     int? deliverySlotId,
     String? destinationAddress,
     int? postamatId,
@@ -91,6 +93,7 @@ class _$OrderDtoCopyWithImpl<$Res, $Val extends OrderDto>
     Object? status = null,
     Object? totalPrice = null,
     Object? deliveryDate = freezed,
+    Object? createdAt = freezed,
     Object? deliverySlotId = freezed,
     Object? destinationAddress = freezed,
     Object? postamatId = freezed,
@@ -130,6 +133,10 @@ class _$OrderDtoCopyWithImpl<$Res, $Val extends OrderDto>
             deliveryDate: freezed == deliveryDate
                 ? _value.deliveryDate
                 : deliveryDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
             deliverySlotId: freezed == deliverySlotId
                 ? _value.deliverySlotId
@@ -175,6 +182,7 @@ abstract class _$$OrderDtoImplCopyWith<$Res>
     String status,
     double totalPrice,
     DateTime? deliveryDate,
+    DateTime? createdAt,
     int? deliverySlotId,
     String? destinationAddress,
     int? postamatId,
@@ -205,6 +213,7 @@ class __$$OrderDtoImplCopyWithImpl<$Res>
     Object? status = null,
     Object? totalPrice = null,
     Object? deliveryDate = freezed,
+    Object? createdAt = freezed,
     Object? deliverySlotId = freezed,
     Object? destinationAddress = freezed,
     Object? postamatId = freezed,
@@ -245,6 +254,10 @@ class __$$OrderDtoImplCopyWithImpl<$Res>
             ? _value.deliveryDate
             : deliveryDate // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
         deliverySlotId: freezed == deliverySlotId
             ? _value.deliverySlotId
             : deliverySlotId // ignore: cast_nullable_to_non_nullable
@@ -282,6 +295,7 @@ class _$OrderDtoImpl implements _OrderDto {
     required this.status,
     required this.totalPrice,
     this.deliveryDate,
+    this.createdAt,
     this.deliverySlotId,
     this.destinationAddress,
     this.postamatId,
@@ -310,6 +324,8 @@ class _$OrderDtoImpl implements _OrderDto {
   @override
   final DateTime? deliveryDate;
   @override
+  final DateTime? createdAt;
+  @override
   final int? deliverySlotId;
   // Добавлено
   @override
@@ -333,7 +349,7 @@ class _$OrderDtoImpl implements _OrderDto {
 
   @override
   String toString() {
-    return 'OrderDto(orderId: $orderId, customerId: $customerId, branchId: $branchId, deliveryType: $deliveryType, paymentType: $paymentType, status: $status, totalPrice: $totalPrice, deliveryDate: $deliveryDate, deliverySlotId: $deliverySlotId, destinationAddress: $destinationAddress, postamatId: $postamatId, postamatCellId: $postamatCellId, positions: $positions)';
+    return 'OrderDto(orderId: $orderId, customerId: $customerId, branchId: $branchId, deliveryType: $deliveryType, paymentType: $paymentType, status: $status, totalPrice: $totalPrice, deliveryDate: $deliveryDate, createdAt: $createdAt, deliverySlotId: $deliverySlotId, destinationAddress: $destinationAddress, postamatId: $postamatId, postamatCellId: $postamatCellId, positions: $positions)';
   }
 
   @override
@@ -355,6 +371,8 @@ class _$OrderDtoImpl implements _OrderDto {
                 other.totalPrice == totalPrice) &&
             (identical(other.deliveryDate, deliveryDate) ||
                 other.deliveryDate == deliveryDate) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             (identical(other.deliverySlotId, deliverySlotId) ||
                 other.deliverySlotId == deliverySlotId) &&
             (identical(other.destinationAddress, destinationAddress) ||
@@ -381,6 +399,7 @@ class _$OrderDtoImpl implements _OrderDto {
     status,
     totalPrice,
     deliveryDate,
+    createdAt,
     deliverySlotId,
     destinationAddress,
     postamatId,
@@ -412,6 +431,7 @@ abstract class _OrderDto implements OrderDto {
     required final String status,
     required final double totalPrice,
     final DateTime? deliveryDate,
+    final DateTime? createdAt,
     final int? deliverySlotId,
     final String? destinationAddress,
     final int? postamatId,
@@ -438,6 +458,8 @@ abstract class _OrderDto implements OrderDto {
   double get totalPrice;
   @override
   DateTime? get deliveryDate;
+  @override
+  DateTime? get createdAt;
   @override
   int? get deliverySlotId; // Добавлено
   @override

@@ -101,4 +101,6 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
 
   static String orderAssemblyVerifyQr(int assignmentId) => 
       'v1/OrderAssembly/assignment/$assignmentId/verify-qr';
+
+  static String branchWorkload(int branchId) => 'v1/WorkerTasks/branch/$branchId/workload';
 }
