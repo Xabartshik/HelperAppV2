@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:helper_app/screens/boss_panel/active_tasks_tab.dart';
 import 'package:helper_app/screens/boss_panel/branch_orders_tab.dart';
 import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
 import 'package:helper_app/screens/boss_panel/employee_workload_tab.dart';
@@ -119,7 +120,7 @@ final List<Map<String, dynamic>> destinations = [
   }
 Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
   switch (state.currentTabIndex) {
-    case 0: return _buildTasksList(state.activeTasks);
+    case 0: return const ActiveTasksTab();
     case 1: return _buildEmployeesList(state.employeeWorkloads);
     case 2: return const EmployeeWorkloadTab();
     case 3: return const BranchOrdersTab(); // <-- НАША НОВАЯ ВКЛАДКА
