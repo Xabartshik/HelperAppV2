@@ -85,7 +85,7 @@ class CustomerHomePage extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // Информационный баннер
-              _buildInfoBanner(),
+              //_buildInfoBanner(),
 
               const SizedBox(height: 32),
 

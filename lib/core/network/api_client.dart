@@ -156,8 +156,10 @@ void _handleResponseErrors(Response response) {
   String get baseUrl => _cachedBaseUrl ?? 'http://localhost:5000';
 
   Future<String> _resolveBaseUrl() async {
-    if (_cachedBaseUrl != null) return _cachedBaseUrl!;
-
+    if (_cachedBaseUrl != null) {
+      _dio.options.baseUrl = _cachedBaseUrl!; // Обязательно обновляем baseUrl у Dio
+      return _cachedBaseUrl!;
+    }
     if (kIsWeb) {
       _cachedBaseUrl = 'http://localhost:5000/api/';
     } else if (Platform.isAndroid) {

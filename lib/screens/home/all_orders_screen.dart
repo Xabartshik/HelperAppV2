@@ -30,7 +30,7 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
       case 'Ready': return 'Готов к выдаче';
       case 'InTransit': return 'В пути';
       case 'Completed': return 'Завершен';
-      case 'Canceled': return 'Отменен';
+      case 'Cancelled': return 'Отменен';
       default: return status;
     }
   }

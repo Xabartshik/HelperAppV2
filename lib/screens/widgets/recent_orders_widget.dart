@@ -31,7 +31,7 @@ class _RecentOrdersWidgetState extends ConsumerState<RecentOrdersWidget> {
       case 'Ready': return 'Готов к выдаче';
       case 'InTransit': return 'В пути';
       case 'Completed': return 'Завершен';
-      case 'Canceled': return 'Отменен';
+      case 'Cancelled': return 'Отменен';
       default: return status;
     }
   }
