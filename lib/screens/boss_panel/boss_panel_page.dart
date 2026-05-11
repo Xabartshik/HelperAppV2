@@ -26,7 +26,7 @@ class BossPanelPage extends ConsumerWidget {
 // Список разделов для Drawer
 final List<Map<String, dynamic>> destinations = [
   {'title': 'Активные задачи', 'icon': Icons.assignment_outlined},
-  {'title': 'Активные сотрудники', 'icon': Icons.people_outline},
+  // {'title': 'Активные сотрудники', 'icon': Icons.people_outline},
   {'title': 'Загруженность', 'icon': Icons.analytics_outlined},
   {'title': 'Все заказы', 'icon': Icons.list_alt_rounded}, // <-- НОВОЕ
   {'title': 'Маршруты курьеров', 'icon': Icons.local_shipping_outlined},
@@ -121,10 +121,9 @@ final List<Map<String, dynamic>> destinations = [
 Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
   switch (state.currentTabIndex) {
     case 0: return const ActiveTasksTab();
-    case 1: return _buildEmployeesList(state.employeeWorkloads);
-    case 2: return const EmployeeWorkloadTab();
-    case 3: return const BranchOrdersTab(); // <-- НАША НОВАЯ ВКЛАДКА
-    case 4: return const CourierRouteBuilderScreen();
+    case 1: return const EmployeeWorkloadTab();
+    case 2: return const BranchOrdersTab(); // <-- НАША НОВАЯ ВКЛАДКА
+    case 3: return const CourierRouteBuilderScreen();
     default: return const Center(child: Text('...'));
   }
 }
