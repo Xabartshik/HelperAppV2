@@ -161,9 +161,8 @@ void _handleResponseErrors(Response response) {
     return response.map((x) => EmployeeWorkloadDto.fromJson(x)).toList();
   }
 
-  Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
-  // Путь к созданному ранее эндпоинту
-  final response = await getAsync('Orders/branch/$branchId');
+Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
+  final response = await getAsync(ApiEndpoints.branchOrders(branchId));
   if (response == null || response is! List) return [];
   return response.map((json) => OrderDto.fromJson(json)).toList();
 }

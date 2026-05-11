@@ -75,6 +75,7 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
   static const String getPostamats = 'Postamat'; // GET /api/Postamat
   static const String checkPostamatCapacity = 'Postamat/check-capacity'; // POST /api/Postamat/check-capacity
   static const String createOrder = 'Orders'; // POST /api/Orders
+  static String branchOrders(int branchId) => 'Orders/branch/$branchId';
   static const String qrCheckInScan = 'QrCheckIn/scan';
   static String lastCheck(int employeeId) => 'CheckIOEmployee/last/$employeeId';
   static const String getConfig = 'v1/Config'; // GET /api/v1/Config
