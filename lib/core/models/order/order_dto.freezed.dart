@@ -29,6 +29,7 @@ mixin _$OrderDto {
   String get status => throw _privateConstructorUsedError;
   double get totalPrice => throw _privateConstructorUsedError;
   DateTime? get deliveryDate => throw _privateConstructorUsedError;
+  @JsonKey(name: 'createdAt')
   DateTime? get createdAt => throw _privateConstructorUsedError;
   int? get deliverySlotId => throw _privateConstructorUsedError; // Добавлено
   String? get destinationAddress =>
@@ -61,7 +62,7 @@ abstract class $OrderDtoCopyWith<$Res> {
     String status,
     double totalPrice,
     DateTime? deliveryDate,
-    DateTime? createdAt,
+    @JsonKey(name: 'createdAt') DateTime? createdAt,
     int? deliverySlotId,
     String? destinationAddress,
     int? postamatId,
@@ -182,7 +183,7 @@ abstract class _$$OrderDtoImplCopyWith<$Res>
     String status,
     double totalPrice,
     DateTime? deliveryDate,
-    DateTime? createdAt,
+    @JsonKey(name: 'createdAt') DateTime? createdAt,
     int? deliverySlotId,
     String? destinationAddress,
     int? postamatId,
@@ -295,7 +296,7 @@ class _$OrderDtoImpl implements _OrderDto {
     required this.status,
     required this.totalPrice,
     this.deliveryDate,
-    this.createdAt,
+    @JsonKey(name: 'createdAt') this.createdAt,
     this.deliverySlotId,
     this.destinationAddress,
     this.postamatId,
@@ -324,6 +325,7 @@ class _$OrderDtoImpl implements _OrderDto {
   @override
   final DateTime? deliveryDate;
   @override
+  @JsonKey(name: 'createdAt')
   final DateTime? createdAt;
   @override
   final int? deliverySlotId;
@@ -431,7 +433,7 @@ abstract class _OrderDto implements OrderDto {
     required final String status,
     required final double totalPrice,
     final DateTime? deliveryDate,
-    final DateTime? createdAt,
+    @JsonKey(name: 'createdAt') final DateTime? createdAt,
     final int? deliverySlotId,
     final String? destinationAddress,
     final int? postamatId,
@@ -459,6 +461,7 @@ abstract class _OrderDto implements OrderDto {
   @override
   DateTime? get deliveryDate;
   @override
+  @JsonKey(name: 'createdAt')
   DateTime? get createdAt;
   @override
   int? get deliverySlotId; // Добавлено

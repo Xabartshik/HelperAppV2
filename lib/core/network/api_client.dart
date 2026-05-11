@@ -161,11 +161,11 @@ void _handleResponseErrors(Response response) {
     return response.map((x) => EmployeeWorkloadDto.fromJson(x)).toList();
   }
 
-Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
-  final response = await getAsync(ApiEndpoints.branchOrders(branchId));
-  if (response == null || response is! List) return [];
-  return response.map((json) => OrderDto.fromJson(json)).toList();
-}
+  Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.branchOrders(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((json) => OrderDto.fromJson(json)).toList();
+  }
 
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) {
@@ -265,7 +265,11 @@ Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
     final response = await getAsync(ApiEndpoints.bossPanelAvailableEmployees);
     return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
   }
-
+  
+    Future<List<AvailableEmployeeDto>> getAllBranchEmployeesAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelAllEmployees);
+    return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
+  }
   Future<List<PositionCellDto>> getBossPanelPositionsAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelPositions);
     return (response as List).map((x) => PositionCellDto.fromJson(x)).toList();

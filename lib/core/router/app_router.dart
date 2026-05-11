@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/screens/boss_panel/active_tasks_page.dart';
 import 'package:helper_app/screens/courier/courier_home_page.dart';
 import 'package:helper_app/screens/home/all_orders_screen.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
@@ -104,6 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             assignmentStatusIndex: args['assignmentStatusIndex'] as int?,
           );
         },
+      ),
+      GoRoute(
+        path: '/boss/tasks',
+        builder: (context, state) => const ActiveTasksPage(),
       ),
       GoRoute(
           path: '/return-scanner',

@@ -49,21 +49,36 @@ class BranchOrdersViewModel extends AutoDisposeNotifier<BranchOrdersState> {
     return BranchOrdersState();
   }
 
-  Future<void> loadData() async {
+Future<void> loadData() async {
+    // Устанавливаем состояние загрузки
     state = state.copyWith(isLoading: true);
+    
+    // Получаем текущего пользователя для определения филиала
     final user = ref.read(currentUserProvider);
-    if (user?.branchId == null) return;
+    
+    if (user?.branchId == null) {
+      state = state.copyWith(isLoading: false);
+      return;
+    }
 
     try {
-      final client = ref.read(apiClientProvider);
-      // Вызываем эндпоинт, созданный в предыдущем шаге
-      final List<dynamic> response = await client.getAsync('v1/Orders/branch/${user!.branchId}');
-      final orders = response.map((json) => OrderDto.fromJson(json)).toList();
+      final client = ref.read(apiClientProvider); //
+
+      // Используем специализированный метод API клиента
+      // Он уже возвращает List<OrderDto>, поэтому ручной маппинг через .map() больше не нужен
+      final List<OrderDto> orders = await client.getBranchOrdersAsync(user!.branchId!);
       
-      state = state.copyWith(allOrders: orders, isLoading: false);
-      _applyFilters();
+      state = state.copyWith(
+        allOrders: orders, 
+        isLoading: false,
+      );
+      
+      // Применяем текущие фильтры и сортировку к полученным данным
+      _applyFilters(); 
     } catch (e) {
+      // В случае ошибки сбрасываем индикатор загрузки
       state = state.copyWith(isLoading: false);
+      // Здесь можно добавить вызов Logger.e для отладки
     }
   }
 

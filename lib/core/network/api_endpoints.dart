@@ -35,6 +35,7 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
   static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
   static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
   static const String bossPanelAvailableEmployees = 'v1/bosspanel/employees/available';
+  static const String bossPanelAllEmployees = 'v1/bosspanel/employees/all';
   static const String bossPanelPositions = 'v1/bosspanel/positions';
   static String bossPanelAutoSelectEmployees(int count) => 'v1/bosspanel/employees/auto-select?count=$count';
   static const String bossPanelCreateInventoryByZone = 'v1/bosspanel/inventory/create-by-zone';

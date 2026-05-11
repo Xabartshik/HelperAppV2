@@ -14,7 +14,7 @@ class OrderDto with _$OrderDto {
     required String status,
     required double totalPrice,
     DateTime? deliveryDate,
-    DateTime? createdAt,
+    @JsonKey(name: 'createdAt') DateTime? createdAt,
     int? deliverySlotId,       // Добавлено
     String? destinationAddress, // Добавлено
     int? postamatId,           // Добавлено
