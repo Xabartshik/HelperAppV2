@@ -466,7 +466,7 @@ class _MainPageState extends ConsumerState<MainPage> {
     );
   }
 
-  Widget _buildTasksToolbar(MainState state, MainViewModel viewModel, bool isOnBreak) {
+Widget _buildTasksToolbar(MainState state, MainViewModel viewModel, bool isOnBreak) {
     return Container(
       color: _bgGray950,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -478,7 +478,6 @@ class _MainPageState extends ConsumerState<MainPage> {
             const SizedBox(height: 16),
           ],
 
-          // ДОБАВЛЯЕМ PoolSummaryWidget (если на смене и не на перерыве)
           if (state.isActiveShift && !isOnBreak) ...[
             const PoolSummaryWidget(),
             const SizedBox(height: 8),
@@ -499,7 +498,8 @@ class _MainPageState extends ConsumerState<MainPage> {
               else
                 IconButton(
                   icon: const Icon(Icons.refresh, color: Colors.white70),
-                  onPressed: state.isActiveShift ? () => viewModel.refreshTasks() : null,
+                  // ИЗМЕНЕНИЕ: Добавлен forceNetworkReset: true
+                  onPressed: state.isActiveShift ? () => viewModel.refreshTasks(forceNetworkReset: true) : null,
                   tooltip: 'Обновить задачи',
                 ),
             ],
@@ -557,23 +557,42 @@ class _MainPageState extends ConsumerState<MainPage> {
     );
   }
 
-  Widget _buildNetworkWarning() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+Widget _buildNetworkWarning() {
+    // ИЗМЕНЕНИЕ: Обернули в InkWell для кликабельности и сброса сети
+    return Material(
       color: const Color(0xFFFF6B6B),
-      child: const Text(
-        '⚠️ Нет подключения к сети',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+      child: InkWell(
+        onTap: () => ref.read(mainViewModelProvider.notifier).refreshTasks(forceNetworkReset: true),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '⚠️ Нет подключения к сети. Нажмите, чтобы обновить',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildErrorText(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Text(text, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 13), textAlign: TextAlign.center),
+Widget _buildErrorText(String text) {
+    // ИЗМЕНЕНИЕ: Обернули в GestureDetector, чтобы ошибку можно было "прокликать"
+    return GestureDetector(
+      onTap: () => ref.read(mainViewModelProvider.notifier).refreshTasks(forceNetworkReset: true),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Text(
+          '$text\n(Нажмите сюда для повторной попытки)', 
+          style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 13), 
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 

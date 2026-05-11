@@ -468,13 +468,13 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
               child: ElevatedButton.icon(
                 onPressed: () async {
                   // Вызываем сканер и ждем QR-код клиента
-                  final result = await context.push<String>('/assembly-scanner', extra: {
+                  final result = await context.push<bool>('/assembly-scanner', extra: {
                     'assignmentId': widget.assignmentId,
                     'userId': ref.read(currentUserProvider)?. employeeId ?? 0,
                   });
                   
                   if (result != null && mounted) {
-                    _showFinalConfirmation();
+                    _showFinalConfirmation(state, vm);
                   }
                 },
                 icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
@@ -504,7 +504,7 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
   );
 }
 
-  Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
+Widget _buildItemRow(AssemblyItemVm item, OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final statusColor = item.isMissing ? Colors.redAccent : (item.isPicked ? Colors.greenAccent.shade400 : Colors.white54);
     final parentCell = state.cells.firstWhere((c) => c.items.any((i) => i.lineId == item.lineId));
     final isPickMode = state.mode == AssemblyMode.pick;
@@ -531,6 +531,15 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.itemName.isNotEmpty ? item.itemName : 'Товар #${item.itemId}', style: TextStyle(color: item.isDone ? Colors.white54 : Colors.white, fontSize: 13, decoration: item.isMissing ? TextDecoration.lineThrough : null)),
+                
+                // === ИЗМЕНЕНИЕ: Текстовый индикатор отмены как в экране выдачи ===
+                if (cancelledQty > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text('Отменено: $cancelledQty шт.', 
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+
                 if (cellText.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(cellText, style: TextStyle(color: item.isDone && isPickMode ? Colors.white54 : cellTextColor, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -538,20 +547,23 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
                 const SizedBox(height: 4),
                 Text('${item.statusText} · ${item.collectedQuantity}/${item.quantity} шт.', style: TextStyle(color: statusColor, fontSize: 11)),
                 
-                // === СЧЕТЧИКИ ОТМЕНЫ ===
+                // === СЧЕТЧИКИ ОТМЕНЫ (Визуал синхронизирован с _buildCancelItemCard) ===
                 if (state.isExpress && state.mode == AssemblyMode.place && state.isCancelMode)
                   Container(
                     margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.1),
-                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
-                      borderRadius: BorderRadius.circular(8),
+                      color: _bgGray900,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Отказ:', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Text('К отмене:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        ),
                         Row(
                           children: [
                             IconButton(
@@ -560,12 +572,16 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
                               padding: EdgeInsets.zero,
                               onPressed: () => vm.updateCancelledQuantity(item.lineId, cancelledQty - 1, maxAvailable),
                             ),
-                            Text(
-                              '$cancelledQty шт.',
-                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            SizedBox(
+                              width: 30, // Фиксированная ширина для ровного центрирования текста
+                              child: Text(
+                                '$cancelledQty',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline, color: Colors.redAccent),
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.green), // Изменено на зеленый
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
                               onPressed: () => vm.updateCancelledQuantity(item.lineId, cancelledQty + 1, maxAvailable),
@@ -620,75 +636,90 @@ Widget _buildBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm)
 
   /// Нижняя панель для экспресс-выдачи с кнопками режима отмены
 Widget _buildExpressBottomControls(OrderAssemblyState state, OrderAssemblyViewModel vm) {
-  // ЕСЛИ КЛИЕНТ ЕЩЕ НЕ ВЕРИФИЦИРОВАН
-  if (!state.isCustomerVerified) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: ElevatedButton.icon(
-        onPressed: () => _openScanner(state, vm), // Откроет сканер для QR клиента
-        icon: const Icon(Icons.qr_code_scanner),
-        label: const Text('ОТСКАНИРОВАТЬ QR КЛИЕНТА ДЛЯ ДОСТУПА'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.indigoAccent,
-          minimumSize: const Size(double.infinity, 56),
+    // ЕСЛИ КЛИЕНТ ЕЩЕ НЕ ВЕРИФИЦИРОВАН
+    if (!state.isCustomerVerified) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: ElevatedButton.icon(
+          onPressed: () => _openScanner(state, vm), // Откроет сканер для QR клиента
+          icon: const Icon(Icons.qr_code_scanner),
+          label: const Text('ОТСКАНИРОВАТЬ QR КЛИЕНТА ДЛЯ ДОСТУПА'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigoAccent,
+            minimumSize: const Size(double.infinity, 56),
+          ),
         ),
+      );
+    }
+
+    // ЕСЛИ КЛИЕНТ УЖЕ ПОДТВЕРЖДЕН — ПОКАЗЫВАЕМ ПАНЕЛЬ УПРАВЛЕНИЯ
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      decoration: const BoxDecoration(
+        color: _bgGray950,
+        border: Border(top: BorderSide(color: Colors.white12)),
+      ),
+      child: Row(
+        children: [
+          // === ИЗМЕНЕНИЕ: Дизайн кнопки "Правка / Отмена" приведен к стилю экрана выдачи ===
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: () => vm.toggleCancelMode(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _bgGray900,
+                minimumSize: const Size(0, 54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                side: BorderSide(
+                  color: state.cancelledQuantities.isNotEmpty ? Colors.amber : Colors.redAccent, 
+                  width: 1
+                ),
+              ),
+              child: Text(
+                state.cancelledQuantities.isNotEmpty ? 'ПРАВКА' : 'ОТМЕНА', 
+                style: TextStyle(
+                  color: state.cancelledQuantities.isNotEmpty ? Colors.amber : Colors.redAccent, 
+                  fontWeight: FontWeight.bold
+                )
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: ElevatedButton.icon(
+              onPressed: () => _showFinalConfirmation(state, vm),
+              icon: const Icon(Icons.done_all, color: Colors.white),
+              label: Text(
+                state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: state.isCancelMode ? Colors.orange : const Color(0xFF0D9488),
+                minimumSize: const Size(0, 54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-
-  // ЕСЛИ КЛИЕНТ УЖЕ ПОДТВЕРЖДЕН — ПОКАЗЫВАЕМ ВАШУ ПАНЕЛЬ УПРАВЛЕНИЯ
-  return Container(
-    padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-    decoration: const BoxDecoration(
-      color: _bgGray950,
-      border: Border(top: BorderSide(color: Colors.white12)),
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          flex: 1,
-          child: OutlinedButton.icon(
-            onPressed: () => vm.toggleCancelMode(),
-            icon: Icon(state.isCancelMode ? Icons.close : Icons.edit_note, 
-                       color: state.isCancelMode ? Colors.redAccent : Colors.orange),
-            label: Text(state.isCancelMode ? 'Отмена' : 'Изменить'),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: state.isCancelMode ? Colors.redAccent : Colors.orange),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 2,
-          child: ElevatedButton.icon(
-            onPressed: () => _showFinalConfirmation(), // Просто подтверждение, без сканера
-            icon: const Icon(Icons.done_all),
-            label: Text(state.isCancelMode ? 'Выдать с отменами' : 'Выдать заказ'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: state.isCancelMode ? Colors.orange : _pickColor,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 // Добавить в _ActiveAssemblyScreenState
-void _showFinalConfirmation() async { // <-- УБРАЛИ АРГУМЕНТЫ
-    final args = (
-      assignmentId: widget.assignmentId,
-      userId: ref.read(currentUserProvider)?. employeeId ?? 0,
-    );
-    
-    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
-    final state = ref.read(orderAssemblyViewModelProvider(args));
-
-    // Достаем сохраненный токен из состояния
+void _showFinalConfirmation(OrderAssemblyState state, OrderAssemblyViewModel vm) async {
+    // Достаем сохраненный токен из состояния напрямую
     final String qrToken = state.tempQrToken ?? '';
-    if (qrToken.isEmpty) return; 
+    
+    if (qrToken.isEmpty) {
+      // Больше никаких "тихих возвратов". Если токена нет, мы об этом узнаем!
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ошибка: QR-код клиента не найден. Пожалуйста, отсканируйте его еще раз.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return; 
+    } 
 
     final int cancelledCount = state.cancelledQuantities.values.fold(0, (a, b) => a + b);
 
@@ -713,11 +744,13 @@ void _showFinalConfirmation() async { // <-- УБРАЛИ АРГУМЕНТЫ
             onPressed: () async {
               Navigator.pop(ctx);
               
-              // Используем сохраненный токен для финальной выдачи
-              final result = await vm.processExpressHandover(qrToken);
+              // ВАЖНО: Убедись, что у тебя во ViewModel метод называется именно так!
+              final result = await vm.finalizeExpressHandover(); 
               
               if (result.$1 && mounted) {
-                Navigator.pop(context); // Возвращаемся в список задач
+                // Возвращаемся в список задач
+                ref.read(mainViewModelProvider.notifier).refreshTasks();
+                Navigator.pop(context, true); 
               } else if (!result.$1 && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(result.$2), backgroundColor: Colors.redAccent),
@@ -732,7 +765,8 @@ void _showFinalConfirmation() async { // <-- УБРАЛИ АРГУМЕНТЫ
         ],
       ),
     );
-  }
+  } 
+ 
   /// Поле ввода со сканером
   Widget _buildBarcodeInput(OrderAssemblyState state, OrderAssemblyViewModel vm) {
     final isPick = state.mode == AssemblyMode.pick;
@@ -793,13 +827,18 @@ void _showFinalConfirmation() async { // <-- УБРАЛИ АРГУМЕНТЫ
 
   Future<void> _openScanner(OrderAssemblyState state, OrderAssemblyViewModel vm) async {
     if (!canEditTask) return;
+    // В методе _openScanner или по кнопке "Выдать"
     final result = await context.push<bool>('/order-assembly/scanner', extra: {
       'assignmentId': widget.assignmentId,
       'userId': _args.userId,
     });
-    // Если результат true, обновление интерфейса произойдет при возврате
+
+    // Нам не нужно обрабатывать строку здесь, так как vm.verifyCustomerQr уже всё сохранил в стейт.
     if (result == true) {
-       vm.loadTask();
+      // UI обновится сам благодаря ref.watch(provider)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Клиент подтвержден'), backgroundColor: Colors.green)
+      );
     }
   }
 

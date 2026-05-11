@@ -35,7 +35,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
       case 'Ready': return 'Готов к выдаче';
       case 'InTransit': return 'В пути';
       case 'Completed': return 'Завершен';
-      case 'Canceled': return 'Отменен';
+      case 'Cancelled': return 'Отменен';
       default: return status;
     }
   }
@@ -316,7 +316,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 const SizedBox(height: 32),
                 
                 // Кнопка отмены заказа
-                if (order.status != 'Completed' && order.status != 'Canceled')
+                if (order.status != 'Completed' && order.status != 'Cancelled')
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(

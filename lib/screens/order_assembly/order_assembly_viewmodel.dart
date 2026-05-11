@@ -410,6 +410,27 @@ Future<(bool, String)> processExpressHandover(String qrToken) async {
     }
   }
 
+Future<(bool, String)> verifyCustomerQr(String qrToken) async {
+  state = state.copyWith(isLoading: true);
+  try {
+    final client = ref.read(apiClientProvider);
+    
+    // 1. Отправляем запрос на верификацию
+    await client.orderAssemblyVerifyQrAsync(arg.assignmentId, qrToken);
+
+    // 2. Если бэкенд не выдал ошибку, сохраняем токен в стейт
+    state = state.copyWith(
+      isCustomerVerified: true, 
+      tempQrToken: qrToken, 
+      isLoading: false
+    );
+    
+    return (true, '✅ Клиент подтвержден');
+  } catch (e) {
+    state = state.copyWith(isLoading: false);
+    return (false, 'Ошибка: $e');
+  }
+}
 
 
 Future<(bool, String)> finalizeExpressHandover() async {

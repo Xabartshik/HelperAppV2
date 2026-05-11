@@ -483,7 +483,13 @@ Future<void> orderAssemblyVerifyQrAsync(int assignmentId, String qrToken) async 
       rethrow;
     }
   }
-  
+
+  // Внутри класса ApiClient
+void forceResetNetworkState() {
+  _hasNetwork = true;
+  Logger.i('ApiClient: Состояние сети принудительно сброшено (hasNetwork = true)');
+}
+
 Future<void> orderAssemblyExpressHandoverAsync(
   int assignmentId, 
   String qrToken, 

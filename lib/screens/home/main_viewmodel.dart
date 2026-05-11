@@ -240,7 +240,17 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
 
 /// Обновление списка задач. 
   /// [isSilent] - если true, обновление происходит без показа индикатора загрузки
-  Future<void> refreshTasks({bool isSilent = false}) async {
+/// Обновление списка задач. 
+  /// [forceNetworkReset] - принудительный сброс сетевых блокировок (если сервер лежал)
+  Future<void> refreshTasks({bool isSilent = false, bool forceNetworkReset = false}) async {
+    if (forceNetworkReset) {
+      // 1. Сбрасываем внутренний флаг-заглушку в API клиенте
+      ref.read(apiClientProvider).forceResetNetworkState();
+      
+      // 2. Инвалидируем базовый провайдер клиента на случай "залипания"
+      ref.invalidate(apiClientProvider);
+    }
+
     // Если обновление "тихое", не включаем глобальный индикатор загрузки (isBusy)
     if (!isSilent) {
       state = state.copyWith(isBusy: true, errorMessage: '');
@@ -253,8 +263,10 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         if (!isSilent) state = state.copyWith(isBusy: false);
         return;
       }
+      
       await _fetchBreakStatus();
       await checkShiftStatus();
+      
       final taskService = ref.read(taskServiceProvider);
       final tasks = await taskService.getTasksForCurrentUserAsync(currentUser.employeeId!);
 
@@ -267,7 +279,7 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
         isBusy: false, // Всегда выключаем лоадер при успехе
       );
 
-      // Управление периодической синхронизацией через TaskService (если она используется)
+      // Управление периодической синхронизацией через TaskService
       taskService.setEmployeeIdForPeriodicSync(currentUser.employeeId!);
       if (!taskService.isPeriodicSyncActive) {
         taskService.startPeriodicSync((updatedTasks) {
@@ -300,7 +312,6 @@ class MainViewModel extends AutoDisposeNotifier<MainState> {
       Logger.e('Ошибка при загрузке задач (фоновое обновление: $isSilent)', e);
     }
   }
-  
   void setSortMode(TaskSortMode mode) {
     state = state.copyWith(
       sortMode: mode,

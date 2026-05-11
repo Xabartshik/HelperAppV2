@@ -69,12 +69,28 @@ void _handleCode(String code) async {
 
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);
     final state = ref.read(orderAssemblyViewModelProvider(args));
-
-    // --- НОВАЯ ЛОГИКА ЭКСПРЕСС-ВЫДАЧИ ---
-    // Если это экспресс-заказ, просто возвращаем токен на главный экран
-    if (state.isExpress) {
+    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
+// Если это экспресс-заказ (режим выдачи), просто отдаем токен назад экрану сборки
+if (state.isExpress && state.mode == AssemblyMode.place) {
       HapticFeedback.mediumImpact();
-      Navigator.pop(context, code);
+      
+      // Вместо возврата строки, вызываем метод верификации во ViewModel
+      final result = await vm.verifyCustomerQr(code);
+      
+      if (!mounted) return;
+
+      if (result.$1) {
+        // Возвращаем true (bool), что совпадает с ожидаемым типом!
+        Navigator.pop(context, true); 
+      } else {
+        // Если QR не прошел проверку на сервере, показываем ошибку не выходя из сканера
+        setState(() {
+          _lastResultSuccess = false;
+          _message = result.$2;
+          _showSuccessOverlay = true;
+          _isProcessing = false;
+        });
+      }
       return; 
     }
     // ------------------------------------
@@ -86,8 +102,6 @@ void _handleCode(String code) async {
       _isProcessing = true;
       _message = 'Обработка...';
     });
-
-    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
     (bool, String) result;
 
     if (state.mode == AssemblyMode.pick) {
@@ -131,7 +145,7 @@ void _handleCode(String code) async {
     }
   }
 
-  
+
   @override
   Widget build(BuildContext context) {
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);

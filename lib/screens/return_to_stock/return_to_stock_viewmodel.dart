@@ -112,11 +112,13 @@ class ReturnToStockViewModel extends AutoDisposeFamilyNotifier<ReturnToStockStat
   }
 
   // Сканирование штрих-кода товара (Pick)
-  Future<(bool, String)> processScanItem(int lineId, String barcode) async {
+Future<(bool, String)> processScanItem(int lineId, String barcode) async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
-      await client.scanReturnItemAsync(arg.assignmentId, lineId, barcode.trim());
+      final currentAssignmentId = state.details?.assignmentId ?? arg.assignmentId;
+      
+      await client.scanReturnItemAsync(currentAssignmentId, lineId, barcode.trim());
       
       await loadTask(); // Обновляем данные с сервера
       return (true, 'Товар подтвержден');
@@ -127,11 +129,15 @@ class ReturnToStockViewModel extends AutoDisposeFamilyNotifier<ReturnToStockStat
   }
 
   // Сканирование QR-кода ячейки (Place)
-  Future<(bool, String)> processScanCell(int lineId, String cellCode) async {
+Future<(bool, String)> processScanCell(int lineId, String cellCode) async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
-      await client.scanReturnCellAsync(arg.assignmentId, lineId, cellCode.trim());
+      
+      // ИЗМЕНЕНИЕ: Берем актуальный AssignmentId из загруженных деталей
+      final currentAssignmentId = state.details?.assignmentId ?? arg.assignmentId;
+      
+      await client.scanReturnCellAsync(currentAssignmentId, lineId, cellCode.trim());
       
       await loadTask();
       // Проверяем, все ли позиции теперь размещены для автозакрытия
