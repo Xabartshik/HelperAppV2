@@ -48,22 +48,25 @@ class PdfExportService {
                   child: pw.Column(
                     mainAxisAlignment: pw.MainAxisAlignment.center,
                     children: [
-                      pw.BarcodeWidget(
-                        barcode: pw.Barcode.qrCode(),
-                        data: pos.fullName, 
-                        width: 100,
-                        height: 100,
-                        drawText: false, // Отключаем дублирующийся текст внутри QR
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Text(
+                    pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: pos.fullName, 
+                      width: 70, // Было 100. Уменьшаем, чтобы дать место тексту!
+                      height: 70, // Было 100.
+                      drawText: false,
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.FittedBox( // Масштабирует текст, чтобы он точно влез в ширину
+                      child: pw.Text(
                         pos.fullName, 
                         style: labelStyle,
                       ),
-                      pw.Text(
-                        pos.firstLevelStorageType, 
-                        style: captionStyle,
-                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      pos.firstLevelStorageType, 
+                      style: captionStyle,
+                    ),
                     ],
                   ),
                 );

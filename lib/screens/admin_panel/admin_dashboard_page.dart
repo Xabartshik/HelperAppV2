@@ -137,6 +137,7 @@ final destinations = [
           return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: ItemFormPanel());
         case 2:
           return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: EmployeeFormPanel());
+          case 3: return const Drawer(width: 400, backgroundColor: _bgGray900, child: PositionFormPanel());
         default:
           return null;
       }
@@ -197,6 +198,8 @@ Widget _buildContent(int tabIndex) {
           // Сбрасываем выбор сотрудника перед открытием формы создания
           ref.read(editingEmployeeProvider.notifier).state = null;
           _scaffoldKey.currentState?.openEndDrawer();
+        } else if (tabIndex == 3) { // Добавь эту проверку!
+      ref.read(editingPositionProvider.notifier).state = null;
         }
     else {
       ScaffoldMessenger.of(context).showSnackBar(
