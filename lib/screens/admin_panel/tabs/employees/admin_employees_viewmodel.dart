@@ -28,23 +28,12 @@ class AdminEmployeesState {
   }
 }
 
+// Провайдер для редактируемого сотрудника
+final editingEmployeeProvider = StateProvider<EmployeeDto?>((ref) => null);
+
 final adminEmployeesProvider = AutoDisposeNotifierProvider<AdminEmployeesViewModel, AdminEmployeesState>(
   () => AdminEmployeesViewModel(),
 );
-class RoleMapper {
-  static (int workerRole, int mobileRole) getMapping(String profileType) {
-    return switch (profileType) {
-      'admin'      => (3, 3), // WorkerRole.Manager (3), MobileUserRole.Admin (3)
-      'manager'    => (3, 2), // WorkerRole.Manager (3), MobileUserRole.Supervisor (2)
-      'courier'    => (4, 5), // WorkerRole.Courier (4), MobileUserRole.Courier (5)
-      'storekeeper'=> (1, 1), // WorkerRole.Storekeeper (1), MobileUserRole.Worker (1)
-      'issuer'     => (2, 1), // WorkerRole.OrderIssuer (2), MobileUserRole.Worker (1)
-      _            => (1, 0),
-    };
-  }
-}
-
-final editingEmployeeProvider = StateProvider<EmployeeDto?>((ref) => null);
 
 class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
   @override
@@ -59,14 +48,6 @@ class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
     state = state.copyWith(employees: list, isLoading: false);
   }
 
-  Future<bool> updateEmployee(EmployeeDto employee) async {
-    state = state.copyWith(isLoading: true);
-    final success = await ref.read(apiClientProvider).updateEmployeeAsync(employee);
-    if (success) await loadEmployees();
-    state = state.copyWith(isLoading: false);
-    return success;
-  }
-
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
   }
@@ -76,62 +57,73 @@ class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
     return String.fromCharCodes(Iterable.generate(8, (_) => chars.codeUnitAt(Random().nextInt(chars.length))));
   }
 
-// В методе registerWorkerCombined во ViewModel:
-Future<Map<String, String>?> registerWorkerCombined(Map<String, dynamic> data) async {
-  state = state.copyWith(isLoading: true);
-  
-  try {
-    final profile = data['profileType'] as String;
-    final (workerRole, mobileRole) = RoleMapper.getMapping(profile);
-
-    int employeeId = -1;
-
-    // ШАГ 1: Создание физической записи
-    if (profile == 'courier') {
-      employeeId = await ref.read(apiClientProvider).createCourierAsync({
-        'surname': data['surname'],
-        'name': data['name'],
-        'middleName': data['middleName'] ?? '',
-        'vehicleTypeId': data['vehicleType'], 
-        'maxWeightGrams': double.parse(data['maxWeight'].toString()),
-        'maxLengthMm': double.parse(data['maxLength'].toString()),
-        'maxWidthMm': double.parse(data['maxWidth'].toString()),
-        'maxHeightMm': double.parse(data['maxHeight'].toString()),
-      });
-    } else {
-      employeeId = await ref.read(apiClientProvider).createEmployeeAsync({
-        'surname': data['surname'],
-        'name': data['name'],
-        'middleName': data['middleName'] ?? '',
-        'role': workerRole,
-      });
-    }
-
-    if (employeeId <= 0) throw Exception('Ошибка создания сотрудника');
-
-    // ШАГ 2: Создание аккаунта
-    final password = generateRandomPassword();
-    final success = await ref.read(apiClientProvider).registerMobileUserAsync({
-      'username': data['username'],
-      'password': password,
-      'firstName': data['name'],
-      'lastName': data['surname'],
-      'role': mobileRole,
-      'employeeId': employeeId,
-      'isActive': true
-    });
-
-    if (success) {
-      await loadEmployees();
-      return {'login': data['username'], 'password': password};
-    }
-    return null;
-  } catch (e) {
-    Logger.e('Регистрация прервана', e);
-    return null;
-  } finally {
+  Future<bool> updateEmployee(EmployeeDto employee) async {
+    state = state.copyWith(isLoading: true);
+    final success = await ref.read(apiClientProvider).updateEmployeeAsync(employee);
+    if (success) await loadEmployees();
     state = state.copyWith(isLoading: false);
+    return success;
   }
-}
 
+  Future<Map<String, String>?> registerWorkerCombined(Map<String, dynamic> data) async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final profile = data['profileType'] as String;
+      final (workerRole, mobileRole) = _getRoleMapping(profile);
+
+      int employeeId = -1;
+
+      if (profile == 'courier') {
+        employeeId = await ref.read(apiClientProvider).createCourierAsync({
+          'surname': data['surname'],
+          'name': data['name'],
+          'middleName': data['middleName'] ?? '',
+          'vehicleTypeId': data['vehicleType'],
+          'maxWeightGrams': double.parse(data['maxWeight'].toString()),
+          'maxLengthMm': double.parse(data['maxLength'].toString()),
+          'maxWidthMm': double.parse(data['maxWidth'].toString()),
+          'maxHeightMm': double.parse(data['maxHeight'].toString()),
+        });
+      } else {
+        employeeId = await ref.read(apiClientProvider).createEmployeeAsync({
+          'surname': data['surname'],
+          'name': data['name'],
+          'middleName': data['middleName'] ?? '',
+          'role': workerRole,
+        });
+      }
+
+      if (employeeId <= 0) return null;
+
+      final password = generateRandomPassword();
+      final success = await ref.read(apiClientProvider).createMobileAppUserAsync({
+        'login': data['username'],      // В DTO свойство называется Login
+        'password': password,           // В DTO свойство называется Password
+        'role': mobileRole,             // Enum MobileUserRole
+        'employeeId': employeeId,       // Привязка к созданному сотруднику
+        // 'branchId': null             // Опционально, если админ привязывает к филиалу
+      });
+
+      if (success) {
+        await loadEmployees();
+        return {'login': data['username'], 'password': password};
+      }
+      return null;
+    } catch (e) {
+      Logger.e('Ошибка регистрации', e);
+      return null;
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  (int, int) _getRoleMapping(String profile) {
+    return switch (profile) {
+      'admin' => (3, 3),   // Manager, Admin
+      'manager' => (3, 2), // Manager, Supervisor
+      'courier' => (4, 5), // Courier, Courier
+      'issuer' => (2, 1),  // Issuer, Worker
+      _ => (1, 1),         // Storekeeper, Worker
+    };
+  }
 }

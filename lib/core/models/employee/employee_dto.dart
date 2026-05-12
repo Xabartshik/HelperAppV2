@@ -1,25 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:helper_app/core/models/user/worker_role.dart';
 
 part 'employee_dto.freezed.dart';
 part 'employee_dto.g.dart';
-
-enum WorkerRole {
-  @JsonValue(1) 
-  storekeeper,   // Сборщик заказов (был warehouseWorker)
-
-  @JsonValue(2) 
-  orderIssuer,   // Кассир / Выдача (был supervisor)
-
-  @JsonValue(3) 
-  manager,       // Начальник (был admin)
-
-  @JsonValue(4) 
-  courier,       // Курьер (теперь соответствует C#)
-
-  @JsonValue(100) 
-  unknown
-}
-
 @freezed
 class EmployeeDto with _$EmployeeDto {
   const factory EmployeeDto({

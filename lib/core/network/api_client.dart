@@ -328,6 +328,19 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     }
   }
 
+  // 3. Создание системного пользователя для сотрудника
+// 3. Создание пользователя мобильного приложения (для сотрудников)
+  Future<bool> createMobileAppUserAsync(Map<String, dynamic> data) async {
+    try {
+      // Отправляем POST запрос на корень контроллера MobileAppUser
+      await postAsync('v1/MobileAppUser', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания аккаунта', e);
+      return false;
+    }
+  }
+
 // --- Админ-панель: Товары ---
   Future<List<ItemDto>> getItemsAsync() async {
     try {
