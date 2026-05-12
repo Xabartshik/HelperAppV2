@@ -4,6 +4,8 @@ import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_ta
 import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_viewmodel.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_tab.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_viewmodel.dart';
+import 'package:helper_app/screens/admin_panel/tabs/positions/admin_positions_tab.dart';
+import 'package:helper_app/screens/admin_panel/tabs/positions/admin_positions_viewmodel.dart';
 import '../../core/services/auth_service.dart';
 import 'tabs/branches/admin_branches_tab.dart';
 import 'tabs/branches/admin_branches_viewmodel.dart';
@@ -30,11 +32,12 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     final currentTab = ref.watch(adminTabProvider);
     final isDesktop = MediaQuery.of(context).size.width > 800;
 
-    final destinations = [
-      const NavigationRailDestination(icon: Icon(Icons.business), label: Text('Филиалы')),
-      const NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined), label: Text('Товары')),
-      const NavigationRailDestination(icon: Icon(Icons.people_outline), label: Text('Персонал')),
-    ];
+final destinations = [
+  const NavigationRailDestination(icon: Icon(Icons.business), label: Text('Филиалы')),
+  const NavigationRailDestination(icon: Icon(Icons.inventory_2), label: Text('Товары')),
+  const NavigationRailDestination(icon: Icon(Icons.people), label: Text('Персонал')),
+  const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')), // Добавлено
+];
 
     return Scaffold(
       key: _scaffoldKey,
@@ -149,14 +152,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         border: Border.all(color: Colors.white10),
       ),
       child: TextField(
-        onChanged: (value) {
-          // Направляем текст поиска в нужную вкладку
-          if (currentTab == 0) {
-            ref.read(adminBranchesProvider.notifier).setSearchQuery(value);
-          } else if (currentTab == 1) { // Добавлено
-            ref.read(adminItemsProvider.notifier).setSearchQuery(value);
-          }
-        },
+      onChanged: (value) {
+        if (currentTab == 0) {
+          ref.read(adminBranchesProvider.notifier).setSearchQuery(value);
+        } else if (currentTab == 1) {
+          ref.read(adminItemsProvider.notifier).setSearchQuery(value);
+        } else if (currentTab == 2) {
+          ref.read(adminEmployeesProvider.notifier).setSearchQuery(value);
+        } else if (currentTab == 3) { // Добавлено
+          ref.read(adminPositionsProvider.notifier).setSearchQuery(value);
+        }
+        },  
         style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: const InputDecoration(
           hintText: 'Поиск...',
@@ -170,13 +176,14 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   }
 
 Widget _buildContent(int tabIndex) {
-    switch (tabIndex) {
-      case 0: return const AdminBranchesTab();
-      case 1: return const AdminItemsTab();
-      case 2: return const AdminEmployeesTab(); // Заменили заглушку на виджет
-      default: return const SizedBox();
-    }
+  switch (tabIndex) {
+    case 0: return const AdminBranchesTab();
+    case 1: return const AdminItemsTab();
+    case 2: return const AdminEmployeesTab();
+    case 3: return const AdminPositionsTab(); // Добавлено
+    default: return const SizedBox();
   }
+}
 
   // Безопасное открытие боковой панели через GlobalKey
   void _openAddForm(int tabIndex) {
