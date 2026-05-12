@@ -11,7 +11,7 @@ void _showQrDialog(BuildContext context, String data) {
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: const Color(0xFF1C1C1E),
-      title: Text(data, style: const TextStyle(color: Colors.white, fontSize: 18)),
+      title: Text(data, style: const TextStyle(color: Colors.white, fontSize: 18), textAlign: TextAlign.center),
       content: SizedBox(
         width: 250,
         height: 250,
@@ -20,8 +20,7 @@ void _showQrDialog(BuildContext context, String data) {
             data: data,
             version: QrVersions.auto,
             size: 200.0,
-            eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.white),
-            dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.white),
+            backgroundColor: Colors.white,
           ),
         ),
       ),
@@ -43,31 +42,63 @@ class AdminPositionsTab extends ConsumerWidget {
     final state = ref.watch(adminPositionsProvider);
     final branchesState = ref.watch(adminBranchesProvider);
 
-    // Оборачиваем вкладку в Scaffold, чтобы добавить FloatingActionButton
     return Scaffold(
       backgroundColor: Colors.transparent,
       
-      // ДОБАВЛЕНА ПЛАВАЮЩАЯ КНОПКА ДЛЯ СОЗДАНИЯ
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF7C3AED),
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {
-          // Сбрасываем выбранную ячейку (чтобы форма открылась пустой)
-          ref.read(editingPositionProvider.notifier).state = null;
-          // Открываем правую шторку с формой
-          Scaffold.of(context).openEndDrawer();
-        },
+      // Динамические плавающие кнопки (справа внизу)
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // Если выбрана ровно ОДНА ячейка, показываем доп. действия
+          if (state.selectedPositionIds.length == 1) ...[
+            FloatingActionButton.small(
+              heroTag: 'qr_btn',
+              backgroundColor: const Color(0xFF2C2C2E),
+              tooltip: 'Показать QR код',
+              onPressed: () {
+                final posId = state.selectedPositionIds.first;
+                final pos = state.positions.firstWhere((p) => p.positionId == posId);
+                _showQrDialog(context, pos.fullName);
+              },
+              child: const Icon(Icons.qr_code, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            FloatingActionButton.small(
+              heroTag: 'edit_btn',
+              backgroundColor: const Color(0xFF2C2C2E),
+              tooltip: 'Редактировать ячейку',
+              onPressed: () {
+                final posId = state.selectedPositionIds.first;
+                final pos = state.positions.firstWhere((p) => p.positionId == posId);
+                ref.read(editingPositionProvider.notifier).state = pos;
+                Scaffold.of(context).openEndDrawer();
+              },
+              child: const Icon(Icons.edit, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+          ],
+          
+          // Основная кнопка "Добавить"
+          FloatingActionButton(
+            heroTag: 'add_pos_btn',
+            backgroundColor: const Color(0xFF7C3AED),
+            tooltip: 'Создать новые ячейки',
+            onPressed: () {
+              ref.read(editingPositionProvider.notifier).state = null;
+              Scaffold.of(context).openEndDrawer();
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
       ),
 
       body: Column(
         children: [
-          // Верхняя панель управления
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: const Color(0xFF1C1C1E),
             child: Row(
               children: [
-                // Выбор филиала
                 SizedBox(
                   width: 250,
                   child: DropdownButtonHideUnderline(
@@ -88,7 +119,6 @@ class AdminPositionsTab extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
-                // Кнопка печати выбранных
                 if (state.selectedPositionIds.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -109,7 +139,6 @@ class AdminPositionsTab extends ConsumerWidget {
             ),
           ),
 
-          // Список ячеек
           Expanded(
             child: state.isLoading && state.positions.isEmpty
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
@@ -124,79 +153,57 @@ class AdminPositionsTab extends ConsumerWidget {
                           mainAxisSpacing: 10,
                         ),
                         itemCount: state.filteredPositions.length,
-itemBuilder: (context, index) {
-  final pos = state.filteredPositions[index];
-  final isSelected = state.selectedPositionIds.contains(pos.positionId);
+                        itemBuilder: (context, index) {
+                          final pos = state.filteredPositions[index];
+                          final isSelected = state.selectedPositionIds.contains(pos.positionId);
 
-  return Container(
-    decoration: BoxDecoration(
-      color: isSelected ? const Color(0xFF7C3AED).withOpacity(0.2) : const Color(0xFF1C1C1E),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(
-        color: isSelected ? const Color(0xFF7C3AED) : Colors.white10,
-        width: 1.5,
-      ),
-    ),
-    child: InkWell( // Оборачиваем в InkWell для нажатия
-      borderRadius: BorderRadius.circular(12),
-      onTap: () => ref.read(adminPositionsProvider.notifier).toggleSelection(pos.positionId),
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(pos.fullName, 
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                Text(pos.firstLevelStorageType, 
-                  style: const TextStyle(color: Colors.white38, fontSize: 10)),
-                const Spacer(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    // Иконка просмотра QR
-                    IconButton(
-                      constraints: const BoxConstraints(),
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.qr_code, color: Colors.white54, size: 20),
-                      onPressed: () => _showQrDialog(context, pos.fullName),
-                    ),
-                    const SizedBox(width: 8),
-                    // Иконка редактирования
-                    IconButton(
-                      constraints: const BoxConstraints(),
-                      padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.edit, color: Colors.white54, size: 20),
-                      onPressed: () {
-                        ref.read(editingPositionProvider.notifier).state = pos;
-                        Scaffold.of(context).openEndDrawer();
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          if (isSelected)
-            const Positioned(
-              top: 8, right: 8,
-              child: Icon(Icons.check_circle, color: Color(0xFF7C3AED), size: 18),
-            ),
-        ],
-      ),
-    ),
-  );
-},
-                      
+                          return InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => ref.read(adminPositionsProvider.notifier).toggleSelection(pos.positionId),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF7C3AED).withOpacity(0.3) : const Color(0xFF1C1C1E),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF7C3AED) : Colors.white10,
+                                  width: 1.5,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    pos.firstLevelStorageType == 'RACK' ? Icons.view_quilt : Icons.inventory_2,
+                                    color: isSelected ? Colors.white : Colors.white38,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(pos.fullName, 
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        Text(pos.firstLevelStorageType, 
+                                          style: const TextStyle(color: Colors.white38, fontSize: 10),
+                                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected) const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
           ),
         ],
       ),
     );
   }
-
-
 }
 
 class PositionFormPanel extends ConsumerStatefulWidget {
@@ -212,41 +219,62 @@ class _PositionFormPanelState extends ConsumerState<PositionFormPanel> {
   void _submit() async {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
       final values = _formKey.currentState!.value;
-      final success = await ref.read(adminPositionsProvider.notifier).createBulkPositions(values);
-      if (success && mounted) Navigator.pop(context);
+      final editingPosition = ref.read(editingPositionProvider);
+      
+      if (editingPosition != null) {
+        // Редактирование
+        final updated = editingPosition.copyWith(
+          branchId: values['branchId'],
+          zoneCode: values['zoneCode'],
+          firstLevelStorageType: values['storageType'],
+          flsNumber: values['startNum'].toString(),
+          secondLevelStorage: values['shelvesCount']?.toString(),
+          thirdLevelStorage: values['cellsCount']?.toString(),
+          length: double.tryParse(values['length'].toString()) ?? 0,
+          width: double.tryParse(values['width'].toString()) ?? 0,
+          height: double.tryParse(values['height'].toString()) ?? 0,
+        );
+        final success = await ref.read(adminPositionsProvider.notifier).updatePosition(updated);
+        if (success && mounted) Navigator.pop(context);
+      } else {
+        // Создание
+        final success = await ref.read(adminPositionsProvider.notifier).createBulkPositions(values);
+        if (success && mounted) Navigator.pop(context);
+      }
     }
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     final editingPosition = ref.watch(editingPositionProvider);
     final isEdit = editingPosition != null;
     final branches = ref.watch(adminBranchesProvider).branches;
 
+    // Считываем текущий тип, чтобы форма корректно отобразила поля стеллажа при первом открытии
+    final currentStorageType = _formKey.currentState?.fields['storageType']?.value 
+                               ?? (isEdit ? editingPosition.firstLevelStorageType : 'RACK');
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          // Динамический заголовок
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isEdit ? "Редактирование ячейки" : "Массовое создание",
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                isEdit ? "Изменение позиции" : "Добавление позиций", 
+                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: Colors.white54),
                 onPressed: () => Navigator.pop(context),
-              ),
+              )
             ],
           ),
           const SizedBox(height: 24),
-          
           Expanded(
             child: FormBuilder(
               key: _formKey,
-              // ValueKey заставляет форму полностью перерисоваться с новыми данными при смене ID
               initialValue: isEdit ? {
                 'branchId': editingPosition.branchId,
                 'zoneCode': editingPosition.zoneCode,
@@ -255,30 +283,32 @@ class _PositionFormPanelState extends ConsumerState<PositionFormPanel> {
                 'count': '1',
                 'shelvesCount': editingPosition.secondLevelStorage,
                 'cellsCount': editingPosition.thirdLevelStorage,
+                'length': editingPosition.length.toString(),
+                'width': editingPosition.width.toString(),
+                'height': editingPosition.height.toString(),
               } : {
                 'storageType': 'RACK', 
                 'startNum': '1', 
-                'count': '1'
+                'count': '1',
+                'length': '0',
+                'width': '0',
+                'height': '0',
               },
               child: ListView(
                 children: [
-                  // Выбор филиала
                   FormBuilderDropdown<int>(
                     name: 'branchId',
                     decoration: _inputDecoration('Филиал'),
                     dropdownColor: const Color(0xFF1C1C1E),
                     style: const TextStyle(color: Colors.white),
-                    items: branches.map((b) => DropdownMenuItem(
-                      value: b.branchId, 
-                      child: Text(b.branchName)
-                    )).toList(),
+                    items: branches.map((b) => DropdownMenuItem(value: b.branchId, child: Text(b.branchName))).toList(),
                     validator: FormBuilderValidators.required(errorText: "Выберите филиал"),
                   ),
                   const SizedBox(height: 12),
-
-                  _field('zoneCode', 'Код зоны (напр. A)'),
+                  
+                  _field('zoneCode', 'Буквенный код зоны (напр. A, B, X)'),
                   const SizedBox(height: 12),
-
+                  
                   FormBuilderDropdown<String>(
                     name: 'storageType',
                     decoration: _inputDecoration('Тип хранилища'),
@@ -287,37 +317,46 @@ class _PositionFormPanelState extends ConsumerState<PositionFormPanel> {
                     items: const [
                       DropdownMenuItem(value: 'RACK', child: Text('Стеллаж')),
                       DropdownMenuItem(value: 'PALLET', child: Text('Паллетное место')),
-                      DropdownMenuItem(value: 'TABLE', child: Text('Стол сборки')),
+                      DropdownMenuItem(value: 'TABLE', child: Text('Рабочий стол')),
                     ],
                     onChanged: (val) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
-
-                  // Поля структуры для стеллажа
-                  if (_formKey.currentState?.fields['storageType']?.value == 'RACK') ...[
+                  
+                  // Поля для структуры стеллажа
+                  if (currentStorageType == 'RACK') ...[
                     Row(
                       children: [
-                        Expanded(child: _numField('shelvesCount', 'Полок')),
+                        Expanded(child: _numField('shelvesCount', 'Количество полок')),
                         const SizedBox(width: 12),
-                        Expanded(child: _numField('cellsCount', 'Ячеек на полку')),
+                        Expanded(child: _numField('cellsCount', 'Ячеек на полке')),
                       ],
                     ),
                     const SizedBox(height: 12),
                   ],
 
-                  // Логика нумерации
+                  // Габариты
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 8),
+                    child: Text("Габариты (мм)", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ),
                   Row(
                     children: [
-                      Expanded(
-                        child: _numField(
-                          'startNum', 
-                          isEdit ? 'Номер ячейки' : 'Начать с №'
-                        )
-                      ),
-                      // Если редактируем — скрываем поле количества
+                      Expanded(child: _numField('length', 'Длина')),
+                      const SizedBox(width: 8),
+                      Expanded(child: _numField('width', 'Ширина')),
+                      const SizedBox(width: 8),
+                      Expanded(child: _numField('height', 'Высота')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(child: _numField('startNum', isEdit ? 'Номер позиции' : 'Начальный №')),
                       if (!isEdit) ...[
                         const SizedBox(width: 12),
-                        Expanded(child: _numField('count', 'Кол-во объектов')),
+                        Expanded(child: _numField('count', 'Количество (шт)')),
                       ],
                     ],
                   ),
@@ -325,45 +364,41 @@ class _PositionFormPanelState extends ConsumerState<PositionFormPanel> {
               ),
             ),
           ),
-
           const SizedBox(height: 16),
-          
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(
-                isEdit ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "СОЗДАТЬ И ПЕЧАТЬ",
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+          ElevatedButton(
+            onPressed: _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          ),
+            child: Text(
+              isEdit ? "СОХРАНИТЬ ИЗМЕНЕНИЯ" : "СОЗДАТЬ И ПЕЧАТЬ", 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+            ),
+          )
         ],
       ),
     );
   }
-  
+
   Widget _field(String name, String label) => FormBuilderTextField(
     name: name, decoration: _inputDecoration(label),
     style: const TextStyle(color: Colors.white),
-    validator: FormBuilderValidators.required(errorText: "Поле обязательно"),
+    validator: FormBuilderValidators.required(errorText: "Заполните поле"),
   );
 
   Widget _numField(String name, String label) => FormBuilderTextField(
     name: name, keyboardType: TextInputType.number,
     decoration: _inputDecoration(label),
     style: const TextStyle(color: Colors.white),
-    validator: FormBuilderValidators.required(errorText: "Поле обязательно"),
+    validator: FormBuilderValidators.required(errorText: "Заполните поле"),
   );
 
   InputDecoration _inputDecoration(String label) => InputDecoration(
     labelText: label, filled: true, fillColor: const Color(0xFF1C1C1E),
     labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF7C3AED))),
   );
 }

@@ -20,7 +20,6 @@ class AdminDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
-  // Ключ для управления Scaffold (решает проблему с открытием боковой панели)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   static const Color _primaryColor = Color(0xFF7C3AED);
@@ -32,138 +31,81 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     final currentTab = ref.watch(adminTabProvider);
     final isDesktop = MediaQuery.of(context).size.width > 800;
 
-final destinations = [
-  const NavigationRailDestination(icon: Icon(Icons.business), label: Text('Филиалы')),
-  const NavigationRailDestination(icon: Icon(Icons.inventory_2), label: Text('Товары')),
-  const NavigationRailDestination(icon: Icon(Icons.people), label: Text('Персонал')),
-  const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')), // Добавлено
-];
+    final destinations = [
+      const NavigationRailDestination(icon: Icon(Icons.business), label: Text('Филиалы')),
+      const NavigationRailDestination(icon: Icon(Icons.inventory_2), label: Text('Товары')),
+      const NavigationRailDestination(icon: Icon(Icons.people), label: Text('Персонал')),
+      const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')),
+    ];
 
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: _bgGray950,
+      endDrawer: _buildEndDrawer(currentTab),
       appBar: AppBar(
         backgroundColor: _bgGray900,
         elevation: 0,
-        title: _buildSearchBar(currentTab),
+        title: _buildSearchBar(currentTab, ref),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8),
-            child: ElevatedButton.icon(
-              onPressed: () => _openAddForm(currentTab),
-              icon: const Icon(Icons.add),
-              label: const Text('Добавить', style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
+          // Неработающая кнопка "Добавить" удалена, так как у каждой вкладки есть свой FAB (Floating Action Button)
           IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
-            tooltip: 'Выйти',
+            icon: const Icon(Icons.logout, color: Colors.white54),
             onPressed: () => ref.read(authServiceProvider).logoutAsync(),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
       ),
-      drawer: isDesktop ? null : Drawer(
-        backgroundColor: _bgGray900,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: _bgGray950),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Icon(Icons.admin_panel_settings, color: _primaryColor, size: 40),
-                  SizedBox(height: 12),
-                  Text('Админ-панель', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            ...destinations.asMap().entries.map((e) => ListTile(
-              leading: e.value.icon,
-              title: e.value.label,
-              selected: currentTab == e.key,
-              selectedTileColor: _primaryColor.withOpacity(0.1),
-              selectedColor: _primaryColor,
-              iconColor: Colors.white54,
-              textColor: Colors.white70,
-              onTap: () {
-                ref.read(adminTabProvider.notifier).state = e.key;
-                Navigator.pop(context);
-              },
-            )),
-          ],
-        ),
-      ),
-      
-      // Динамическая боковая панель для форм
-      endDrawer: _buildEndDrawer(currentTab),
-      
       body: Row(
         children: [
-          if (isDesktop) ...[
+          if (isDesktop)
             NavigationRail(
-              backgroundColor: _bgGray900,
               selectedIndex: currentTab,
-              onDestinationSelected: (idx) => ref.read(adminTabProvider.notifier).state = idx,
-              destinations: destinations,
+              onDestinationSelected: (index) => ref.read(adminTabProvider.notifier).state = index,
+              backgroundColor: _bgGray900,
+              indicatorColor: _primaryColor.withOpacity(0.2),
               selectedIconTheme: const IconThemeData(color: _primaryColor),
               unselectedIconTheme: const IconThemeData(color: Colors.white54),
-              selectedLabelTextStyle: const TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
-              unselectedLabelTextStyle: const TextStyle(color: Colors.white54),
               labelType: NavigationRailLabelType.all,
+              destinations: destinations,
             ),
-            const VerticalDivider(thickness: 1, width: 1, color: Colors.white10),
-          ],
-          Expanded(child: _buildContent(currentTab)),
+          Expanded(
+            child: Container(
+              color: _bgGray950,
+              child: _buildContent(currentTab),
+            ),
+          ),
         ],
       ),
+      bottomNavigationBar: isDesktop
+          ? null
+          : BottomNavigationBar(
+              currentIndex: currentTab,
+              onTap: (index) => ref.read(adminTabProvider.notifier).state = index,
+              backgroundColor: _bgGray900,
+              selectedItemColor: _primaryColor,
+              unselectedItemColor: Colors.white54,
+              type: BottomNavigationBarType.fixed,
+              items: destinations
+                  .map((d) => BottomNavigationBarItem(icon: d.icon, label: (d.label as Text).data))
+                  .toList(),
+            ),
     );
   }
 
-  // Метод для выбора нужной формы в зависимости от текущей вкладки
-  Widget? _buildEndDrawer(int tabIndex) {
-      switch (tabIndex) {
-        case 0:
-          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: BranchFormPanel());
-        case 1:
-          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: ItemFormPanel());
-        case 2:
-          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: EmployeeFormPanel());
-          case 3: return const Drawer(width: 400, backgroundColor: _bgGray900, child: PositionFormPanel());
-        default:
-          return null;
-      }
-    }
-  // Обновленный поиск, реагирующий на ввод текста
-  Widget _buildSearchBar(int currentTab) {
+  Widget _buildSearchBar(int currentTab, WidgetRef ref) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.black26,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white10),
       ),
       child: TextField(
-      onChanged: (value) {
-        if (currentTab == 0) {
-          ref.read(adminBranchesProvider.notifier).setSearchQuery(value);
-        } else if (currentTab == 1) {
-          ref.read(adminItemsProvider.notifier).setSearchQuery(value);
-        } else if (currentTab == 2) {
-          ref.read(adminEmployeesProvider.notifier).setSearchQuery(value);
-        } else if (currentTab == 3) { // Добавлено
-          ref.read(adminPositionsProvider.notifier).setSearchQuery(value);
-        }
-        },  
+        onChanged: (value) {
+          if (currentTab == 0) ref.read(adminBranchesProvider.notifier).setSearchQuery(value);
+          if (currentTab == 1) ref.read(adminItemsProvider.notifier).setSearchQuery(value);
+          if (currentTab == 2) ref.read(adminEmployeesProvider.notifier).setSearchQuery(value);
+          if (currentTab == 3) ref.read(adminPositionsProvider.notifier).setSearchQuery(value);
+        },
         style: const TextStyle(color: Colors.white, fontSize: 14),
         decoration: const InputDecoration(
           hintText: 'Поиск...',
@@ -176,35 +118,23 @@ final destinations = [
     );
   }
 
-Widget _buildContent(int tabIndex) {
-  switch (tabIndex) {
-    case 0: return const AdminBranchesTab();
-    case 1: return const AdminItemsTab();
-    case 2: return const AdminEmployeesTab();
-    case 3: return const AdminPositionsTab(); // Добавлено
-    default: return const SizedBox();
+  Widget _buildContent(int tabIndex) {
+    switch (tabIndex) {
+      case 0: return const AdminBranchesTab();
+      case 1: return const AdminItemsTab();
+      case 2: return const AdminEmployeesTab();
+      case 3: return const AdminPositionsTab();
+      default: return const SizedBox();
+    }
   }
-}
 
-  // Безопасное открытие боковой панели через GlobalKey
-  void _openAddForm(int tabIndex) {
-    if (tabIndex == 0) {
-          ref.read(editingBranchProvider.notifier).state = null;
-          _scaffoldKey.currentState?.openEndDrawer();
-        } else if (tabIndex == 1) {
-          ref.read(editingItemProvider.notifier).state = null;
-          _scaffoldKey.currentState?.openEndDrawer();
-        } else if (tabIndex == 2) {
-          // Сбрасываем выбор сотрудника перед открытием формы создания
-          ref.read(editingEmployeeProvider.notifier).state = null;
-          _scaffoldKey.currentState?.openEndDrawer();
-        } else if (tabIndex == 3) { // Добавь эту проверку!
-      ref.read(editingPositionProvider.notifier).state = null;
-        }
-    else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Для этой вкладки форма еще не готова')),
-      );
+  Widget? _buildEndDrawer(int tabIndex) {
+    switch (tabIndex) {
+      case 0: return const Drawer(width: 400, backgroundColor: _bgGray900, child: BranchFormPanel());
+      case 1: return const Drawer(width: 400, backgroundColor: _bgGray900, child: ItemFormPanel());
+      case 2: return const Drawer(width: 400, backgroundColor: _bgGray900, child: EmployeeFormPanel());
+      case 3: return const Drawer(width: 400, backgroundColor: _bgGray900, child: PositionFormPanel());
+      default: return null;
     }
   }
 }

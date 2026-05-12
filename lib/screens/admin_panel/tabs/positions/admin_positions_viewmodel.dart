@@ -9,7 +9,7 @@ class AdminPositionsState {
   final List<PositionCellDto> positions;
   final String searchQuery;
   final int? selectedBranchId;
-  final Set<int> selectedPositionIds; // Для выбора ячеек под экспорт PDF
+  final Set<int> selectedPositionIds;
 
   AdminPositionsState({
     this.isLoading = false,
@@ -35,26 +35,19 @@ class AdminPositionsState {
     );
   }
 
-  // Геттер для фильтрации списка
   List<PositionCellDto> get filteredPositions {
     var list = positions;
-
-    // 1. Фильтр по филиалу
     if (selectedBranchId != null) {
       list = list.where((p) => p.branchId == selectedBranchId).toList();
     }
-
-    // 2. Поиск по названию (Зона-Стеллаж-Полка-Ячейка)
     if (searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
       list = list.where((p) => p.fullName.toLowerCase().contains(q)).toList();
     }
-
     return list;
   }
 }
 
-// Провайдер для редактируемой позиции (одиночной)
 final editingPositionProvider = StateProvider<PositionCellDto?>((ref) => null);
 
 final adminPositionsProvider = AutoDisposeNotifierProvider<AdminPositionsViewModel, AdminPositionsState>(
@@ -87,8 +80,6 @@ class AdminPositionsViewModel extends AutoDisposeNotifier<AdminPositionsState> {
     state = state.copyWith(selectedBranchId: branchId);
   }
 
-  // --- Работа с выбором для экспорта ---
-
   void toggleSelection(int positionId) {
     final newSelection = Set<int>.from(state.selectedPositionIds);
     if (newSelection.contains(positionId)) {
@@ -103,28 +94,34 @@ class AdminPositionsViewModel extends AutoDisposeNotifier<AdminPositionsState> {
     state = state.copyWith(selectedPositionIds: {});
   }
 
-  // Экспорт выбранных QR-кодов в PDF
   Future<void> exportSelectedToPdf() async {
     if (state.selectedPositionIds.isEmpty) return;
-
     final selectedPositions = state.positions
         .where((p) => state.selectedPositionIds.contains(p.positionId))
         .toList();
-
     await PdfExportService.exportPositionLabels(selectedPositions);
   }
 
-  // --- API Операции ---
-
-  // Массовое создание через твой новый эндпоинт /bulk
-  Future<bool> createBulkPositions(Map<String, dynamic> data) async {
+  // Обновленный метод формирования JSON для BulkCreatePositionDto
+  Future<bool> createBulkPositions(Map<String, dynamic> values) async {
     state = state.copyWith(isLoading: true);
     try {
-      // Отправляем BulkCreatePositionDto на сервер
-      final createdPositions = await ref.read(apiClientProvider).createBulkPositionsAsync(data);
+      final payload = {
+        'branchId': values['branchId'],
+        'zoneCode': values['zoneCode'],
+        'storageType': values['storageType'],
+        'startFLSNumber': int.parse(values['startNum'].toString()),
+        'storageCount': int.parse(values['count'].toString()),
+        'shelvesCount': values['storageType'] == 'RACK' ? int.tryParse(values['shelvesCount']?.toString() ?? '') : null,
+        'cellsPerShelf': values['storageType'] == 'RACK' ? int.tryParse(values['cellsCount']?.toString() ?? '') : null,
+        'defaultLength': double.tryParse(values['length']?.toString() ?? '0'),
+        'defaultWidth': double.tryParse(values['width']?.toString() ?? '0'),
+        'defaultHeight': double.tryParse(values['height']?.toString() ?? '0'),
+      };
+
+      final createdPositions = await ref.read(apiClientProvider).createBulkPositionsAsync(payload);
 
       if (createdPositions != null && createdPositions.isNotEmpty) {
-        // Сразу после создания предлагаем сохранить PDF со всеми новыми ячейками
         await PdfExportService.exportPositionLabels(createdPositions);
         await loadPositions();
         state = state.copyWith(isLoading: false);
