@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_tab.dart';
+import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_viewmodel.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_tab.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_viewmodel.dart';
 import '../../core/services/auth_service.dart';
@@ -125,27 +127,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
   // Метод для выбора нужной формы в зависимости от текущей вкладки
   Widget? _buildEndDrawer(int tabIndex) {
-    switch (tabIndex) {
-      case 0:
-        return const Drawer(
-          width: 400,
-          backgroundColor: _bgGray900,
-          child: BranchFormPanel(), // Универсальная форма для филиалов
-        );
-      case 1:
-        return const Drawer(
-          width: 400,
-          backgroundColor: Color(0xFF2C2C2E),
-          child: ItemFormPanel(),
-        );
-      case 2:
-        // В будущем здесь будет форма для персонала
-        return null;
-      default:
-        return null;
+      switch (tabIndex) {
+        case 0:
+          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: BranchFormPanel());
+        case 1:
+          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: ItemFormPanel());
+        case 2:
+          return const Drawer(width: 400, backgroundColor: Color(0xFF2C2C2E), child: EmployeeFormPanel());
+        default:
+          return null;
+      }
     }
-  }
-
   // Обновленный поиск, реагирующий на ввод текста
   Widget _buildSearchBar(int currentTab) {
     return Container(
@@ -177,11 +169,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     );
   }
 
-  Widget _buildContent(int tabIndex) {
+Widget _buildContent(int tabIndex) {
     switch (tabIndex) {
       case 0: return const AdminBranchesTab();
       case 1: return const AdminItemsTab();
-      case 2: return const Center(child: Text('Вкладка: Персонал (В разработке)', style: TextStyle(color: Colors.white54)));
+      case 2: return const AdminEmployeesTab(); // Заменили заглушку на виджет
       default: return const SizedBox();
     }
   }
@@ -189,13 +181,16 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   // Безопасное открытие боковой панели через GlobalKey
   void _openAddForm(int tabIndex) {
     if (tabIndex == 0) {
-      // Сбрасываем выбранный филиал, чтобы форма была пустой для создания
-      ref.read(editingBranchProvider.notifier).state = null;
-      _scaffoldKey.currentState?.openEndDrawer();
-    } if (tabIndex == 1) {
-      ref.read(editingItemProvider.notifier).state = null;
-      _scaffoldKey.currentState?.openEndDrawer();
-    } 
+          ref.read(editingBranchProvider.notifier).state = null;
+          _scaffoldKey.currentState?.openEndDrawer();
+        } else if (tabIndex == 1) {
+          ref.read(editingItemProvider.notifier).state = null;
+          _scaffoldKey.currentState?.openEndDrawer();
+        } else if (tabIndex == 2) {
+          // Сбрасываем выбор сотрудника перед открытием формы создания
+          ref.read(editingEmployeeProvider.notifier).state = null;
+          _scaffoldKey.currentState?.openEndDrawer();
+        }
     else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Для этой вкладки форма еще не готова')),

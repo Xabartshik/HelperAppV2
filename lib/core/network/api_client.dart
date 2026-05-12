@@ -296,6 +296,16 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     }
   }
 
+  Future<bool> updateEmployeeAsync(EmployeeDto employee) async {
+    try {
+      await putAsync('Employee', data: employee.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления сотрудника', e);
+      return false;
+    }
+  }
+
   // 2. Создание курьера (Возвращает ID)
   Future<int> createCourierAsync(Map<String, dynamic> data) async {
     try {

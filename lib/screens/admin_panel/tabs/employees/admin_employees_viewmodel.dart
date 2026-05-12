@@ -43,6 +43,9 @@ class RoleMapper {
     };
   }
 }
+
+final editingEmployeeProvider = StateProvider<EmployeeDto?>((ref) => null);
+
 class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
   @override
   AdminEmployeesState build() {
@@ -54,6 +57,14 @@ class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
     state = state.copyWith(isLoading: true);
     final list = await ref.read(apiClientProvider).getEmployeesAsync();
     state = state.copyWith(employees: list, isLoading: false);
+  }
+
+  Future<bool> updateEmployee(EmployeeDto employee) async {
+    state = state.copyWith(isLoading: true);
+    final success = await ref.read(apiClientProvider).updateEmployeeAsync(employee);
+    if (success) await loadEmployees();
+    state = state.copyWith(isLoading: false);
+    return success;
   }
 
   void setSearchQuery(String query) {
