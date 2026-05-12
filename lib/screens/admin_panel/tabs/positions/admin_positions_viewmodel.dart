@@ -10,6 +10,7 @@ class AdminPositionsState {
   final String searchQuery;
   final int? selectedBranchId;
   final Set<int> selectedPositionIds;
+  final bool isGroupedView; // Флаг для группировки
 
   AdminPositionsState({
     this.isLoading = false,
@@ -17,6 +18,7 @@ class AdminPositionsState {
     this.searchQuery = '',
     this.selectedBranchId,
     this.selectedPositionIds = const {},
+    this.isGroupedView = true, // По умолчанию включена
   });
 
   AdminPositionsState copyWith({
@@ -25,6 +27,7 @@ class AdminPositionsState {
     String? searchQuery,
     int? selectedBranchId,
     Set<int>? selectedPositionIds,
+    bool? isGroupedView,
   }) {
     return AdminPositionsState(
       isLoading: isLoading ?? this.isLoading,
@@ -32,11 +35,14 @@ class AdminPositionsState {
       searchQuery: searchQuery ?? this.searchQuery,
       selectedBranchId: selectedBranchId ?? this.selectedBranchId,
       selectedPositionIds: selectedPositionIds ?? this.selectedPositionIds,
+      isGroupedView: isGroupedView ?? this.isGroupedView,
     );
   }
 
   List<PositionCellDto> get filteredPositions {
-    var list = positions;
+    var list = List<PositionCellDto>.from(positions);
+    
+    // 1. Фильтрация
     if (selectedBranchId != null) {
       list = list.where((p) => p.branchId == selectedBranchId).toList();
     }
@@ -44,6 +50,34 @@ class AdminPositionsState {
       final q = searchQuery.toLowerCase();
       list = list.where((p) => p.fullName.toLowerCase().contains(q)).toList();
     }
+
+    // 2. Умная сортировка: Зона -> Стеллаж -> Полка -> Ячейка
+    list.sort((a, b) {
+      int cmp = a.zoneCode.compareTo(b.zoneCode);
+      if (cmp != 0) return cmp;
+
+      // Сортируем номера стеллажей как числа, чтобы 2 шло перед 10
+      int flsA = int.tryParse(a.flsNumber) ?? 0;
+      int flsB = int.tryParse(b.flsNumber) ?? 0;
+      cmp = flsA.compareTo(flsB);
+      if (cmp == 0) cmp = a.flsNumber.compareTo(b.flsNumber); // Фолбэк на строку
+      if (cmp != 0) return cmp;
+
+      // Сортируем полки
+      int shelfA = int.tryParse(a.secondLevelStorage ?? '0') ?? 0;
+      int shelfB = int.tryParse(b.secondLevelStorage ?? '0') ?? 0;
+      cmp = shelfA.compareTo(shelfB);
+      if (cmp == 0) cmp = (a.secondLevelStorage ?? '').compareTo(b.secondLevelStorage ?? '');
+      if (cmp != 0) return cmp;
+
+      // Сортируем ячейки
+      int cellA = int.tryParse(a.thirdLevelStorage ?? '0') ?? 0;
+      int cellB = int.tryParse(b.thirdLevelStorage ?? '0') ?? 0;
+      cmp = cellA.compareTo(cellB);
+      if (cmp == 0) cmp = (a.thirdLevelStorage ?? '').compareTo(b.thirdLevelStorage ?? '');
+      return cmp;
+    });
+
     return list;
   }
 }
@@ -94,6 +128,10 @@ class AdminPositionsViewModel extends AutoDisposeNotifier<AdminPositionsState> {
     state = state.copyWith(selectedPositionIds: {});
   }
 
+  void toggleGroupedView() {
+    state = state.copyWith(isGroupedView: !state.isGroupedView);
+  }
+
   Future<void> exportSelectedToPdf() async {
     if (state.selectedPositionIds.isEmpty) return;
     final selectedPositions = state.positions
@@ -102,7 +140,6 @@ class AdminPositionsViewModel extends AutoDisposeNotifier<AdminPositionsState> {
     await PdfExportService.exportPositionLabels(selectedPositions);
   }
 
-  // Обновленный метод формирования JSON для BulkCreatePositionDto
   Future<bool> createBulkPositions(Map<String, dynamic> values) async {
     state = state.copyWith(isLoading: true);
     try {
