@@ -296,6 +296,19 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     }
   }
 
+  Future<List<PositionCellDto>?> createBulkPositionsAsync(Map<String, dynamic> bulkData) async {
+  try {
+    final response = await postAsync('PositionCell/bulk', data: bulkData);
+    if (response != null && response is List) {
+      return response.map((e) => PositionCellDto.fromJson(e)).toList();
+    }
+    return null;
+  } catch (e) {
+    Logger.e('Ошибка массового создания позиций', e);
+    return null;
+  }
+}
+
   Future<bool> updateEmployeeAsync(EmployeeDto employee) async {
     try {
       await putAsync('Employee', data: employee.toJson());

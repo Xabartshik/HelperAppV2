@@ -31,5 +31,5 @@ const _$WorkerRoleEnumMap = {
   WorkerRole.orderIssuer: 2,
   WorkerRole.manager: 3,
   WorkerRole.courier: 4,
-  WorkerRole.unknown: 100,
+  WorkerRole.unknown: 0,
 };
