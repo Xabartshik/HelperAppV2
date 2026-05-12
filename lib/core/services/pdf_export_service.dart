@@ -56,11 +56,27 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
     );
   }
 
-  final bytes = await pdf.save();
-  final directory = await getExternalStorageDirectory();
-  final file = File("${directory!.path}/Labels_${DateTime.now().millisecondsSinceEpoch}.pdf");
-  await file.writeAsBytes(bytes);
-  await OpenFilex.open(file.path);
+try {
+      final Uint8List bytes = await pdf.save();
+
+      // ИСПРАВЛЕНИЕ: Используем универсальный путь для всех платформ
+      // getApplicationDocumentsDirectory доступен везде (Android, iOS, Windows)
+      final Directory directory = await getApplicationDocumentsDirectory();
+      
+      final String fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
+      final String filePath = "${directory.path}/$fileName";
+
+      final File file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      Logger.i("PDF успешно сохранен: $filePath");
+
+      // Открываем файл для просмотра
+      await OpenFilex.open(filePath);
+
+    } catch (e) {
+      Logger.e("Ошибка при сохранении PDF", e);
+    }
 }
 
   static Future<void> exportWorkerCredentials({
