@@ -1,23 +1,26 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
+import 'package:helper_app/core/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart'; // Обязательный импорт для шрифтов
-import '../utils/logger.dart';
 import 'package:path/path.dart' as p;
 
 class PdfExportService {
-  // В файл lib/core/services/pdf_export_service.dart добавь:
-static Future<void> exportPositionLabels(List<PositionCellDto> positions) async {
+  
+  static Future<void> exportPositionLabels(List<PositionCellDto> positions) async {
     final pdf = pw.Document();
 
     // 1. Загружаем шрифты Roboto (они поддерживают кириллицу)
-    // Если вам нужен "печатный" вид (monospace), используйте PdfGoogleFonts.robotoMonoRegular()
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
+
+    // Заранее создаем стили с указанием шрифта, чтобы избежать ошибки Courier
+    final labelStyle = pw.TextStyle(font: fontBold, fontSize: 14);
+    final captionStyle = pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey700);
 
     // Группируем по 12 штук на страницу
     for (var i = 0; i < positions.length; i += 12) {
@@ -47,27 +50,19 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
                     children: [
                       pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
-                        data: pos.fullName,
+                        data: pos.fullName, 
                         width: 100,
                         height: 100,
-                        // На всякий случай отключаем текст внутри самого QR (он там не нужен)
-                        drawText: false, 
+                        drawText: false, // Отключаем дублирующийся текст внутри QR
                       ),
                       pw.SizedBox(height: 10),
                       pw.Text(
-                        pos.fullName,
-                        style: pw.TextStyle(
-                          font: fontBold, // ЯВНО УКАЗЫВАЕМ ШРИФТ
-                          fontSize: 14,
-                        ),
+                        pos.fullName, 
+                        style: labelStyle,
                       ),
                       pw.Text(
-                        pos.firstLevelStorageType,
-                        style: pw.TextStyle(
-                          font: fontRegular, // ЯВНО УКАЗЫВАЕМ ШРИФТ
-                          fontSize: 8,
-                          color: PdfColors.grey700,
-                        ),
+                        pos.firstLevelStorageType, 
+                        style: captionStyle,
                       ),
                     ],
                   ),
@@ -80,32 +75,31 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
     }
 
     // Сохранение и открытие файла...
-try {
-    final bytes = await pdf.save();
-    Directory? directory;
+    try {
+      final bytes = await pdf.save();
+      Directory? directory;
 
-    // Выбираем директорию в зависимости от платформы
-    if (Platform.isAndroid) {
-      directory = await getExternalStorageDirectory(); // Или getApplicationDocumentsDirectory
-    } else {
-      // Для Windows, macOS и iOS
-      directory = await getApplicationDocumentsDirectory();
+      // Выбираем директорию в зависимости от платформы
+      if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory(); 
+      } else {
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) throw Exception("Не удалось получить доступ к хранилищу");
+
+      final fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
+      final filePath = p.join(directory.path, fileName);
+      final file = File(filePath);
+
+      await file.writeAsBytes(bytes);
+      
+      // Открываем файл
+      await OpenFilex.open(filePath);
+      
+    } catch (e) {
+      print("Ошибка сохранения: $e");
     }
-
-    if (directory == null) throw Exception("Не удалось получить доступ к хранилищу");
-
-    final fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
-    final filePath = p.join(directory.path, fileName);
-    final file = File(filePath);
-
-    await file.writeAsBytes(bytes);
-    
-    // Открываем файл
-    await OpenFilex.open(filePath);
-    
-  } catch (e) {
-    print("Ошибка сохранения: $e");
-  }
   }
   
   static Future<void> exportWorkerCredentials({
@@ -119,6 +113,13 @@ try {
     // 1. Загружаем шрифты с поддержкой кириллицы
     final fontRegular = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
+
+    // Заранее создаем стили, передавая загруженные шрифты
+    final titleStyle = pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.purple);
+    final normalStyle = pw.TextStyle(font: fontRegular, fontSize: 10);
+    final headerStyle = pw.TextStyle(font: fontBold, fontSize: 11);
+    final credsStyle = pw.TextStyle(font: fontRegular, fontSize: 11);
+    final dateStyle = pw.TextStyle(font: fontRegular, fontSize: 7, color: PdfColors.grey);
 
     pdf.addPage(
       pw.Page(
@@ -138,21 +139,22 @@ try {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Center(
-                  child: pw.Text("TASK CONTROL", 
-                    style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.purple)),
+                  child: pw.Text("TASK CONTROL", style: titleStyle),
                 ),
                 pw.SizedBox(height: 20),
-                pw.Text("Сотрудник: $fullName", style: const pw.TextStyle(fontSize: 10)),
-                pw.Text("Должность: $role", style: const pw.TextStyle(fontSize: 10)),
+                pw.Text("Сотрудник: $fullName", style: normalStyle),
+                pw.Text("Должность: $role", style: normalStyle),
                 pw.Divider(color: PdfColors.grey300),
                 pw.SizedBox(height: 10),
-                pw.Text("ДАННЫЕ ДЛЯ ВХОДА:", style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                pw.Text("ДАННЫЕ ДЛЯ ВХОДА:", style: headerStyle),
                 pw.SizedBox(height: 5),
-                pw.Text("Логин: $login", style: const pw.TextStyle(fontSize: 11)),
-                pw.Text("Пароль: $password", style: const pw.TextStyle(fontSize: 11)),
+                pw.Text("Логин: $login", style: credsStyle),
+                pw.Text("Пароль: $password", style: credsStyle),
                 pw.Spacer(),
-                pw.Text("Сгенерировано: ${DateTime.now().toString().split('.')[0]}", 
-                  style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey)),
+                pw.Text(
+                  "Сгенерировано: ${DateTime.now().toString().split('.')[0]}", 
+                  style: dateStyle,
+                ),
               ],
             ),
           );

@@ -1,189 +1,264 @@
-import 'dart:io';
-import 'dart:typed_data';
-import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
-import 'package:helper_app/core/utils/logger.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart'; // Обязательный импорт для шрифтов
-import 'package:path/path.dart' as p;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
+import 'package:helper_app/screens/admin_panel/tabs/branches/admin_branches_viewmodel.dart';
+import 'admin_positions_viewmodel.dart';
 
-class PdfExportService {
-  
-  static Future<void> exportPositionLabels(List<PositionCellDto> positions) async {
-    final pdf = pw.Document();
+class AdminPositionsTab extends ConsumerWidget {
+  const AdminPositionsTab({super.key});
 
-    // 1. Загружаем шрифты Roboto (они поддерживают кириллицу)
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(adminPositionsProvider);
+    final branchesState = ref.watch(adminBranchesProvider);
 
-    // Заранее создаем стили с указанием шрифта, чтобы избежать ошибки Courier
-    final labelStyle = pw.TextStyle(font: fontBold, fontSize: 14);
-    final captionStyle = pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey700);
-
-    // Группируем по 12 штук на страницу
-    for (var i = 0; i < positions.length; i += 12) {
-      final chunk = positions.skip(i).take(12).toList();
+    // Оборачиваем вкладку в Scaffold, чтобы добавить FloatingActionButton
+    return Scaffold(
+      backgroundColor: Colors.transparent,
       
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          // 2. Устанавливаем тему со шрифтами для ВСЕЙ страницы
-          theme: pw.ThemeData.withFont(
-            base: fontRegular,
-            bold: fontBold,
-          ),
-          build: (pw.Context context) {
-            return pw.GridView(
-              crossAxisCount: 3,
-              childAspectRatio: 1,
-              children: chunk.map((pos) {
-                return pw.Container(
-                  margin: const pw.EdgeInsets.all(10),
-                  padding: const pw.EdgeInsets.all(10),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey300),
-                  ),
-                  child: pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.center,
-                    children: [
-                      pw.BarcodeWidget(
-                        barcode: pw.Barcode.qrCode(),
-                        data: pos.fullName, 
-                        width: 100,
-                        height: 100,
-                        drawText: false, // Отключаем дублирующийся текст внутри QR
-                      ),
-                      pw.SizedBox(height: 10),
-                      pw.Text(
-                        pos.fullName, 
-                        style: labelStyle,
-                      ),
-                      pw.Text(
-                        pos.firstLevelStorageType, 
-                        style: captionStyle,
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        ),
-      );
-    }
-
-    // Сохранение и открытие файла...
-    try {
-      final bytes = await pdf.save();
-      Directory? directory;
-
-      // Выбираем директорию в зависимости от платформы
-      if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory(); 
-      } else {
-        directory = await getApplicationDocumentsDirectory();
-      }
-
-      if (directory == null) throw Exception("Не удалось получить доступ к хранилищу");
-
-      final fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
-      final filePath = p.join(directory.path, fileName);
-      final file = File(filePath);
-
-      await file.writeAsBytes(bytes);
-      
-      // Открываем файл
-      await OpenFilex.open(filePath);
-      
-    } catch (e) {
-      print("Ошибка сохранения: $e");
-    }
-  }
-  
-  static Future<void> exportWorkerCredentials({
-    required String fullName,
-    required String role,
-    required String login,
-    required String password,
-  }) async {
-    final pdf = pw.Document();
-
-    // 1. Загружаем шрифты с поддержкой кириллицы
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
-
-    // Заранее создаем стили, передавая загруженные шрифты
-    final titleStyle = pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.purple);
-    final normalStyle = pw.TextStyle(font: fontRegular, fontSize: 10);
-    final headerStyle = pw.TextStyle(font: fontBold, fontSize: 11);
-    final credsStyle = pw.TextStyle(font: fontRegular, fontSize: 11);
-    final dateStyle = pw.TextStyle(font: fontRegular, fontSize: 7, color: PdfColors.grey);
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a6,
-        // 2. Применяем шрифты ко всей странице
-        theme: pw.ThemeData.withFont(
-          base: fontRegular,
-          bold: fontBold,
-        ),
-        build: (pw.Context context) {
-          return pw.Container(
-            padding: const pw.EdgeInsets.all(20),
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(color: PdfColors.purple, width: 2),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Center(
-                  child: pw.Text("TASK CONTROL", style: titleStyle),
-                ),
-                pw.SizedBox(height: 20),
-                pw.Text("Сотрудник: $fullName", style: normalStyle),
-                pw.Text("Должность: $role", style: normalStyle),
-                pw.Divider(color: PdfColors.grey300),
-                pw.SizedBox(height: 10),
-                pw.Text("ДАННЫЕ ДЛЯ ВХОДА:", style: headerStyle),
-                pw.SizedBox(height: 5),
-                pw.Text("Логин: $login", style: credsStyle),
-                pw.Text("Пароль: $password", style: credsStyle),
-                pw.Spacer(),
-                pw.Text(
-                  "Сгенерировано: ${DateTime.now().toString().split('.')[0]}", 
-                  style: dateStyle,
-                ),
-              ],
-            ),
-          );
+      // ДОБАВЛЕНА ПЛАВАЮЩАЯ КНОПКА ДЛЯ СОЗДАНИЯ
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF7C3AED),
+        child: const Icon(Icons.add, color: Colors.white),
+        onPressed: () {
+          // Сбрасываем выбранную ячейку (чтобы форма открылась пустой)
+          ref.read(editingPositionProvider.notifier).state = null;
+          // Открываем правую шторку с формой
+          Scaffold.of(context).openEndDrawer();
         },
       ),
+
+      body: Column(
+        children: [
+          // Верхняя панель управления
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: const Color(0xFF1C1C1E),
+            child: Row(
+              children: [
+                // Выбор филиала
+                SizedBox(
+                  width: 250,
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      value: state.selectedBranchId,
+                      hint: const Text("Все филиалы", style: TextStyle(color: Colors.white70)),
+                      dropdownColor: const Color(0xFF2C2C2E),
+                      style: const TextStyle(color: Colors.white),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text("Все филиалы")),
+                        ...branchesState.branches.map((b) => DropdownMenuItem(
+                          value: b.branchId,
+                          child: Text(b.branchName),
+                        )),
+                      ],
+                      onChanged: (val) => ref.read(adminPositionsProvider.notifier).setBranchFilter(val),
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                // Кнопка печати выбранных
+                if (state.selectedPositionIds.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () => ref.read(adminPositionsProvider.notifier).exportSelectedToPdf(),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
+                      icon: const Icon(Icons.print, size: 18),
+                      label: Text("Печать (${state.selectedPositionIds.length})"),
+                    ),
+                  ),
+                if (state.selectedPositionIds.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear_all, color: Colors.white54),
+                    onPressed: () => ref.read(adminPositionsProvider.notifier).clearSelection(),
+                    tooltip: "Сбросить выбор",
+                  ),
+              ],
+            ),
+          ),
+
+          // Список ячеек
+          Expanded(
+            child: state.isLoading && state.positions.isEmpty
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
+                : state.filteredPositions.isEmpty
+                    ? const Center(child: Text("Ячейки не найдены", style: TextStyle(color: Colors.white54)))
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(16),
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 200,
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        itemCount: state.filteredPositions.length,
+                        itemBuilder: (context, index) {
+                          final pos = state.filteredPositions[index];
+                          final isSelected = state.selectedPositionIds.contains(pos.positionId);
+
+                          return GestureDetector(
+                            onTap: () => ref.read(adminPositionsProvider.notifier).toggleSelection(pos.positionId),
+                            onLongPress: () {
+                              ref.read(editingPositionProvider.notifier).state = pos;
+                              Scaffold.of(context).openEndDrawer();
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFF7C3AED).withOpacity(0.3) : const Color(0xFF1C1C1E),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? const Color(0xFF7C3AED) : Colors.white10,
+                                  width: 1.5,
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    pos.firstLevelStorageType == 'RACK' ? Icons.view_quilt : Icons.inventory_2,
+                                    color: isSelected ? Colors.white : Colors.white38,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(pos.fullName, 
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                                        Text(pos.firstLevelStorageType, 
+                                          style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                      ],
+                                    ),
+                                  ),
+                                  if (isSelected) const Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
+  }
+}
 
-    try {
-      final Uint8List bytes = await pdf.save();
+class PositionFormPanel extends ConsumerStatefulWidget {
+  const PositionFormPanel({super.key});
 
-      final Directory? directory = Platform.isAndroid 
-          ? await getExternalStorageDirectory() 
-          : await getApplicationDocumentsDirectory();
-      
-      if (directory == null) throw Exception("Не удалось найти директорию для сохранения");
+  @override
+  ConsumerState<PositionFormPanel> createState() => _PositionFormPanelState();
+}
 
-      final String fileName = "Access_${login}_${DateTime.now().millisecondsSinceEpoch}.pdf";
-      final String filePath = "${directory.path}/$fileName";
+class _PositionFormPanelState extends ConsumerState<PositionFormPanel> {
+  final _formKey = GlobalKey<FormBuilderState>();
 
-      final File file = File(filePath);
-      await file.writeAsBytes(bytes);
-
-      Logger.i("PDF сохранен по пути: $filePath");
-
-      await OpenFilex.open(filePath);
-
-    } catch (e) {
-      Logger.e("Ошибка при сохранении PDF", e);
-      rethrow;
+  void _submit() async {
+    if (_formKey.currentState?.saveAndValidate() ?? false) {
+      final values = _formKey.currentState!.value;
+      final success = await ref.read(adminPositionsProvider.notifier).createBulkPositions(values);
+      if (success && mounted) Navigator.pop(context);
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final branches = ref.watch(adminBranchesProvider).branches;
+
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        children: [
+          const Text("Массовое создание", 
+            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 24),
+          Expanded(
+            child: FormBuilder(
+              key: _formKey,
+              initialValue: const {'storageType': 'RACK', 'startNum': '1', 'count': '1'},
+              child: ListView(
+                children: [
+                  FormBuilderDropdown<int>(
+                    name: 'branchId',
+                    decoration: _inputDecoration('Филиал'),
+                    dropdownColor: const Color(0xFF1C1C1E),
+                    style: const TextStyle(color: Colors.white),
+                    items: branches.map((b) => DropdownMenuItem(value: b.branchId, child: Text(b.branchName))).toList(),
+                    validator: FormBuilderValidators.required(),
+                  ),
+                  const SizedBox(height: 12),
+                  _field('zoneCode', 'Код зоны (например, A)'),
+                  const SizedBox(height: 12),
+                  FormBuilderDropdown<String>(
+                    name: 'storageType',
+                    decoration: _inputDecoration('Тип хранилища'),
+                    dropdownColor: const Color(0xFF1C1C1E),
+                    style: const TextStyle(color: Colors.white),
+                    items: const [
+                      DropdownMenuItem(value: 'RACK', child: Text('Стеллаж')),
+                      DropdownMenuItem(value: 'PALLET', child: Text('Паллетное место')),
+                    ],
+                    onChanged: (val) => setState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Поля для структуры стеллажа
+                  if (_formKey.currentState?.fields['storageType']?.value == 'RACK') ...[
+                    Row(
+                      children: [
+                        Expanded(child: _numField('shelvesCount', 'Полок')),
+                        const SizedBox(width: 12),
+                        Expanded(child: _numField('cellsCount', 'Ячеек на полку')),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  Row(
+                    children: [
+                      Expanded(child: _numField('startNum', 'Начать с №')),
+                      const SizedBox(width: 12),
+                      Expanded(child: _numField('count', 'Кол-во объектов')),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              minimumSize: const Size(double.infinity, 50)
+            ),
+            child: const Text("СОЗДАТЬ И ПЕЧАТЬ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _field(String name, String label) => FormBuilderTextField(
+    name: name, decoration: _inputDecoration(label),
+    style: const TextStyle(color: Colors.white),
+    validator: FormBuilderValidators.required(errorText: "Поле обязательно"),
+  );
+
+  Widget _numField(String name, String label) => FormBuilderTextField(
+    name: name, keyboardType: TextInputType.number,
+    decoration: _inputDecoration(label),
+    style: const TextStyle(color: Colors.white),
+    validator: FormBuilderValidators.required(errorText: "Поле обязательно"),
+  );
+
+  InputDecoration _inputDecoration(String label) => InputDecoration(
+    labelText: label, filled: true, fillColor: const Color(0xFF1C1C1E),
+    labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+  );
 }
