@@ -5,6 +5,7 @@ import 'package:helper_app/screens/boss_panel/active_tasks_tab.dart';
 import 'package:helper_app/screens/boss_panel/branch_orders_tab.dart';
 import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
 import 'package:helper_app/screens/boss_panel/employee_workload_tab.dart';
+import 'package:helper_app/screens/boss_panel/global_pool_tab.dart';
 import 'package:helper_app/screens/boss_panel/reports_tab.dart';
 import 'boss_panel_viewmodel.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
@@ -30,7 +31,8 @@ final List<Map<String, dynamic>> destinations = [
   {'title': 'Загруженность', 'icon': Icons.analytics_outlined},
   {'title': 'Все заказы', 'icon': Icons.list_alt_rounded},
   {'title': 'Маршруты курьеров', 'icon': Icons.local_shipping_outlined},
-  {'title': 'Аналитика и Отчеты', 'icon': Icons.picture_as_pdf_outlined}, // <-- НОВАЯ ВКЛАДКА
+  {'title': 'Пул задач', 'icon': Icons.assignment_returned_outlined},
+  {'title': 'Аналитика и Отчеты', 'icon': Icons.picture_as_pdf_outlined},
 ];
 
     return Scaffold(
@@ -125,7 +127,8 @@ Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
     case 1: return const EmployeeWorkloadTab();
     case 2: return const BranchOrdersTab();
     case 3: return const CourierRouteBuilderScreen();
-    case 4: return const ReportsTab(); // <-- ПОДКЛЮЧЕНО СЮДА
+    case 4: return const GlobalPoolTab();
+    case 5: return const ReportsTab(); // <-- ПОДКЛЮЧЕНО СЮДА
     default: return const Center(child: Text('...'));
   }
 }
