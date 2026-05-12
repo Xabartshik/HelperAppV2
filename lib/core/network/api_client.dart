@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/attendance/break_status_dto.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
+import 'package:helper_app/core/models/branch/branch_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
@@ -297,6 +298,30 @@ void _handleResponseErrors(Response response) {
         throw e.error!; 
       }
       throw NoNetworkException('Нет подключения к сети при скачивании отчета', e);
+    }
+  }
+
+  // --- Админ-панель: Филиалы ---
+  Future<List<BranchDto>> getBranchesAsync() async {
+    try {
+      final response = await getAsync('api/Branches');
+      if (response != null && response is List) {
+        return response.map((e) => BranchDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки филиалов: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createBranchAsync(Map<String, dynamic> branchData) async {
+    try {
+      await postAsync('api/Branches', data: branchData);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания филиала', e);
+      return false;
     }
   }
   

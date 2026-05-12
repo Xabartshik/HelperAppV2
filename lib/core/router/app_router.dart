@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
+import 'package:helper_app/screens/admin_panel/admin_dashboard_page.dart';
 import 'package:helper_app/screens/boss_panel/active_tasks_page.dart';
 import 'package:helper_app/screens/courier/courier_home_page.dart';
 import 'package:helper_app/screens/home/all_orders_screen.dart';
@@ -61,6 +62,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'customer_home',
         builder: (context, state) => const CustomerHomePage(),
       ),
+      GoRoute(
+        path: '/admin-dashboard',
+        builder: (context, state) => const AdminDashboardPage(),
+      ), 
       GoRoute(
         path: '/customer/orders/create',
         name: 'customer_orders_create',
@@ -265,6 +270,7 @@ String _homeLocationFor(CurrentUser? user) {
   return switch (user.role) {
     MobileUserRole.customer => '/customer-home',
     MobileUserRole.courier => '/courier-home',
+    MobileUserRole.admin => '/admin-dashboard', // <--- Добавляем редирект для админа
     _ => '/home',
   };
 }
