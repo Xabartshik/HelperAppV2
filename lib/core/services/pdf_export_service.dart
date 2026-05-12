@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart'; // Обязательный импорт для шрифтов
 import '../utils/logger.dart';
+import 'package:path/path.dart' as p;
 
 class PdfExportService {
   // В файл lib/core/services/pdf_export_service.dart добавь:
@@ -46,19 +47,27 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
                     children: [
                       pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
-                        data: pos.fullName, 
+                        data: pos.fullName,
                         width: 100,
                         height: 100,
+                        // На всякий случай отключаем текст внутри самого QR (он там не нужен)
+                        drawText: false, 
                       ),
                       pw.SizedBox(height: 10),
-                      // Теперь этот текст будет отображаться корректно
                       pw.Text(
-                        pos.fullName, 
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
+                        pos.fullName,
+                        style: pw.TextStyle(
+                          font: fontBold, // ЯВНО УКАЗЫВАЕМ ШРИФТ
+                          fontSize: 14,
+                        ),
                       ),
                       pw.Text(
-                        pos.firstLevelStorageType, 
-                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)
+                        pos.firstLevelStorageType,
+                        style: pw.TextStyle(
+                          font: fontRegular, // ЯВНО УКАЗЫВАЕМ ШРИФТ
+                          fontSize: 8,
+                          color: PdfColors.grey700,
+                        ),
                       ),
                     ],
                   ),
@@ -71,15 +80,32 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
     }
 
     // Сохранение и открытие файла...
-    try {
-      final bytes = await pdf.save();
-      final directory = await getExternalStorageDirectory();
-      final file = File("${directory!.path}/Labels_${DateTime.now().millisecondsSinceEpoch}.pdf");
-      await file.writeAsBytes(bytes);
-      await OpenFilex.open(file.path);
-    } catch (e) {
-      Logger.e("Ошибка сохранения PDF с позициями", e);
+try {
+    final bytes = await pdf.save();
+    Directory? directory;
+
+    // Выбираем директорию в зависимости от платформы
+    if (Platform.isAndroid) {
+      directory = await getExternalStorageDirectory(); // Или getApplicationDocumentsDirectory
+    } else {
+      // Для Windows, macOS и iOS
+      directory = await getApplicationDocumentsDirectory();
     }
+
+    if (directory == null) throw Exception("Не удалось получить доступ к хранилищу");
+
+    final fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
+    final filePath = p.join(directory.path, fileName);
+    final file = File(filePath);
+
+    await file.writeAsBytes(bytes);
+    
+    // Открываем файл
+    await OpenFilex.open(filePath);
+    
+  } catch (e) {
+    print("Ошибка сохранения: $e");
+  }
   }
   
   static Future<void> exportWorkerCredentials({
