@@ -7,6 +7,7 @@ import 'package:helper_app/core/models/attendance/break_status_dto.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import 'package:helper_app/core/models/branch/branch_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
+import 'package:helper_app/core/models/item/item_dto.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
@@ -269,6 +270,40 @@ void _handleResponseErrors(Response response) {
     throw NoNetworkException('Нет подключения к сети', e);
   }
 }
+
+// --- Админ-панель: Товары ---
+  Future<List<ItemDto>> getItemsAsync() async {
+    try {
+      final response = await getAsync('v1/Item');
+      if (response != null && response is List) {
+        return response.map((e) => ItemDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки товаров: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createItemAsync(Map<String, dynamic> itemData) async {
+    try {
+      await postAsync('v1/Item', data: itemData);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания товара', e);
+      return false;
+    }
+  }
+
+  Future<bool> updateItemAsync(ItemDto item) async {
+    try {
+      await putAsync('v1/Item', data: item.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления товара', e);
+      return false;
+    }
+  }
 
   // Boss Panel API Endpoints
   Future<List<BossPanelTaskCardDto>> getBossPanelActiveTasksAsync() async {

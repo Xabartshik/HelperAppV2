@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_tab.dart';
+import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_viewmodel.dart';
 import '../../core/services/auth_service.dart';
 import 'tabs/branches/admin_branches_tab.dart';
 import 'tabs/branches/admin_branches_viewmodel.dart';
@@ -131,8 +133,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           child: BranchFormPanel(), // Универсальная форма для филиалов
         );
       case 1:
-        // В будущем здесь будет форма для товаров
-        return null;
+        return const Drawer(
+          width: 400,
+          backgroundColor: Color(0xFF2C2C2E),
+          child: ItemFormPanel(),
+        );
       case 2:
         // В будущем здесь будет форма для персонала
         return null;
@@ -156,6 +161,8 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           // Направляем текст поиска в нужную вкладку
           if (currentTab == 0) {
             ref.read(adminBranchesProvider.notifier).setSearchQuery(value);
+          } else if (currentTab == 1) { // Добавлено
+            ref.read(adminItemsProvider.notifier).setSearchQuery(value);
           }
         },
         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -173,7 +180,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   Widget _buildContent(int tabIndex) {
     switch (tabIndex) {
       case 0: return const AdminBranchesTab();
-      case 1: return const Center(child: Text('Вкладка: Товары (В разработке)', style: TextStyle(color: Colors.white54)));
+      case 1: return const AdminItemsTab();
       case 2: return const Center(child: Text('Вкладка: Персонал (В разработке)', style: TextStyle(color: Colors.white54)));
       default: return const SizedBox();
     }
@@ -185,7 +192,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       // Сбрасываем выбранный филиал, чтобы форма была пустой для создания
       ref.read(editingBranchProvider.notifier).state = null;
       _scaffoldKey.currentState?.openEndDrawer();
-    } else {
+    } if (tabIndex == 1) {
+      ref.read(editingItemProvider.notifier).state = null;
+      _scaffoldKey.currentState?.openEndDrawer();
+    } 
+    else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Для этой вкладки форма еще не готова')),
       );
