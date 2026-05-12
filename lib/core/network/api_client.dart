@@ -251,6 +251,25 @@ void _handleResponseErrors(Response response) {
         }
   }
 
+  Future<dynamic> putAsync(String endpoint, {dynamic data}) async {
+  try {
+    _hasNetwork = true;
+    await _resolveBaseUrl();
+    // Используем метод .put вместо .post
+    final response = await _dio.put(endpoint, data: data);
+    return response.data;
+  } on DioException catch (e) {
+    // Пропускаем все наши кастомные бизнес-ошибки дальше
+    if (e.error is UnauthorizedException || 
+        e.error is NotFoundException || 
+        e.error is ConflictException || 
+        e.error is ApiException) {
+      throw e.error!; 
+    }
+    throw NoNetworkException('Нет подключения к сети', e);
+  }
+}
+
   // Boss Panel API Endpoints
   Future<List<BossPanelTaskCardDto>> getBossPanelActiveTasksAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelActiveTasks);
@@ -304,7 +323,7 @@ void _handleResponseErrors(Response response) {
   // --- Админ-панель: Филиалы ---
   Future<List<BranchDto>> getBranchesAsync() async {
     try {
-      final response = await getAsync('api/Branches');
+      final response = await getAsync('Branches');
       if (response != null && response is List) {
         return response.map((e) => BranchDto.fromJson(e)).toList();
       }
@@ -315,9 +334,20 @@ void _handleResponseErrors(Response response) {
     }
   }
 
+  Future<bool> updateBranchAsync(BranchDto branch) async {
+    try {
+      // Отправляем PUT запрос с полным объектом branch (включая ID)
+      await putAsync('Branches', data: branch.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при обновлении филиала', e);
+      return false;
+    }
+  }
+
   Future<bool> createBranchAsync(Map<String, dynamic> branchData) async {
     try {
-      await postAsync('api/Branches', data: branchData);
+      await postAsync('Branches', data: branchData);
       return true;
     } catch (e) {
       Logger.e('Ошибка создания филиала', e);

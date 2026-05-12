@@ -62,10 +62,10 @@ class LoginViewModel extends AutoDisposeNotifier<LoginState> {
     }
 
     // Валидация только для режима сотрудника (проверка на число)
-    if (!state.isCustomerMode && int.tryParse(cleanId) == null) {
-      state = state.copyWith(errorMessage: 'EmployeeId должен быть числом');
-      return false;
-    }
+    // if (!state.isCustomerMode && int.tryParse(cleanId) == null) {
+    //   state = state.copyWith(errorMessage: 'EmployeeId должен быть числом');
+    //   return false;
+    // }
 
     state = state.copyWith(isBusy: true, errorMessage: '', hasNetwork: true);
 

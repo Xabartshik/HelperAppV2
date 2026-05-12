@@ -110,23 +110,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                 // Логин / ID Input
                 Text(
-                  state.isCustomerMode ? 'Логин' : 'ID сотрудника',
+                  state.isCustomerMode ? 'Логин' : 'Идентификатор сотрудника', // Универсальный заголовок
                   style: TextStyle(color: _labelColor, fontSize: 14),
                 ),
                 const SizedBox(height: 5),
                 TextField(
                   controller: _identifierController,
-                  // Меняем тип клавиатуры: для сотрудников — цифры, для клиентов — текст/email
-                  keyboardType: state.isCustomerMode 
-                      ? TextInputType.emailAddress 
-                      : TextInputType.number,
+                  // Теперь всегда используем emailAddress или text, чтобы была доступна буквенная клавиатура
+                  keyboardType: TextInputType.emailAddress, 
                   style: TextStyle(color: _textColor, fontSize: 16),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: _inputBgColor,
                     hintText: state.isCustomerMode 
                         ? 'Введите Email или Телефон' 
-                        : 'Введите ваш ID',
+                        : 'Введите ID, Логин или Email', // Обновленный хинт
                     hintStyle: const TextStyle(color: Colors.white54),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4), 

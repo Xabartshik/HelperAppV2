@@ -233,6 +233,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         'loggedIn=${user != null}',
       );
 
+      if (user?.role == MobileUserRole.admin && state.uri.path == '/home') {
+        return '/admin-dashboard';
+      }
+
       // 1. Если пользователь не авторизован
       if (user == null) {
         // Если он и так идет логиниться или регистрироваться — не мешаем
