@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:helper_app/core/models/boss_panel/boss_panel_models.dart';
+import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
@@ -37,7 +37,7 @@ static Future<void> exportPositionLabels(List<PositionCellDto> positions) async 
                   children: [
                     pw.BarcodeWidget(
                       barcode: pw.Barcode.qrCode(),
-                      data: pos.  , // В QR зашиваем полное имя
+                      data: pos.fullName, // В QR зашиваем полное имя
                       width: 100,
                       height: 100,
                     ),

@@ -8,6 +8,7 @@ import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import 'package:helper_app/core/models/branch/branch_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
 import 'package:helper_app/core/models/employee/employee_dto.dart';
+import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 import 'package:helper_app/core/models/item/item_dto.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
@@ -253,6 +254,24 @@ void _handleResponseErrors(Response response) {
         }
   }
 
+    Future<dynamic> deleteAsync(String endpoint, {dynamic data}) async {
+    try {
+      _hasNetwork = true;
+      await _resolveBaseUrl();
+      final response = await _dio.delete(endpoint, data: data);
+      return response.data;
+      } on DioException catch (e) {
+          // Пропускаем все наши кастомные бизнес-ошибки дальше
+          if (e.error is UnauthorizedException || 
+              e.error is NotFoundException || 
+              e.error is ConflictException || 
+              e.error is ApiException) {
+            throw e.error!; 
+          }
+          throw NoNetworkException('Нет подключения к сети', e);
+        }
+  }
+
   Future<dynamic> putAsync(String endpoint, {dynamic data}) async {
   try {
     _hasNetwork = true;
@@ -308,6 +327,41 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     return null;
   }
 }
+
+// --- Админ-панель: Складские ячейки ---
+
+  Future<List<PositionCellDto>> getPositionsAsync() async {
+    try {
+      final response = await getAsync('PositionCell');
+      if (response != null && response is List) {
+        return response.map((e) => PositionCellDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка получения списка ячеек', e);
+      return [];
+    }
+  }
+
+  Future<bool> updatePositionAsync(Map<String, dynamic> data) async {
+    try {
+      await putAsync('PositionCell', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления ячейки', e);
+      return false;
+    }
+  }
+
+  Future<bool> deletePositionAsync(int id) async {
+    try {
+      await deleteAsync('PositionCell/$id');
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка удаления ячейки', e);
+      return false;
+    }
+  }
 
   Future<bool> updateEmployeeAsync(EmployeeDto employee) async {
     try {

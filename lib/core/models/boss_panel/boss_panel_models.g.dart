@@ -159,32 +159,6 @@ Map<String, dynamic> _$$CreateInventoryByZoneDtoImplToJson(
   'deadlineDate': instance.deadlineDate?.toIso8601String(),
 };
 
-_$PositionCellDtoImpl _$$PositionCellDtoImplFromJson(
-  Map<String, dynamic> json,
-) => _$PositionCellDtoImpl(
-  positionId: (json['positionId'] as num).toInt(),
-  branchId: (json['branchId'] as num).toInt(),
-  status: json['status'] as String? ?? "Active",
-  zoneCode: json['zoneCode'] as String? ?? '',
-  firstLevelStorageType: json['firstLevelStorageType'] as String? ?? '',
-  flsNumber: json['flsNumber'] as String? ?? '',
-  secondLevelStorage: json['secondLevelStorage'] as String?,
-  thirdLevelStorage: json['thirdLevelStorage'] as String?,
-);
-
-Map<String, dynamic> _$$PositionCellDtoImplToJson(
-  _$PositionCellDtoImpl instance,
-) => <String, dynamic>{
-  'positionId': instance.positionId,
-  'branchId': instance.branchId,
-  'status': instance.status,
-  'zoneCode': instance.zoneCode,
-  'firstLevelStorageType': instance.firstLevelStorageType,
-  'flsNumber': instance.flsNumber,
-  'secondLevelStorage': instance.secondLevelStorage,
-  'thirdLevelStorage': instance.thirdLevelStorage,
-};
-
 _$OrderItemDetailDtoImpl _$$OrderItemDetailDtoImplFromJson(
   Map<String, dynamic> json,
 ) => _$OrderItemDetailDtoImpl(

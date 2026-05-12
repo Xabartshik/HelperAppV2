@@ -35,3 +35,16 @@ class PositionCellDto with _$PositionCellDto {
     return name;
   }
 }
+
+extension PositionCellDtoX on PositionCellDto {
+  String get fullName {
+    String name = "$zoneCode-$flsNumber";
+    if (secondLevelStorage != null && secondLevelStorage!.isNotEmpty) {
+      name += "-$secondLevelStorage";
+    }
+    if (thirdLevelStorage != null && thirdLevelStorage!.isNotEmpty) {
+      name += "-$thirdLevelStorage";
+    }
+    return name;
+  }
+}

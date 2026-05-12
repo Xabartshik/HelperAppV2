@@ -49,7 +49,7 @@ abstract class $PositionCellDtoCopyWith<$Res> {
     PositionCellDto value,
     $Res Function(PositionCellDto) then,
   ) = _$PositionCellDtoCopyWithImpl<$Res, PositionCellDto>;
-  @useResult
+  @useResult  
   $Res call({
     int positionId,
     int branchId,

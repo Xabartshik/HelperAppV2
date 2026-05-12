@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 
 part 'boss_panel_models.freezed.dart';
 part 'boss_panel_models.g.dart';
@@ -91,22 +92,6 @@ class CreateInventoryByZoneDto with _$CreateInventoryByZoneDto {
   }) = _CreateInventoryByZoneDto;
 
   factory CreateInventoryByZoneDto.fromJson(Map<String, dynamic> json) => _$CreateInventoryByZoneDtoFromJson(json);
-}
-
-@freezed
-class PositionCellDto with _$PositionCellDto {
-  const factory PositionCellDto({
-    required int positionId,
-    required int branchId,
-    @Default("Active") String status,
-    @Default('') String zoneCode,
-    @Default('') String firstLevelStorageType,
-    @Default('') String flsNumber,
-    String? secondLevelStorage,
-    String? thirdLevelStorage,
-  }) = _PositionCellDto;
-
-  factory PositionCellDto.fromJson(Map<String, dynamic> json) => _$PositionCellDtoFromJson(json);
 }
 
 // ДОБАВЬ НОВУЮ МОДЕЛЬ ДЛЯ ТОВАРОВ
