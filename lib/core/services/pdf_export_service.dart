@@ -11,74 +11,77 @@ import '../utils/logger.dart';
 class PdfExportService {
   // В файл lib/core/services/pdf_export_service.dart добавь:
 static Future<void> exportPositionLabels(List<PositionCellDto> positions) async {
-  final pdf = pw.Document();
-  final font = await PdfGoogleFonts.robotoRegular();
+    final pdf = pw.Document();
 
-  // Группируем по 12 штук на страницу (сетка 3x4)
-  for (var i = 0; i < positions.length; i += 12) {
-    final chunk = positions.skip(i).take(12).toList();
-    
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        build: (pw.Context context) {
-          return pw.GridView(
-            crossAxisCount: 3,
-            childAspectRatio: 1,
-            children: chunk.map((pos) {
-              return pw.Container(
-                margin: const pw.EdgeInsets.all(10),
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey300),
-                ),
-                child: pw.Column(
-                  mainAxisAlignment: pw.MainAxisAlignment.center,
-                  children: [
-                    pw.BarcodeWidget(
-                      barcode: pw.Barcode.qrCode(),
-                      data: pos.fullName, // В QR зашиваем полное имя
-                      width: 100,
-                      height: 100,
-                    ),
-                    pw.SizedBox(height: 10),
-                    pw.Text(pos.fullName, 
-                      style: pw.TextStyle(font: font, fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    pw.Text(pos.firstLevelStorageType, 
-                      style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey700)),
-                  ],
-                ),
-              );
-            }).toList(),
-          );
-        },
-      ),
-    );
-  }
+    // 1. Загружаем шрифты Roboto (они поддерживают кириллицу)
+    // Если вам нужен "печатный" вид (monospace), используйте PdfGoogleFonts.robotoMonoRegular()
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
 
-try {
-      final Uint8List bytes = await pdf.save();
-
-      // ИСПРАВЛЕНИЕ: Используем универсальный путь для всех платформ
-      // getApplicationDocumentsDirectory доступен везде (Android, iOS, Windows)
-      final Directory directory = await getApplicationDocumentsDirectory();
+    // Группируем по 12 штук на страницу
+    for (var i = 0; i < positions.length; i += 12) {
+      final chunk = positions.skip(i).take(12).toList();
       
-      final String fileName = "Labels_${DateTime.now().millisecondsSinceEpoch}.pdf";
-      final String filePath = "${directory.path}/$fileName";
-
-      final File file = File(filePath);
-      await file.writeAsBytes(bytes);
-
-      Logger.i("PDF успешно сохранен: $filePath");
-
-      // Открываем файл для просмотра
-      await OpenFilex.open(filePath);
-
-    } catch (e) {
-      Logger.e("Ошибка при сохранении PDF", e);
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          // 2. Устанавливаем тему со шрифтами для ВСЕЙ страницы
+          theme: pw.ThemeData.withFont(
+            base: fontRegular,
+            bold: fontBold,
+          ),
+          build: (pw.Context context) {
+            return pw.GridView(
+              crossAxisCount: 3,
+              childAspectRatio: 1,
+              children: chunk.map((pos) {
+                return pw.Container(
+                  margin: const pw.EdgeInsets.all(10),
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                  ),
+                  child: pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.BarcodeWidget(
+                        barcode: pw.Barcode.qrCode(),
+                        data: pos.fullName, 
+                        width: 100,
+                        height: 100,
+                      ),
+                      pw.SizedBox(height: 10),
+                      // Теперь этот текст будет отображаться корректно
+                      pw.Text(
+                        pos.fullName, 
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
+                      ),
+                      pw.Text(
+                        pos.firstLevelStorageType, 
+                        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      );
     }
-}
 
+    // Сохранение и открытие файла...
+    try {
+      final bytes = await pdf.save();
+      final directory = await getExternalStorageDirectory();
+      final file = File("${directory!.path}/Labels_${DateTime.now().millisecondsSinceEpoch}.pdf");
+      await file.writeAsBytes(bytes);
+      await OpenFilex.open(file.path);
+    } catch (e) {
+      Logger.e("Ошибка сохранения PDF с позициями", e);
+    }
+  }
+  
   static Future<void> exportWorkerCredentials({
     required String fullName,
     required String role,
