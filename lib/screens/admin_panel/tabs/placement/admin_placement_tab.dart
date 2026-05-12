@@ -15,6 +15,7 @@ class AdminPlacementTab extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildTopPanel(context, ref, state),
 
@@ -23,7 +24,7 @@ class AdminPlacementTab extends ConsumerWidget {
 
           Expanded(
             child: state.isLoading 
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))
               : _buildGroupedPositions(context, ref, state),
           ),
         ],
@@ -37,57 +38,55 @@ class AdminPlacementTab extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       color: const Color(0xFF1C1C1E),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              // Выбор филиала
-              SizedBox(
-                width: 200,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int?>(
-                    value: state.selectedBranchId,
-                    hint: const Text("Все филиалы", style: TextStyle(color: Colors.white70)),
-                    dropdownColor: const Color(0xFF2C2C2E),
-                    style: const TextStyle(color: Colors.white),
-                    items: [
-                      const DropdownMenuItem(value: null, child: Text("Все филиалы")),
-                      ...branchesState.branches.map((b) => DropdownMenuItem(
-                        value: b.branchId,
-                        child: Text(b.branchName),
-                      )),
-                    ],
-                    onChanged: (val) => ref.read(adminPlacementProvider.notifier).setBranch(val),
-                  ),
-                ),
+          // Выбор филиала
+          SizedBox(
+            width: 250,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int?>(
+                value: state.selectedBranchId,
+                hint: const Text("Все филиалы", style: TextStyle(color: Colors.white70)),
+                dropdownColor: const Color(0xFF2C2C2E),
+                style: const TextStyle(color: Colors.white),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text("Все филиалы")),
+                  ...branchesState.branches.map((b) => DropdownMenuItem(
+                    value: b.branchId,
+                    child: Text(b.branchName),
+                  )),
+                ],
+                onChanged: (val) => ref.read(adminPlacementProvider.notifier).setBranch(val),
               ),
-              const SizedBox(width: 16),
-              // Фильтр содержимого ячеек
-              Expanded(
-                child: TextField(
-                  onChanged: (v) => ref.read(adminPlacementProvider.notifier).setContentSearch(v),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Поиск товара внутри ячеек...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.white54),
-                    filled: true, fillColor: Colors.black26,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  ),
-                ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Фильтр содержимого ячеек (ограничен по ширине, чтобы не растягивался на весь экран)
+          SizedBox(
+            width: 350,
+            child: TextField(
+              onChanged: (v) => ref.read(adminPlacementProvider.notifier).setContentSearch(v),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Поиск товара внутри ячеек...',
+                prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                filled: true, fillColor: Colors.black26,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
               ),
-              const SizedBox(width: 16),
-              // Кнопка выбора товара для размещения
-              ElevatedButton.icon(
-                onPressed: () => _showItemSelector(context, ref, state),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                ),
-                icon: const Icon(Icons.add_box),
-                label: const Text('Выбрать товар', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
+            ),
+          ),
+          const Spacer(),
+          // Кнопка выбора товара для размещения
+          ElevatedButton.icon(
+            onPressed: () => _showItemSelector(context, ref, state),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.add_box),
+            label: const Text('Разместить товар', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -96,18 +95,18 @@ class AdminPlacementTab extends ConsumerWidget {
 
   Widget _buildActivePlacementBanner(WidgetRef ref, AdminPlacementState state) {
     return Container(
-      color: Colors.amber.withOpacity(0.1),
-      padding: const EdgeInsets.all(12),
+      color: Colors.amber.withOpacity(0.15),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           const Icon(Icons.info_outline, color: Colors.amber),
           const SizedBox(width: 12),
-          Text('РАЗМЕЩЕНИЕ: ${state.itemToPlace!.name}. Выберите ячейку на складе', 
+          Text('РАЗМЕЩЕНИЕ: ${state.itemToPlace!.name}. Кликните по нужной ячейке ниже.', 
             style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
           const Spacer(),
           TextButton(
             onPressed: () => ref.read(adminPlacementProvider.notifier).setItemToPlace(null), 
-            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.red))
+            child: const Text('ОТМЕНА', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold))
           ),
         ],
       ),
@@ -129,7 +128,13 @@ class AdminPlacementTab extends ConsumerWidget {
         slivers.add(SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 180, childAspectRatio: 2, crossAxisSpacing: 10, mainAxisSpacing: 10),
+            // ИСПРАВЛЕНИЕ: Сделали ячейки шире (250) и вернули правильные пропорции (2.5)
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 250, 
+              childAspectRatio: 2.5, 
+              crossAxisSpacing: 12, 
+              mainAxisSpacing: 12
+            ),
             delegate: SliverChildBuilderDelegate((c, i) => _buildCell(context, ref, state, currentChunk[i]), childCount: currentChunk.length),
           ),
         ));
@@ -167,6 +172,8 @@ class AdminPlacementTab extends ConsumerWidget {
   Widget _buildCell(BuildContext context, WidgetRef ref, AdminPlacementState state, PositionCellDto pos) {
     final contents = state.getItemsInPosition(pos.positionId);
     final hasItems = contents.isNotEmpty;
+    // Считаем общее количество физических единиц в ячейке
+    final totalUnits = contents.fold<int>(0, (sum, item) => sum + (item['quantity'] as int));
 
     return InkWell(
       onTap: () {
@@ -178,45 +185,73 @@ class AdminPlacementTab extends ConsumerWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: hasItems ? const Color(0xFF7C3AED).withOpacity(0.1) : const Color(0xFF1C1C1E),
-          border: Border.all(color: hasItems ? const Color(0xFF7C3AED) : Colors.white10),
+          color: hasItems ? const Color(0xFF7C3AED).withOpacity(0.15) : const Color(0xFF1C1C1E),
+          border: Border.all(color: hasItems ? const Color(0xFF7C3AED).withOpacity(0.5) : Colors.white10),
           borderRadius: BorderRadius.circular(8),
         ),
+        padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(pos.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            if (hasItems) Text('${contents.length} наим.', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  pos.firstLevelStorageType == 'RACK' ? Icons.view_quilt : Icons.inventory_2,
+                  color: hasItems ? Colors.white : Colors.white38,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(pos.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (hasItems) 
+              Text('$totalUnits шт. (${contents.length} наим.)', 
+                style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 11, fontWeight: FontWeight.bold)),
+            if (!hasItems)
+              const Text('Пусто', style: TextStyle(color: Colors.white38, fontSize: 11)),
           ],
         ),
       ),
     );
   }
 
-  // --- ИСПРАВЛЕНИЕ OVERFLOW В BOTTOM SHEET ---
   void _showContentsSheet(BuildContext context, PositionCellDto pos, List<Map<String, dynamic>> items) {
     showModalBottomSheet(
       context: context, 
       backgroundColor: const Color(0xFF1C1C1E),
-      isScrollControlled: true, // Позволяет шторке менять размер
+      isScrollControlled: true,
       builder: (c) => ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8), // Макс. высота 80% экрана
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.8),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Содержимое ${pos.fullName}', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const Divider(color: Colors.white10),
-              if (items.isEmpty) const Text('Ячейка пуста', style: TextStyle(color: Colors.white38)),
-              // Используем Flexible для того, чтобы ListView мог скроллиться внутри Column
+              const Divider(color: Colors.white10, height: 24),
+              if (items.isEmpty) 
+                const Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text('Ячейка пуста', style: TextStyle(color: Colors.white38, fontSize: 16)),
+                ),
               Flexible(
-                child: ListView.builder(
+                child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: items.length,
+                  separatorBuilder: (c, i) => const Divider(color: Colors.white10),
                   itemBuilder: (ctx, i) => ListTile(
+                    contentPadding: EdgeInsets.zero,
                     title: Text(items[i]['name'], style: const TextStyle(color: Colors.white)),
-                    trailing: Text('${items[i]['quantity']} шт', style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold)),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12)
+                      ),
+                      child: Text('${items[i]['quantity']} шт', style: const TextStyle(color: Color(0xFFA78BFA), fontWeight: FontWeight.bold)),
+                    ),
                   ),
                 ),
               ),
@@ -227,7 +262,6 @@ class AdminPlacementTab extends ConsumerWidget {
     );
   }
 
-  // --- ИСПРАВЛЕНИЕ ОКНА ПОИСКА ТОВАРА ---
   void _showItemSelector(BuildContext context, WidgetRef ref, AdminPlacementState state) {
     showDialog(
       context: context,
@@ -240,24 +274,25 @@ class AdminPlacementTab extends ConsumerWidget {
     );
   }
 
-  // --- ИСПРАВЛЕНИЕ ЦВЕТА ЗАГОЛОВКА ---
   void _showQuantityDialog(BuildContext context, WidgetRef ref, PositionCellDto pos) {
     final controller = TextEditingController(text: '1');
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: const Color(0xFF1C1C1E),
-        title: Text('Разместить в ${pos.fullName}', style: const TextStyle(color: Colors.white)), // Цвет заголовка
+        title: Text('Разместить в ${pos.fullName}', style: const TextStyle(color: Colors.white)),
         content: TextField(
           controller: controller, keyboardType: TextInputType.number,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
             labelText: 'Количество', 
-            labelStyle: TextStyle(color: Colors.white54)
+            labelStyle: TextStyle(color: Colors.white54),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF7C3AED))),
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ОТМЕНА')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ОТМЕНА', style: TextStyle(color: Colors.white54))),
           ElevatedButton(
             onPressed: () {
               ref.read(adminPlacementProvider.notifier).executePlacement(pos.positionId, int.tryParse(controller.text) ?? 1);
@@ -275,12 +310,11 @@ class AdminPlacementTab extends ConsumerWidget {
   }
 
   Widget _header(String text, IconData icon, double left) => Padding(
-    padding: EdgeInsets.only(left: left, top: 16, bottom: 8),
-    child: Row(children: [Icon(icon, size: 16, color: Colors.white38), const SizedBox(width: 8), Text(text, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold))]),
+    padding: EdgeInsets.only(left: left, top: 24, bottom: 12),
+    child: Row(children: [Icon(icon, size: 20, color: Colors.white38), const SizedBox(width: 8), Text(text, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16))]),
   );
 }
 
-// Отдельный Stateful виджет для диалога выбора товара (с полем поиска)
 class ItemSelectorDialog extends StatefulWidget {
   final List<ItemDto> allItems;
   final Function(ItemDto) onSelect;
@@ -303,9 +337,10 @@ class _ItemSelectorDialogState extends State<ItemSelectorDialog> {
 
     return AlertDialog(
       backgroundColor: const Color(0xFF1C1C1E),
-      title: const Text('Выберите товар', style: TextStyle(color: Colors.white)),
+      title: const Text('Выберите товар', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       content: SizedBox(
-        width: 400,
+        width: 500,
+        height: 400, // ИСПРАВЛЕНИЕ: Ограничили высоту диалога, чтобы он не был на весь экран!
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -322,13 +357,13 @@ class _ItemSelectorDialogState extends State<ItemSelectorDialog> {
               onChanged: (v) => setState(() => query = v),
             ),
             const SizedBox(height: 16),
-            Flexible(
+            Expanded( // Заменили Flexible на Expanded
               child: ListView.builder(
-                shrinkWrap: true,
                 itemCount: filtered.length,
                 itemBuilder: (c, i) => ListTile(
                   title: Text(filtered[i].name, style: const TextStyle(color: Colors.white)),
                   subtitle: Text("ID: ${filtered[i].itemId}", style: const TextStyle(color: Colors.white38)),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white24),
                   onTap: () {
                     widget.onSelect(filtered[i]);
                     Navigator.pop(context);

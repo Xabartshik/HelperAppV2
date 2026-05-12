@@ -1,7 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/inventory/inventory_dtos.dart';
 import 'package:helper_app/core/models/item/item_dto.dart';
-import '../../../../core/network/api_client.dart';
+import 'package:helper_app/core/network/api_client.dart';
+import 'package:helper_app/screens/admin_panel/tabs/branches/admin_branches_viewmodel.dart';
+import 'admin_placement_viewmodel.dart';
 import '../../../../core/models/inventory/position_cell_dto.dart';
 
 class AdminPlacementState {
@@ -13,6 +16,7 @@ class AdminPlacementState {
   final String contentSearchQuery; 
   final int? selectedBranchId;
   final ItemDto? itemToPlace; 
+  final bool showOnlyEmpty; // НОВЫЙ ФИЛЬТР: Только пустые ячейки
 
   AdminPlacementState({
     this.isLoading = false,
@@ -22,13 +26,12 @@ class AdminPlacementState {
     this.contentSearchQuery = '',
     this.selectedBranchId,
     this.itemToPlace,
+    this.showOnlyEmpty = false,
   });
 
-  // Получить список товаров в конкретной ячейке (с суммированием одинаковых)
   List<Map<String, dynamic>> getItemsInPosition(int positionId) {
     final itemsInPos = stock.where((s) => s.positionId == positionId);
     
-    // Группируем по ItemId и суммируем количество
     final Map<int, int> groupedStock = {};
     for (var s in itemsInPos) {
       groupedStock[s.itemId] = (groupedStock[s.itemId] ?? 0) + s.quantity;
@@ -57,14 +60,22 @@ class AdminPlacementState {
     }).toList();
   }
 
-  // УМНАЯ ФИЛЬТРАЦИЯ И СОРТИРОВКА ТОПОЛОГИИ
+  // ОБНОВЛЕННАЯ УМНАЯ ФИЛЬТРАЦИЯ
   List<PositionCellDto> get filteredPositions {
     var list = List<PositionCellDto>.from(allPositions);
 
+    // 1. Фильтр по филиалу
     if (selectedBranchId != null) {
       list = list.where((p) => p.branchId == selectedBranchId).toList();
     }
 
+    // 2. Фильтр "Только пустые"
+    if (showOnlyEmpty) {
+      final filledPositionIds = stock.map((s) => s.positionId).toSet();
+      list = list.where((p) => !filledPositionIds.contains(p.positionId)).toList();
+    }
+
+    // 3. Поиск (И по ячейке, И по товару)
     if (contentSearchQuery.isNotEmpty) {
       final q = contentSearchQuery.toLowerCase();
       
@@ -78,20 +89,20 @@ class AdminPlacementState {
           .map((s) => s.positionId)
           .toSet();
 
-      list = list.where((p) => positionsWithMatch.contains(p.positionId)).toList();
+      // Оставляем ячейку, если в ней есть искомый товар ИЛИ её имя содержит запрос
+      list = list.where((p) => 
+        positionsWithMatch.contains(p.positionId) || 
+        p.fullName.toLowerCase().contains(q)
+      ).toList();
     }
 
-    // Сортировка: Филиал -> Зона -> Стеллаж -> Полка
+    // 4. Сортировка: Филиал -> Зона -> Стеллаж -> Полка
     list.sort((a, b) {
       int cmp = a.branchId.compareTo(b.branchId);
-      if (cmp != 0) {
-        return cmp;
-      }
+      if (cmp != 0) return cmp;
 
       cmp = a.zoneCode.compareTo(b.zoneCode);
-      if (cmp != 0) {
-        return cmp;
-      }
+      if (cmp != 0) return cmp;
       
       int flsA = int.tryParse(a.flsNumber) ?? 0;
       int flsB = int.tryParse(b.flsNumber) ?? 0;
@@ -101,7 +112,6 @@ class AdminPlacementState {
         cmp = (int.tryParse(a.secondLevelStorage ?? '0') ?? 0)
             .compareTo(int.tryParse(b.secondLevelStorage ?? '0') ?? 0);
       }
-      
       return cmp;
     });
 
@@ -117,6 +127,7 @@ class AdminPlacementState {
     int? selectedBranchId,
     ItemDto? itemToPlace,
     bool clearItemToPlace = false,
+    bool? showOnlyEmpty,
   }) {
     return AdminPlacementState(
       isLoading: isLoading ?? this.isLoading,
@@ -126,6 +137,7 @@ class AdminPlacementState {
       contentSearchQuery: contentSearchQuery ?? this.contentSearchQuery,
       selectedBranchId: selectedBranchId ?? this.selectedBranchId,
       itemToPlace: clearItemToPlace ? null : (itemToPlace ?? this.itemToPlace),
+      showOnlyEmpty: showOnlyEmpty ?? this.showOnlyEmpty,
     );
   }
 }
@@ -160,6 +172,7 @@ class AdminPlacementViewModel extends AutoDisposeNotifier<AdminPlacementState> {
   void setContentSearch(String q) => state = state.copyWith(contentSearchQuery: q);
   void setBranch(int? id) => state = state.copyWith(selectedBranchId: id);
   void setItemToPlace(ItemDto? item) => state = state.copyWith(itemToPlace: item, clearItemToPlace: item == null);
+  void toggleShowOnlyEmpty() => state = state.copyWith(showOnlyEmpty: !state.showOnlyEmpty);
 
   Future<bool> executePlacement(int positionId, int qty) async {
     if (state.itemToPlace == null) return false;
