@@ -105,4 +105,8 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
       'v1/OrderAssembly/assignment/$assignmentId/verify-qr';
 
   static String branchWorkload(int branchId) => 'v1/WorkerTasks/branch/$branchId/workload';
+
+  static const String exportDashboardPdf = 'analytics/export/dashboard/pdf';
+static const String exportEmployeeFullPdf = 'analytics/export/employee-full/pdf';
+static const String exportOrderLeadTimeCsv = 'analytics/export/orders/csv';
 }

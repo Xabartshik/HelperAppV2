@@ -265,6 +265,40 @@ void _handleResponseErrors(Response response) {
     final response = await getAsync(ApiEndpoints.bossPanelAvailableEmployees);
     return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
   }
+  /// Скачивание отчета в виде массива байтов
+  Future<List<int>?> downloadReportBytesAsync(
+    String endpoint, 
+    DateTime startDate, 
+    DateTime endDate
+  ) async {
+    try {
+      _hasNetwork = true;
+      await _resolveBaseUrl();
+
+      // Передаем параметры как ожидает AnalyticsFilterDto
+      final queryParameters = {
+        'StartDate': startDate.toUtc().toIso8601String(),
+        'EndDate': endDate.toUtc().toIso8601String(),
+      };
+
+      // КРИТИЧНО: указываем ResponseType.bytes, чтобы Dio не пытался парсить PDF как JSON
+      final response = await _dio.get(
+        endpoint,
+        queryParameters: queryParameters,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      if (e.error is UnauthorizedException || 
+          e.error is NotFoundException || 
+          e.error is ConflictException || 
+          e.error is ApiException) {
+        throw e.error!; 
+      }
+      throw NoNetworkException('Нет подключения к сети при скачивании отчета', e);
+    }
+  }
   
     Future<List<AvailableEmployeeDto>> getAllBranchEmployeesAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelAllEmployees);
