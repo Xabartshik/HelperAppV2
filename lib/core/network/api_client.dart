@@ -328,6 +328,31 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
   }
 }
 
+
+  // Создание связи Товар-Позиция (Размещение)
+  Future<bool> placeItemInPositionAsync(ItemPositionDto dto) async {
+    try {
+      await postAsync('ItemPosition', data: dto.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при размещении товара в ячейку', e);
+      return false;
+    }
+  }
+
+  Future<List<ItemPositionDto>> getItemPositionsAsync() async {
+    try {
+      final response = await getAsync('ItemPosition');
+      if (response != null && response is List) {
+        return response.map((e) => ItemPositionDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка получения остатков в ячейках', e);
+      return [];
+    }
+  }
+
 // --- Админ-панель: Складские ячейки ---
 
   Future<List<PositionCellDto>> getPositionsAsync() async {

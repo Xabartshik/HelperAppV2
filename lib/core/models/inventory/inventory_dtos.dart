@@ -153,3 +153,27 @@ class ProcessInventoryScanDto with _$ProcessInventoryScanDto {
   factory ProcessInventoryScanDto.fromJson(Map<String, dynamic> json) => 
       _$ProcessInventoryScanDtoFromJson(json);
 }
+
+@freezed
+class ItemPositionDto with _$ItemPositionDto {
+  const factory ItemPositionDto({
+    @Default(0) int id,
+    required int itemId,
+    required int positionId,
+    required int quantity,
+  }) = _ItemPositionDto;
+
+  factory ItemPositionDto.fromJson(Map<String, dynamic> json) => _$ItemPositionDtoFromJson(json);
+}
+
+@freezed
+class AvailableItemDto with _$AvailableItemDto {
+  const factory AvailableItemDto({
+    required int itemId,
+    required String name,
+    required double price,
+    required int availableQuantity,
+  }) = _AvailableItemDto;
+
+  factory AvailableItemDto.fromJson(Map<String, dynamic> json) => _$AvailableItemDtoFromJson(json);
+}

@@ -4,6 +4,7 @@ import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_ta
 import 'package:helper_app/screens/admin_panel/tabs/employees/admin_employees_viewmodel.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_tab.dart';
 import 'package:helper_app/screens/admin_panel/tabs/items/admin_items_viewmodel.dart';
+import 'package:helper_app/screens/admin_panel/tabs/placement/admin_placement_tab.dart';
 import 'package:helper_app/screens/admin_panel/tabs/positions/admin_positions_tab.dart';
 import 'package:helper_app/screens/admin_panel/tabs/positions/admin_positions_viewmodel.dart';
 import '../../core/services/auth_service.dart';
@@ -36,7 +37,8 @@ final destinations = [
   const NavigationRailDestination(icon: Icon(Icons.business), label: Text('Филиалы')),
   const NavigationRailDestination(icon: Icon(Icons.inventory_2), label: Text('Товары')),
   const NavigationRailDestination(icon: Icon(Icons.people), label: Text('Персонал')),
-  const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')), // Добавлено
+  const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')), 
+  const NavigationRailDestination(icon: Icon(Icons.move_to_inbox), label: Text('Размещение')),// Добавлено
 ];
 
     return Scaffold(
@@ -47,7 +49,7 @@ final destinations = [
         elevation: 0,
         title: _buildSearchBar(currentTab),
         actions: [
-                  // ВЕРНУЛИ КНОПКУ ДОБАВЛЕНИЯ НА ДАШБОРД
+                  if (currentTab != 4)
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline, color: _primaryColor),
                     tooltip: 'Добавить',
@@ -174,7 +176,8 @@ Widget _buildContent(int tabIndex) {
     case 0: return const AdminBranchesTab();
     case 1: return const AdminItemsTab();
     case 2: return const AdminEmployeesTab();
-    case 3: return const AdminPositionsTab(); // Добавлено
+    case 3: return const AdminPositionsTab();
+    case 4: return const AdminPlacementTab(); // Добавлено
     default: return const SizedBox();
   }
 }

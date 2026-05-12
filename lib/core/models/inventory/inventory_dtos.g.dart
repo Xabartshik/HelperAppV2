@@ -246,3 +246,39 @@ Map<String, dynamic> _$$ProcessInventoryScanDtoImplToJson(
   'userId': instance.userId,
   'note': instance.note,
 };
+
+_$ItemPositionDtoImpl _$$ItemPositionDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$ItemPositionDtoImpl(
+  id: (json['id'] as num?)?.toInt() ?? 0,
+  itemId: (json['itemId'] as num).toInt(),
+  positionId: (json['positionId'] as num).toInt(),
+  quantity: (json['quantity'] as num).toInt(),
+);
+
+Map<String, dynamic> _$$ItemPositionDtoImplToJson(
+  _$ItemPositionDtoImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'itemId': instance.itemId,
+  'positionId': instance.positionId,
+  'quantity': instance.quantity,
+};
+
+_$AvailableItemDtoImpl _$$AvailableItemDtoImplFromJson(
+  Map<String, dynamic> json,
+) => _$AvailableItemDtoImpl(
+  itemId: (json['itemId'] as num).toInt(),
+  name: json['name'] as String,
+  price: (json['price'] as num).toDouble(),
+  availableQuantity: (json['availableQuantity'] as num).toInt(),
+);
+
+Map<String, dynamic> _$$AvailableItemDtoImplToJson(
+  _$AvailableItemDtoImpl instance,
+) => <String, dynamic>{
+  'itemId': instance.itemId,
+  'name': instance.name,
+  'price': instance.price,
+  'availableQuantity': instance.availableQuantity,
+};
