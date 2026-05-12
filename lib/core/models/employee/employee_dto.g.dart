@@ -14,7 +14,7 @@ _$EmployeeDtoImpl _$$EmployeeDtoImplFromJson(Map<String, dynamic> json) =>
       middleName: json['middleName'] as String?,
       role:
           $enumDecodeNullable(_$WorkerRoleEnumMap, json['role']) ??
-          WorkerRole.warehouseWorker,
+          WorkerRole.storekeeper,
     );
 
 Map<String, dynamic> _$$EmployeeDtoImplToJson(_$EmployeeDtoImpl instance) =>
@@ -27,9 +27,9 @@ Map<String, dynamic> _$$EmployeeDtoImplToJson(_$EmployeeDtoImpl instance) =>
     };
 
 const _$WorkerRoleEnumMap = {
-  WorkerRole.warehouseWorker: 0,
-  WorkerRole.courier: 1,
-  WorkerRole.supervisor: 2,
-  WorkerRole.admin: 3,
+  WorkerRole.storekeeper: 1,
+  WorkerRole.orderIssuer: 2,
+  WorkerRole.manager: 3,
+  WorkerRole.courier: 4,
   WorkerRole.unknown: 100,
 };

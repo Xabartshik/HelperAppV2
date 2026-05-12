@@ -175,7 +175,7 @@ class _$EmployeeDtoImpl implements _EmployeeDto {
     required this.surname,
     required this.name,
     this.middleName,
-    this.role = WorkerRole.warehouseWorker,
+    this.role = WorkerRole.storekeeper,
   });
 
   factory _$EmployeeDtoImpl.fromJson(Map<String, dynamic> json) =>

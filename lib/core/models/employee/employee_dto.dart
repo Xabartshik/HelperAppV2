@@ -4,11 +4,20 @@ part 'employee_dto.freezed.dart';
 part 'employee_dto.g.dart';
 
 enum WorkerRole {
-  @JsonValue(0) warehouseWorker,
-  @JsonValue(1) courier,
-  @JsonValue(2) supervisor,
-  @JsonValue(3) admin,
-  @JsonValue(100) unknown
+  @JsonValue(1) 
+  storekeeper,   // Сборщик заказов (был warehouseWorker)
+
+  @JsonValue(2) 
+  orderIssuer,   // Кассир / Выдача (был supervisor)
+
+  @JsonValue(3) 
+  manager,       // Начальник (был admin)
+
+  @JsonValue(4) 
+  courier,       // Курьер (теперь соответствует C#)
+
+  @JsonValue(100) 
+  unknown
 }
 
 @freezed
@@ -18,7 +27,7 @@ class EmployeeDto with _$EmployeeDto {
     required String surname,
     required String name,
     String? middleName,
-    @Default(WorkerRole.warehouseWorker) WorkerRole role,
+    @Default(WorkerRole.storekeeper) WorkerRole role,
   }) = _EmployeeDto;
 
   factory EmployeeDto.fromJson(Map<String, dynamic> json) => _$EmployeeDtoFromJson(json);
