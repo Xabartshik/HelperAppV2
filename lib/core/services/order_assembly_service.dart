@@ -48,19 +48,19 @@ class OrderAssemblyService {
   // POST: сканирование товара (режим Сбора)
   // ---------------------------------------------------------------------------
 
-  /// Сканирует штрихкод товара и обновляет статус строки на «Собран»
-  Future<void> scanPick(int lineId, String barcode) async {
-    try {
-      Logger.i('OrderAssembly: scanPick lineId=$lineId, barcode=$barcode');
+  // /// Сканирует штрихкод товара и обновляет статус строки на «Собран»
+  // Future<void> scanPick(int lineId, String barcode) async {
+  //   try {
+  //     Logger.i('OrderAssembly: scanPick lineId=$lineId, barcode=$barcode');
 
-      await _apiClient.orderAssemblyScanPickAsync(lineId, barcode);
+  //     await _apiClient.orderAssemblyScanPickAsync(lineId, barcode);
 
-      Logger.i('OrderAssembly: scanPick успешно для lineId=$lineId');
-    } catch (e, stack) {
-      Logger.e('OrderAssembly: ошибка scanPick lineId=$lineId', e, stack);
-      rethrow;
-    }
-  }
+  //     Logger.i('OrderAssembly: scanPick успешно для lineId=$lineId');
+  //   } catch (e, stack) {
+  //     Logger.e('OrderAssembly: ошибка scanPick lineId=$lineId', e, stack);
+  //     rethrow;
+  //   }
+  // }
 
   // ---------------------------------------------------------------------------
   // POST: массовое размещение товаров ячейки

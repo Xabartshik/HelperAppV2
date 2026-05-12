@@ -30,7 +30,7 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
 
   @protected
   AssignmentStatus? get initialStatus {
-    final idx = baseTaskArgs.taskStatusIndex;
+    final idx = baseTaskArgs.assignmentStatusIndex;
     if (idx == null || idx < 0 || idx >= AssignmentStatus.values.length) return null;
     return AssignmentStatus.values[idx];
   }
@@ -44,6 +44,12 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   }
 
   @protected
+  bool get shouldShowStartButton {
+    final status = initialStatus;
+    return status == AssignmentStatus.assigned || status == AssignmentStatus.paused;
+  }
+
+  @protected
   void initializeTaskStartState() {
     final status = initialStatus;
     _isTaskStarted = status == AssignmentStatus.inProgress || status == AssignmentStatus.completed;
@@ -52,13 +58,22 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
   @protected
   Future<void> onTaskStarted() async {}
 
-  @protected
+@protected
   Future<void> startTask() async {
     final args = baseTaskArgs;
     if (args.taskId <= 0 || args.workerId <= 0) return;
 
     final success = await ref.read(taskServiceProvider).startTaskAsync(args.taskId, args.workerId);
-    if (!mounted || !success) return;
+    if (!mounted) return;
+
+    if (!success) {
+      await ref.read(mainViewModelProvider.notifier).refreshTasks();
+      
+      // ИСПРАВЛЕНИЕ 1: Даже если мы получили false (ожидание напарника), 
+      // нам ОБЯЗАТЕЛЬНО нужно обновить детали задачи с сервера, чтобы отрисовать экран ожидания!
+      await onTaskStarted(); 
+      return;
+    }
 
     setState(() => _isTaskStarted = true);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -96,11 +111,12 @@ mixin BaseTaskScreenMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> 
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ),
-          ElevatedButton(
-            onPressed: startTask,
-            style: ElevatedButton.styleFrom(backgroundColor: actionColor),
-            child: const Text('Начать', style: TextStyle(color: Colors.white)),
-          ),
+          if (shouldShowStartButton)
+            ElevatedButton(
+              onPressed: startTask,
+              style: ElevatedButton.styleFrom(backgroundColor: actionColor),
+              child: const Text('Начать', style: TextStyle(color: Colors.white)),
+            ),
         ],
       ),
     );

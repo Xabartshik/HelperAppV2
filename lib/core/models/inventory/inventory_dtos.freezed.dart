@@ -2936,3 +2936,441 @@ abstract class _ProcessInventoryScanDto implements ProcessInventoryScanDto {
   _$$ProcessInventoryScanDtoImplCopyWith<_$ProcessInventoryScanDtoImpl>
   get copyWith => throw _privateConstructorUsedError;
 }
+
+ItemPositionDto _$ItemPositionDtoFromJson(Map<String, dynamic> json) {
+  return _ItemPositionDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ItemPositionDto {
+  int get id => throw _privateConstructorUsedError;
+  int get itemId => throw _privateConstructorUsedError;
+  int get positionId => throw _privateConstructorUsedError;
+  int get quantity => throw _privateConstructorUsedError;
+
+  /// Serializes this ItemPositionDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ItemPositionDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ItemPositionDtoCopyWith<ItemPositionDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ItemPositionDtoCopyWith<$Res> {
+  factory $ItemPositionDtoCopyWith(
+    ItemPositionDto value,
+    $Res Function(ItemPositionDto) then,
+  ) = _$ItemPositionDtoCopyWithImpl<$Res, ItemPositionDto>;
+  @useResult
+  $Res call({int id, int itemId, int positionId, int quantity});
+}
+
+/// @nodoc
+class _$ItemPositionDtoCopyWithImpl<$Res, $Val extends ItemPositionDto>
+    implements $ItemPositionDtoCopyWith<$Res> {
+  _$ItemPositionDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ItemPositionDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? itemId = null,
+    Object? positionId = null,
+    Object? quantity = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as int,
+            itemId: null == itemId
+                ? _value.itemId
+                : itemId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            positionId: null == positionId
+                ? _value.positionId
+                : positionId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            quantity: null == quantity
+                ? _value.quantity
+                : quantity // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$ItemPositionDtoImplCopyWith<$Res>
+    implements $ItemPositionDtoCopyWith<$Res> {
+  factory _$$ItemPositionDtoImplCopyWith(
+    _$ItemPositionDtoImpl value,
+    $Res Function(_$ItemPositionDtoImpl) then,
+  ) = __$$ItemPositionDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int id, int itemId, int positionId, int quantity});
+}
+
+/// @nodoc
+class __$$ItemPositionDtoImplCopyWithImpl<$Res>
+    extends _$ItemPositionDtoCopyWithImpl<$Res, _$ItemPositionDtoImpl>
+    implements _$$ItemPositionDtoImplCopyWith<$Res> {
+  __$$ItemPositionDtoImplCopyWithImpl(
+    _$ItemPositionDtoImpl _value,
+    $Res Function(_$ItemPositionDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ItemPositionDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? itemId = null,
+    Object? positionId = null,
+    Object? quantity = null,
+  }) {
+    return _then(
+      _$ItemPositionDtoImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as int,
+        itemId: null == itemId
+            ? _value.itemId
+            : itemId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        positionId: null == positionId
+            ? _value.positionId
+            : positionId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        quantity: null == quantity
+            ? _value.quantity
+            : quantity // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ItemPositionDtoImpl implements _ItemPositionDto {
+  const _$ItemPositionDtoImpl({
+    this.id = 0,
+    required this.itemId,
+    required this.positionId,
+    required this.quantity,
+  });
+
+  factory _$ItemPositionDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ItemPositionDtoImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int id;
+  @override
+  final int itemId;
+  @override
+  final int positionId;
+  @override
+  final int quantity;
+
+  @override
+  String toString() {
+    return 'ItemPositionDto(id: $id, itemId: $itemId, positionId: $positionId, quantity: $quantity)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ItemPositionDtoImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
+            (identical(other.positionId, positionId) ||
+                other.positionId == positionId) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, itemId, positionId, quantity);
+
+  /// Create a copy of ItemPositionDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ItemPositionDtoImplCopyWith<_$ItemPositionDtoImpl> get copyWith =>
+      __$$ItemPositionDtoImplCopyWithImpl<_$ItemPositionDtoImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ItemPositionDtoImplToJson(this);
+  }
+}
+
+abstract class _ItemPositionDto implements ItemPositionDto {
+  const factory _ItemPositionDto({
+    final int id,
+    required final int itemId,
+    required final int positionId,
+    required final int quantity,
+  }) = _$ItemPositionDtoImpl;
+
+  factory _ItemPositionDto.fromJson(Map<String, dynamic> json) =
+      _$ItemPositionDtoImpl.fromJson;
+
+  @override
+  int get id;
+  @override
+  int get itemId;
+  @override
+  int get positionId;
+  @override
+  int get quantity;
+
+  /// Create a copy of ItemPositionDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ItemPositionDtoImplCopyWith<_$ItemPositionDtoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+AvailableItemDto _$AvailableItemDtoFromJson(Map<String, dynamic> json) {
+  return _AvailableItemDto.fromJson(json);
+}
+
+/// @nodoc
+mixin _$AvailableItemDto {
+  int get itemId => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  double get price => throw _privateConstructorUsedError;
+  int get availableQuantity => throw _privateConstructorUsedError;
+
+  /// Serializes this AvailableItemDto to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of AvailableItemDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $AvailableItemDtoCopyWith<AvailableItemDto> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $AvailableItemDtoCopyWith<$Res> {
+  factory $AvailableItemDtoCopyWith(
+    AvailableItemDto value,
+    $Res Function(AvailableItemDto) then,
+  ) = _$AvailableItemDtoCopyWithImpl<$Res, AvailableItemDto>;
+  @useResult
+  $Res call({int itemId, String name, double price, int availableQuantity});
+}
+
+/// @nodoc
+class _$AvailableItemDtoCopyWithImpl<$Res, $Val extends AvailableItemDto>
+    implements $AvailableItemDtoCopyWith<$Res> {
+  _$AvailableItemDtoCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of AvailableItemDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? name = null,
+    Object? price = null,
+    Object? availableQuantity = null,
+  }) {
+    return _then(
+      _value.copyWith(
+            itemId: null == itemId
+                ? _value.itemId
+                : itemId // ignore: cast_nullable_to_non_nullable
+                      as int,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            price: null == price
+                ? _value.price
+                : price // ignore: cast_nullable_to_non_nullable
+                      as double,
+            availableQuantity: null == availableQuantity
+                ? _value.availableQuantity
+                : availableQuantity // ignore: cast_nullable_to_non_nullable
+                      as int,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$AvailableItemDtoImplCopyWith<$Res>
+    implements $AvailableItemDtoCopyWith<$Res> {
+  factory _$$AvailableItemDtoImplCopyWith(
+    _$AvailableItemDtoImpl value,
+    $Res Function(_$AvailableItemDtoImpl) then,
+  ) = __$$AvailableItemDtoImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int itemId, String name, double price, int availableQuantity});
+}
+
+/// @nodoc
+class __$$AvailableItemDtoImplCopyWithImpl<$Res>
+    extends _$AvailableItemDtoCopyWithImpl<$Res, _$AvailableItemDtoImpl>
+    implements _$$AvailableItemDtoImplCopyWith<$Res> {
+  __$$AvailableItemDtoImplCopyWithImpl(
+    _$AvailableItemDtoImpl _value,
+    $Res Function(_$AvailableItemDtoImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of AvailableItemDto
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? itemId = null,
+    Object? name = null,
+    Object? price = null,
+    Object? availableQuantity = null,
+  }) {
+    return _then(
+      _$AvailableItemDtoImpl(
+        itemId: null == itemId
+            ? _value.itemId
+            : itemId // ignore: cast_nullable_to_non_nullable
+                  as int,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        price: null == price
+            ? _value.price
+            : price // ignore: cast_nullable_to_non_nullable
+                  as double,
+        availableQuantity: null == availableQuantity
+            ? _value.availableQuantity
+            : availableQuantity // ignore: cast_nullable_to_non_nullable
+                  as int,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$AvailableItemDtoImpl implements _AvailableItemDto {
+  const _$AvailableItemDtoImpl({
+    required this.itemId,
+    required this.name,
+    required this.price,
+    required this.availableQuantity,
+  });
+
+  factory _$AvailableItemDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$AvailableItemDtoImplFromJson(json);
+
+  @override
+  final int itemId;
+  @override
+  final String name;
+  @override
+  final double price;
+  @override
+  final int availableQuantity;
+
+  @override
+  String toString() {
+    return 'AvailableItemDto(itemId: $itemId, name: $name, price: $price, availableQuantity: $availableQuantity)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AvailableItemDtoImpl &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.price, price) || other.price == price) &&
+            (identical(other.availableQuantity, availableQuantity) ||
+                other.availableQuantity == availableQuantity));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, itemId, name, price, availableQuantity);
+
+  /// Create a copy of AvailableItemDto
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AvailableItemDtoImplCopyWith<_$AvailableItemDtoImpl> get copyWith =>
+      __$$AvailableItemDtoImplCopyWithImpl<_$AvailableItemDtoImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$AvailableItemDtoImplToJson(this);
+  }
+}
+
+abstract class _AvailableItemDto implements AvailableItemDto {
+  const factory _AvailableItemDto({
+    required final int itemId,
+    required final String name,
+    required final double price,
+    required final int availableQuantity,
+  }) = _$AvailableItemDtoImpl;
+
+  factory _AvailableItemDto.fromJson(Map<String, dynamic> json) =
+      _$AvailableItemDtoImpl.fromJson;
+
+  @override
+  int get itemId;
+  @override
+  String get name;
+  @override
+  double get price;
+  @override
+  int get availableQuantity;
+
+  /// Create a copy of AvailableItemDto
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$AvailableItemDtoImplCopyWith<_$AvailableItemDtoImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}

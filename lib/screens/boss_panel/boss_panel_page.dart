@@ -1,158 +1,200 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:helper_app/screens/boss_panel/active_tasks_tab.dart';
+import 'package:helper_app/screens/boss_panel/branch_orders_tab.dart';
+import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
+import 'package:helper_app/screens/boss_panel/employee_workload_tab.dart';
+import 'package:helper_app/screens/boss_panel/global_pool_tab.dart';
+import 'package:helper_app/screens/boss_panel/reports_tab.dart';
 import 'boss_panel_viewmodel.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
 
-class BossPanelPage extends ConsumerStatefulWidget {
+class BossPanelPage extends ConsumerWidget {
   const BossPanelPage({super.key});
 
-  @override
-  ConsumerState<BossPanelPage> createState() => _BossPanelPageState();
-}
-
-class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  final _descriptionController = TextEditingController();
-  final _workerCountController = TextEditingController(text: '1');
-  final _priorityController = TextEditingController(text: '5');
-  final _autoSelectWorkerController = TextEditingController(text: '1');
-  
-  // Цвета
-  final Color _bgOffBlack = const Color(0xFF141414);
-  final Color _bgGray950 = const Color(0xFF1C1C1E);
-  final Color _bgGray900 = const Color(0xFF2C2C2E);
-  final Color _primaryColor = const Color(0xFF7C3AED);
-  final Color _textColor = Colors.white;
-  final Color _gray400 = const Color(0xFFA1A1AA);
+  // Константы дизайна[cite: 1]
+  static const Color _bgOffBlack = Color(0xFF141414);
+  static const Color _bgGray950 = Color(0xFF1C1C1E);
+  static const Color _bgGray900 = Color(0xFF2C2C2E);
+  static const Color _primaryColor = Color(0xFF7C3AED);
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _descriptionController.dispose();
-    _workerCountController.dispose();
-    _priorityController.dispose();
-    _autoSelectWorkerController.dispose();
-    super.dispose();
-  }
-
-  void _updateViewModelFields() {
-    final vm = ref.read(bossPanelViewModelProvider.notifier);
-    vm.updateParameters(
-      description: _descriptionController.text,
-      workerCount: int.tryParse(_workerCountController.text) ?? 1,
-      priority: int.tryParse(_priorityController.text) ?? (ref.read(bossPanelViewModelProvider).selectedTaskType == 'OrderAssembly' ? 7 : 5),
-      autoWorkerCount: int.tryParse(_autoSelectWorkerController.text) ?? 1,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(bossPanelViewModelProvider);
     final vm = ref.read(bossPanelViewModelProvider.notifier);
+
+    // Список разделов для Drawer[cite: 1]
+// Список разделов для Drawer
+final List<Map<String, dynamic>> destinations = [
+  {'title': 'Активные задачи', 'icon': Icons.assignment_outlined},
+  {'title': 'Загруженность', 'icon': Icons.analytics_outlined},
+  {'title': 'Все заказы', 'icon': Icons.list_alt_rounded},
+  {'title': 'Маршруты курьеров', 'icon': Icons.local_shipping_outlined},
+  {'title': 'Пул задач', 'icon': Icons.assignment_returned_outlined},
+  {'title': 'Аналитика и Отчеты', 'icon': Icons.picture_as_pdf_outlined},
+];
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
       appBar: AppBar(
-        title: const Text('Панель руководителя'),
+        title: Text(destinations[state.currentTabIndex]['title']),
         backgroundColor: _bgGray950,
-        foregroundColor: _textColor,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _primaryColor,
-          labelColor: _textColor,
-          unselectedLabelColor: _gray400,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          tabs: const [
-            Tab(text: "Активные задачи"),
-            Tab(text: "Создать задачу"),
-            Tab(text: "Сотрудники"),
-          ],
-        ),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: state.isLoading && state.activeTasks.isEmpty
-          ? Center(child: CircularProgressIndicator(color: _primaryColor))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildActiveTasksTab(state, vm),
-                _buildCreateTaskTab(state, vm),
-                _buildEmployeesTab(state, vm),
-              ],
+      drawer: _buildNavigationDrawer(context, state, vm, destinations),
+      body: state.isLoading && state.activeTasks.isEmpty && state.employeeWorkloads.isEmpty
+          ? const Center(child: CircularProgressIndicator(color: _primaryColor))
+          : RefreshIndicator(
+              onRefresh: () => vm.loadDataAsync(),
+              color: _primaryColor,
+              child: _buildBody(state, vm),
             ),
     );
   }
 
-  Widget _buildActiveTasksTab(BossPanelState state, BossPanelViewModel vm) {
-    return RefreshIndicator(
-      onRefresh: () => vm.loadDataAsync(),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: state.activeTasks.length + 1, // +1 для заголовка
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return const Padding(
-              padding: EdgeInsets.only(bottom: 15.0),
+  /// Боковое меню[cite: 1]
+/// Боковое меню
+  Widget _buildNavigationDrawer(
+    BuildContext context, 
+    BossPanelState state, 
+    BossPanelViewModel vm, 
+    List<Map<String, dynamic>> destinations
+  ) {
+    return Drawer(
+      backgroundColor: _bgGray950,
+      child: Column(
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: _bgOffBlack),
+            child: Center(
               child: Text(
-                'Текущие активные задачи в филиале',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                'TaskControl\nManagement',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _primaryColor, fontSize: 22, fontWeight: FontWeight.bold),
               ),
-            );
-          }
-          final task = state.activeTasks[index - 1];
-          return _buildTaskCard(task);
-        },
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: destinations.length,
+              itemBuilder: (context, i) {
+                final bool isSelected = state.currentTabIndex == i;
+                return ListTile(
+                  leading: Icon(
+                    destinations[i]['icon'], 
+                    color: isSelected ? _primaryColor : Colors.white54
+                  ),
+                  title: Text(
+                    destinations[i]['title'],
+                    style: TextStyle(color: isSelected ? Colors.white : Colors.white54, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                  ),
+                  selected: isSelected,
+                  selectedTileColor: _bgGray900,
+                  onTap: () {
+                    vm.setTabIndex(i);
+                    Navigator.pop(context);
+                  },
+                );
+              },
+            ),
+          ),
+          
+          // --- НОВОЕ: Кнопка возврата на главный экран ---
+          const Divider(color: Colors.white24, height: 1),
+          ListTile(
+            leading: const Icon(Icons.arrow_back, color: Colors.white54),
+            title: const Text(
+              'На главный экран',
+              style: TextStyle(color: Colors.white54),
+            ),
+            onTap: () {
+              Navigator.pop(context); // Сначала закрываем сам Drawer
+              context.pop();          // Возвращаемся на MainPage через GoRouter
+            },
+          ),
+          const SizedBox(height: 16), // Небольшой отступ от нижнего края экрана
+          // ------------------------------------------------
+        ],
       ),
     );
   }
+Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
+  switch (state.currentTabIndex) {
+    case 0: return const ActiveTasksTab();
+    case 1: return const EmployeeWorkloadTab();
+    case 2: return const BranchOrdersTab();
+    case 3: return const CourierRouteBuilderScreen();
+    case 4: return const GlobalPoolTab();
+    case 5: return const ReportsTab(); // <-- ПОДКЛЮЧЕНО СЮДА
+    default: return const Center(child: Text('...'));
+  }
+}
 
-  Widget _buildTaskCard(BossPanelTaskCardDto task) {
+  Widget _buildTasksList(List<BossPanelTaskCardDto> tasks) {
+    if (tasks.isEmpty) return const _EmptyState(message: 'Нет активных задач');
+    
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: tasks.length,
+      itemBuilder: (context, index) => _TaskCard(task: tasks[index]),
+    );
+  }
+
+  Widget _buildEmployeesList(List<EmployeeWorkloadDto> workloads) {
+    if (workloads.isEmpty) return const _EmptyState(message: 'Сотрудники не найдены');
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: workloads.length,
+      itemBuilder: (context, index) => _EmployeeCard(emp: workloads[index]),
+    );
+  }
+}
+
+/// Компонент карточки задачи[cite: 1]
+class _TaskCard extends StatelessWidget {
+  final BossPanelTaskCardDto task;
+  const _TaskCard({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(task.title, style: TextStyle(color: _textColor, fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
-          Text('Тип: ${task.taskType}', style: TextStyle(color: _primaryColor, fontSize: 14)),
-          Text('От: ${task.createdAt.day.toString().padLeft(2, '0')}.${task.createdAt.month.toString().padLeft(2, '0')}.${task.createdAt.year} ${task.createdAt.hour.toString().padLeft(2, '0')}:${task.createdAt.minute.toString().padLeft(2, '0')}', style: const TextStyle(color: Color(0xFFD1D5DB), fontSize: 12)),
-          
-          const SizedBox(height: 10),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: LinearProgressIndicator(
-                  value: task.progressValue,
-                  color: _primaryColor,
-                  backgroundColor: _bgOffBlack,
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text('${task.overallProgressPercentage}%', style: TextStyle(color: _textColor)),
+              Expanded(child: Text(task.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
+              Text('${task.overallProgressPercentage}%', style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold)),
             ],
           ),
-
-          const SizedBox(height: 10),
-          Text('Исполнители:', style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
+          Text(task.taskType, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: task.progressValue,
+            color: const Color(0xFF7C3AED),
+            backgroundColor: const Color(0xFF141414),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          const SizedBox(height: 12),
           ...task.assignees.map((a) => Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.only(top: 4),
             child: Row(
               children: [
-                Text('• ', style: TextStyle(color: _primaryColor)),
-                Expanded(child: Text(a.fullName, style: TextStyle(color: _textColor))),
-                Text(a.status, style: const TextStyle(color: Color(0xFFD1D5DB))),
+                const Icon(Icons.person_pin_rounded, size: 14, color: Color(0xFF7C3AED)),
+                const SizedBox(width: 6),
+                Text(a.fullName, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                const Spacer(),
+                Text(a.status, style: const TextStyle(color: Colors.white54, fontSize: 12)),
               ],
             ),
           )),
@@ -160,414 +202,53 @@ class _BossPanelPageState extends ConsumerState<BossPanelPage> with SingleTicker
       ),
     );
   }
+}
 
-  Widget _buildCreateTaskTab(BossPanelState state, BossPanelViewModel vm) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(15),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(8)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InkWell(
-                  onTap: () => vm.toggleCreateForm(),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Создание новой задачи', style: TextStyle(color: _textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-                      Icon(
-                        state.isCreateFormExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                        color: _textColor,
-                      ),
-                    ],
-                  ),
-                ),
-                if (state.isCreateFormExpanded) ...[
-                  const SizedBox(height: 15),
-                  
-                  // Переключатель типа задачи
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => vm.updateParameters(selectedTaskType: 'Inventory'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: state.selectedTaskType == 'Inventory' ? _primaryColor : _bgOffBlack,
-                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)),
-                              border: Border.all(color: _bgGray950),
-                            ),
-                            child: const Text('Инвентаризация', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => vm.updateParameters(selectedTaskType: 'OrderAssembly'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: state.selectedTaskType == 'OrderAssembly' ? _primaryColor : _bgOffBlack,
-                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
-                              border: Border.all(color: _bgGray950),
-                            ),
-                            child: const Text('Сборка заказа', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 12)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+/// Компонент карточки сотрудника[cite: 1]
+class _EmployeeCard extends StatelessWidget {
+  final EmployeeWorkloadDto emp;
+  const _EmployeeCard({required this.emp});
 
-                  const SizedBox(height: 15),
-                  Text('Описание задачи:', style: TextStyle(color: _textColor)),
-                  const SizedBox(height: 5),
-                  TextField(
-                    controller: _descriptionController,
-                    onChanged: (_) => _updateViewModelFields(),
-                    style: TextStyle(color: _textColor),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _bgOffBlack,
-                      hintText: 'Введите описание...',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Кол-во сотрудников:', style: TextStyle(color: _textColor)),
-                            const SizedBox(height: 5),
-                            TextField(
-                              controller: _workerCountController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => _updateViewModelFields(),
-                              style: TextStyle(color: _textColor),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: _bgOffBlack,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Приоритет (1-10):', style: TextStyle(color: _textColor)),
-                            const SizedBox(height: 5),
-                            TextField(
-                              controller: _priorityController,
-                              keyboardType: TextInputType.number,
-                              onChanged: (_) => _updateViewModelFields(),
-                              style: TextStyle(color: _textColor),
-                              decoration: InputDecoration(
-                                filled: true,
-                                fillColor: _bgOffBlack,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Специфичные поля для Инвентаризации
-                  if (state.selectedTaskType == 'Inventory') ...[
-                    const SizedBox(height: 15),
-                    Text('Выбор зон (оставьте пустым для всех):', style: TextStyle(color: _textColor)),
-                    const SizedBox(height: 5),
-                    TextField(
-                      onChanged: (val) => vm.updateSearchText(val),
-                      style: TextStyle(color: _textColor),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: _bgOffBlack,
-                        hintText: 'Поиск по зонам/стеллажам...',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-                    Container(
-                      height: 280,
-                      decoration: BoxDecoration(color: _bgGray950, borderRadius: BorderRadius.circular(8)),
-                      child: ListView.builder(
-                        itemCount: state.flatPositionTree.length,
-                        itemBuilder: (context, index) {
-                          final node = state.flatPositionTree[index];
-                          return _buildTreeNodeRow(node, vm);
-                        },
-                      ),
-                    ),
-                  ],
-
-                  // Специфичные поля для Сборки Заказа
-                  if (state.selectedTaskType == 'OrderAssembly') ...[
-                    const SizedBox(height: 15),
-                    Text('Выберите заказ:', style: TextStyle(color: _textColor)),
-                    const SizedBox(height: 5),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(color: _bgOffBlack, borderRadius: BorderRadius.circular(4)),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<AvailableOrderDto>(
-                          value: state.selectedOrder,
-                          hint: const Text('Список доступных заказов', style: TextStyle(color: Colors.white54)),
-                          dropdownColor: _bgGray900,
-                          isExpanded: true,
-                          style: TextStyle(color: _textColor),
-                          items: state.availableOrders.map((o) {
-                            return DropdownMenuItem(
-                              value: o,
-                              child: Text('Заказ #${o.orderId} (${o.itemsCount} поз.) - ${o.type}'),
-                            );
-                          }).toList(),
-                          onChanged: (val) => vm.updateParameters(selectedOrder: val),
-                        ),
-                      ),
-                    ),
-                    if (state.availableOrders.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 5),
-                        child: Text('Нет доступных новых заказов', style: TextStyle(color: Colors.amber, fontSize: 12)),
-                      ),
-                  ],
-
-                  // Выбор сотрудников
-                  const SizedBox(height: 15),
-                  Text('Выбор сотрудников:', style: TextStyle(color: _textColor, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: _bgOffBlack, border: Border.all(color: _bgGray950), borderRadius: BorderRadius.circular(4)),
-                    child: Row(
-                      children: [
-                        Text('Авто-подбор:', style: TextStyle(color: _textColor)),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _autoSelectWorkerController,
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _updateViewModelFields(),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: _textColor),
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: _bgGray950,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide.none),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        const Text('чел.', style: TextStyle(color: Colors.white54)),
-                        const SizedBox(width: 10),
-                        ElevatedButton(
-                          onPressed: () => vm.autoSelectEmployeesAsync(),
-                          style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
-                          child: const Text('Подобрать', style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-                  const Text('Ручной выбор / Доступные:', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  SizedBox(
-                    height: 150,
-                    child: ListView.builder(
-                      itemCount: state.selectableEmployees.length,
-                      itemBuilder: (context, index) {
-                        final emp = state.selectableEmployees[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(
-                            children: [
-                              Checkbox(
-                                value: emp.isSelected,
-                                onChanged: (val) => vm.toggleEmployeeSelected(emp, val ?? false),
-                                activeColor: _primaryColor,
-                              ),
-                              Text(emp.item.fullName, style: TextStyle(color: _textColor)),
-                              const SizedBox(width: 10),
-                              Text('(Задач: ${emp.item.activeTasksCount})', style: const TextStyle(color: Colors.white54)),
-                              if (emp.item.isRecommended)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 10),
-                                  child: Icon(Icons.star, color: Colors.amber, size: 16),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-                  ElevatedButton(
-                    onPressed: () async {
-                      bool success = false;
-                      if (state.selectedTaskType == 'Inventory') {
-                        success = await vm.createInventoryAsync();
-                      } else {
-                        success = await vm.createOrderAssemblyTaskAsync();
-                      }
-                      
-                      if (success && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Задача успешно создана')),
-                        );
-                        _descriptionController.clear();
-                        _workerCountController.text = '1';
-                        _priorityController.text = (state.selectedTaskType == 'OrderAssembly' ? '7' : '5');
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: Text(
-                      state.selectedTaskType == 'Inventory' ? 'Создать инвентаризацию' : 'Создать задачу на сборку',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  if (state.errorMessage.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Text(state.errorMessage, style: const TextStyle(color: Colors.red)),
-                    ),
-                ]
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTreeNodeRow(SelectableTreeNode node, BossPanelViewModel vm) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF2C2C2E), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
-          SizedBox(width: node.level * 20.0), // Отступ в зависимости от уровня
-          if (node.hasChildren)
-            InkWell(
-              onTap: () => vm.toggleNodeExpanded(node),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Icon(
-                  node.isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
-                  color: _gray400,
-                  size: 20,
-                ),
-              ),
-            )
-          else
-            const SizedBox(width: 28), // Placeholder for leaf nodes
-          
-          Checkbox(
-            value: node.isSelected,
-            onChanged: (val) => vm.toggleNodeSelected(node, val ?? false),
-            activeColor: _primaryColor,
-            visualDensity: VisualDensity.compact,
+          Container(
+            width: 10, height: 10,
+            decoration: BoxDecoration(color: emp.isAtWork ? Colors.green : Colors.grey, shape: BoxShape.circle),
           ),
-          
+          const SizedBox(width: 12),
           Expanded(
-            child: InkWell(
-              onTap: () => vm.toggleNodeExpanded(node),
-              child: Text(
-                node.title,
-                style: TextStyle(color: _textColor, fontSize: 13),
-                overflow: TextOverflow.ellipsis,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(emp.fullName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(emp.isAtWork ? 'На смене' : 'Отсутствует', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
             ),
+          ),
+          Column(
+            children: [
+              Text('${emp.activeTasksCount}', style: const TextStyle(color: Color(0xFF7C3AED), fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('задач', style: TextStyle(color: Colors.white54, fontSize: 10)),
+            ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildEmployeesTab(BossPanelState state, BossPanelViewModel vm) {
-    return RefreshIndicator(
-      onRefresh: () => vm.loadDataAsync(),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(15),
-        itemCount: state.employeeWorkloads.length + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return const Padding(
-              padding: EdgeInsets.only(bottom: 15.0),
-              child: Text(
-                'Нагрузка сотрудников и статус',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            );
-          }
-          final emp = state.employeeWorkloads[index - 1];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(emp.fullName, style: TextStyle(color: _textColor, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Container(
-                            width: 10, height: 10,
-                            decoration: BoxDecoration(
-                              color: emp.isAtWork ? Colors.green : Colors.grey,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(emp.isAtWork ? 'На смене' : 'Не на смене', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                        ],
-                      ),
-                      if (emp.hasActiveTasks) ...[
-                        const SizedBox(height: 10),
-                        const Text('Текущие задачи:', style: TextStyle(color: Colors.white, fontSize: 12)),
-                        ...emp.activeTasks.map((t) => Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text('- ${t.title}', style: const TextStyle(color: Color(0xFFD1D5DB), fontSize: 12)),
-                        )),
-                      ]
-                    ],
-                  ),
-                ),
-                Column(
-                  children: [
-                    Text(emp.activeTasksCount.toString(), style: TextStyle(color: _primaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const Text('Активных\nзадач', textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 10)),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
+class _EmptyState extends StatelessWidget {
+  final String message;
+  const _EmptyState({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(child: Text(message, style: const TextStyle(color: Colors.white54)));
   }
 }

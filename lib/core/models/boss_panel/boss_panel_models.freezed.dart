@@ -616,6 +616,7 @@ mixin _$EmployeeWorkloadDto {
   String get fullName => throw _privateConstructorUsedError;
   bool get isAtWork => throw _privateConstructorUsedError;
   int get activeTasksCount => throw _privateConstructorUsedError;
+  double get totalComplexity => throw _privateConstructorUsedError;
   List<ActiveTaskBriefDto> get activeTasks =>
       throw _privateConstructorUsedError;
 
@@ -641,6 +642,7 @@ abstract class $EmployeeWorkloadDtoCopyWith<$Res> {
     String fullName,
     bool isAtWork,
     int activeTasksCount,
+    double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
   });
 }
@@ -664,6 +666,7 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
     Object? fullName = null,
     Object? isAtWork = null,
     Object? activeTasksCount = null,
+    Object? totalComplexity = null,
     Object? activeTasks = null,
   }) {
     return _then(
@@ -684,6 +687,10 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
                 ? _value.activeTasksCount
                 : activeTasksCount // ignore: cast_nullable_to_non_nullable
                       as int,
+            totalComplexity: null == totalComplexity
+                ? _value.totalComplexity
+                : totalComplexity // ignore: cast_nullable_to_non_nullable
+                      as double,
             activeTasks: null == activeTasks
                 ? _value.activeTasks
                 : activeTasks // ignore: cast_nullable_to_non_nullable
@@ -708,6 +715,7 @@ abstract class _$$EmployeeWorkloadDtoImplCopyWith<$Res>
     String fullName,
     bool isAtWork,
     int activeTasksCount,
+    double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
   });
 }
@@ -730,6 +738,7 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
     Object? fullName = null,
     Object? isAtWork = null,
     Object? activeTasksCount = null,
+    Object? totalComplexity = null,
     Object? activeTasks = null,
   }) {
     return _then(
@@ -750,6 +759,10 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
             ? _value.activeTasksCount
             : activeTasksCount // ignore: cast_nullable_to_non_nullable
                   as int,
+        totalComplexity: null == totalComplexity
+            ? _value.totalComplexity
+            : totalComplexity // ignore: cast_nullable_to_non_nullable
+                  as double,
         activeTasks: null == activeTasks
             ? _value._activeTasks
             : activeTasks // ignore: cast_nullable_to_non_nullable
@@ -767,6 +780,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     this.fullName = '',
     this.isAtWork = false,
     this.activeTasksCount = 0,
+    this.totalComplexity = 0.0,
     final List<ActiveTaskBriefDto> activeTasks = const [],
   }) : _activeTasks = activeTasks,
        super._();
@@ -785,6 +799,9 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
   @override
   @JsonKey()
   final int activeTasksCount;
+  @override
+  @JsonKey()
+  final double totalComplexity;
   final List<ActiveTaskBriefDto> _activeTasks;
   @override
   @JsonKey()
@@ -796,7 +813,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
 
   @override
   String toString() {
-    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, activeTasks: $activeTasks)';
+    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, totalComplexity: $totalComplexity, activeTasks: $activeTasks)';
   }
 
   @override
@@ -812,6 +829,8 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
                 other.isAtWork == isAtWork) &&
             (identical(other.activeTasksCount, activeTasksCount) ||
                 other.activeTasksCount == activeTasksCount) &&
+            (identical(other.totalComplexity, totalComplexity) ||
+                other.totalComplexity == totalComplexity) &&
             const DeepCollectionEquality().equals(
               other._activeTasks,
               _activeTasks,
@@ -826,6 +845,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     fullName,
     isAtWork,
     activeTasksCount,
+    totalComplexity,
     const DeepCollectionEquality().hash(_activeTasks),
   );
 
@@ -852,6 +872,7 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
     final String fullName,
     final bool isAtWork,
     final int activeTasksCount,
+    final double totalComplexity,
     final List<ActiveTaskBriefDto> activeTasks,
   }) = _$EmployeeWorkloadDtoImpl;
   const _EmployeeWorkloadDto._() : super._();
@@ -867,6 +888,8 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
   bool get isAtWork;
   @override
   int get activeTasksCount;
+  @override
+  double get totalComplexity;
   @override
   List<ActiveTaskBriefDto> get activeTasks;
 
@@ -1109,6 +1132,9 @@ mixin _$AvailableEmployeeDto {
   bool get isAtWork => throw _privateConstructorUsedError;
   int get activeTasksCount => throw _privateConstructorUsedError;
   bool get isRecommended => throw _privateConstructorUsedError;
+  double? get maxWeightKg => throw _privateConstructorUsedError;
+  String? get vehicleName => throw _privateConstructorUsedError;
+  bool get isOnRoute => throw _privateConstructorUsedError;
 
   /// Serializes this AvailableEmployeeDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1133,6 +1159,9 @@ abstract class $AvailableEmployeeDtoCopyWith<$Res> {
     bool isAtWork,
     int activeTasksCount,
     bool isRecommended,
+    double? maxWeightKg,
+    String? vehicleName,
+    bool isOnRoute,
   });
 }
 
@@ -1159,6 +1188,9 @@ class _$AvailableEmployeeDtoCopyWithImpl<
     Object? isAtWork = null,
     Object? activeTasksCount = null,
     Object? isRecommended = null,
+    Object? maxWeightKg = freezed,
+    Object? vehicleName = freezed,
+    Object? isOnRoute = null,
   }) {
     return _then(
       _value.copyWith(
@@ -1182,6 +1214,18 @@ class _$AvailableEmployeeDtoCopyWithImpl<
                 ? _value.isRecommended
                 : isRecommended // ignore: cast_nullable_to_non_nullable
                       as bool,
+            maxWeightKg: freezed == maxWeightKg
+                ? _value.maxWeightKg
+                : maxWeightKg // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            vehicleName: freezed == vehicleName
+                ? _value.vehicleName
+                : vehicleName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isOnRoute: null == isOnRoute
+                ? _value.isOnRoute
+                : isOnRoute // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -1203,6 +1247,9 @@ abstract class _$$AvailableEmployeeDtoImplCopyWith<$Res>
     bool isAtWork,
     int activeTasksCount,
     bool isRecommended,
+    double? maxWeightKg,
+    String? vehicleName,
+    bool isOnRoute,
   });
 }
 
@@ -1225,6 +1272,9 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
     Object? isAtWork = null,
     Object? activeTasksCount = null,
     Object? isRecommended = null,
+    Object? maxWeightKg = freezed,
+    Object? vehicleName = freezed,
+    Object? isOnRoute = null,
   }) {
     return _then(
       _$AvailableEmployeeDtoImpl(
@@ -1248,6 +1298,18 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
             ? _value.isRecommended
             : isRecommended // ignore: cast_nullable_to_non_nullable
                   as bool,
+        maxWeightKg: freezed == maxWeightKg
+            ? _value.maxWeightKg
+            : maxWeightKg // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        vehicleName: freezed == vehicleName
+            ? _value.vehicleName
+            : vehicleName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isOnRoute: null == isOnRoute
+            ? _value.isOnRoute
+            : isOnRoute // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -1262,6 +1324,9 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     this.isAtWork = false,
     this.activeTasksCount = 0,
     this.isRecommended = false,
+    this.maxWeightKg,
+    this.vehicleName,
+    this.isOnRoute = false,
   });
 
   factory _$AvailableEmployeeDtoImpl.fromJson(Map<String, dynamic> json) =>
@@ -1281,10 +1346,17 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
   @override
   @JsonKey()
   final bool isRecommended;
+  @override
+  final double? maxWeightKg;
+  @override
+  final String? vehicleName;
+  @override
+  @JsonKey()
+  final bool isOnRoute;
 
   @override
   String toString() {
-    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended)';
+    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended, maxWeightKg: $maxWeightKg, vehicleName: $vehicleName, isOnRoute: $isOnRoute)';
   }
 
   @override
@@ -1301,7 +1373,13 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
             (identical(other.activeTasksCount, activeTasksCount) ||
                 other.activeTasksCount == activeTasksCount) &&
             (identical(other.isRecommended, isRecommended) ||
-                other.isRecommended == isRecommended));
+                other.isRecommended == isRecommended) &&
+            (identical(other.maxWeightKg, maxWeightKg) ||
+                other.maxWeightKg == maxWeightKg) &&
+            (identical(other.vehicleName, vehicleName) ||
+                other.vehicleName == vehicleName) &&
+            (identical(other.isOnRoute, isOnRoute) ||
+                other.isOnRoute == isOnRoute));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1313,6 +1391,9 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     isAtWork,
     activeTasksCount,
     isRecommended,
+    maxWeightKg,
+    vehicleName,
+    isOnRoute,
   );
 
   /// Create a copy of AvailableEmployeeDto
@@ -1340,6 +1421,9 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
     final bool isAtWork,
     final int activeTasksCount,
     final bool isRecommended,
+    final double? maxWeightKg,
+    final String? vehicleName,
+    final bool isOnRoute,
   }) = _$AvailableEmployeeDtoImpl;
 
   factory _AvailableEmployeeDto.fromJson(Map<String, dynamic> json) =
@@ -1355,6 +1439,12 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
   int get activeTasksCount;
   @override
   bool get isRecommended;
+  @override
+  double? get maxWeightKg;
+  @override
+  String? get vehicleName;
+  @override
+  bool get isOnRoute;
 
   /// Create a copy of AvailableEmployeeDto
   /// with the given fields replaced by the non-null parameter values.
@@ -1675,108 +1765,75 @@ abstract class _CreateInventoryByZoneDto implements CreateInventoryByZoneDto {
   get copyWith => throw _privateConstructorUsedError;
 }
 
-PositionCellDto _$PositionCellDtoFromJson(Map<String, dynamic> json) {
-  return _PositionCellDto.fromJson(json);
+OrderItemDetailDto _$OrderItemDetailDtoFromJson(Map<String, dynamic> json) {
+  return _OrderItemDetailDto.fromJson(json);
 }
 
 /// @nodoc
-mixin _$PositionCellDto {
-  int get positionId => throw _privateConstructorUsedError;
-  int get branchId => throw _privateConstructorUsedError;
-  String get status => throw _privateConstructorUsedError;
-  String get zoneCode => throw _privateConstructorUsedError;
-  String get firstLevelStorageType => throw _privateConstructorUsedError;
-  String get flsNumber => throw _privateConstructorUsedError;
-  String? get secondLevelStorage => throw _privateConstructorUsedError;
-  String? get thirdLevelStorage => throw _privateConstructorUsedError;
+mixin _$OrderItemDetailDto {
+  int get itemId => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  int get quantity => throw _privateConstructorUsedError;
+  double get weightKg => throw _privateConstructorUsedError;
 
-  /// Serializes this PositionCellDto to a JSON map.
+  /// Serializes this OrderItemDetailDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
-  /// Create a copy of PositionCellDto
+  /// Create a copy of OrderItemDetailDto
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $PositionCellDtoCopyWith<PositionCellDto> get copyWith =>
+  $OrderItemDetailDtoCopyWith<OrderItemDetailDto> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $PositionCellDtoCopyWith<$Res> {
-  factory $PositionCellDtoCopyWith(
-    PositionCellDto value,
-    $Res Function(PositionCellDto) then,
-  ) = _$PositionCellDtoCopyWithImpl<$Res, PositionCellDto>;
+abstract class $OrderItemDetailDtoCopyWith<$Res> {
+  factory $OrderItemDetailDtoCopyWith(
+    OrderItemDetailDto value,
+    $Res Function(OrderItemDetailDto) then,
+  ) = _$OrderItemDetailDtoCopyWithImpl<$Res, OrderItemDetailDto>;
   @useResult
-  $Res call({
-    int positionId,
-    int branchId,
-    String status,
-    String zoneCode,
-    String firstLevelStorageType,
-    String flsNumber,
-    String? secondLevelStorage,
-    String? thirdLevelStorage,
-  });
+  $Res call({int itemId, String name, int quantity, double weightKg});
 }
 
 /// @nodoc
-class _$PositionCellDtoCopyWithImpl<$Res, $Val extends PositionCellDto>
-    implements $PositionCellDtoCopyWith<$Res> {
-  _$PositionCellDtoCopyWithImpl(this._value, this._then);
+class _$OrderItemDetailDtoCopyWithImpl<$Res, $Val extends OrderItemDetailDto>
+    implements $OrderItemDetailDtoCopyWith<$Res> {
+  _$OrderItemDetailDtoCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of PositionCellDto
+  /// Create a copy of OrderItemDetailDto
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? positionId = null,
-    Object? branchId = null,
-    Object? status = null,
-    Object? zoneCode = null,
-    Object? firstLevelStorageType = null,
-    Object? flsNumber = null,
-    Object? secondLevelStorage = freezed,
-    Object? thirdLevelStorage = freezed,
+    Object? itemId = null,
+    Object? name = null,
+    Object? quantity = null,
+    Object? weightKg = null,
   }) {
     return _then(
       _value.copyWith(
-            positionId: null == positionId
-                ? _value.positionId
-                : positionId // ignore: cast_nullable_to_non_nullable
+            itemId: null == itemId
+                ? _value.itemId
+                : itemId // ignore: cast_nullable_to_non_nullable
                       as int,
-            branchId: null == branchId
-                ? _value.branchId
-                : branchId // ignore: cast_nullable_to_non_nullable
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            quantity: null == quantity
+                ? _value.quantity
+                : quantity // ignore: cast_nullable_to_non_nullable
                       as int,
-            status: null == status
-                ? _value.status
-                : status // ignore: cast_nullable_to_non_nullable
-                      as String,
-            zoneCode: null == zoneCode
-                ? _value.zoneCode
-                : zoneCode // ignore: cast_nullable_to_non_nullable
-                      as String,
-            firstLevelStorageType: null == firstLevelStorageType
-                ? _value.firstLevelStorageType
-                : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
-                      as String,
-            flsNumber: null == flsNumber
-                ? _value.flsNumber
-                : flsNumber // ignore: cast_nullable_to_non_nullable
-                      as String,
-            secondLevelStorage: freezed == secondLevelStorage
-                ? _value.secondLevelStorage
-                : secondLevelStorage // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            thirdLevelStorage: freezed == thirdLevelStorage
-                ? _value.thirdLevelStorage
-                : thirdLevelStorage // ignore: cast_nullable_to_non_nullable
-                      as String?,
+            weightKg: null == weightKg
+                ? _value.weightKg
+                : weightKg // ignore: cast_nullable_to_non_nullable
+                      as double,
           )
           as $Val,
     );
@@ -1784,83 +1841,54 @@ class _$PositionCellDtoCopyWithImpl<$Res, $Val extends PositionCellDto>
 }
 
 /// @nodoc
-abstract class _$$PositionCellDtoImplCopyWith<$Res>
-    implements $PositionCellDtoCopyWith<$Res> {
-  factory _$$PositionCellDtoImplCopyWith(
-    _$PositionCellDtoImpl value,
-    $Res Function(_$PositionCellDtoImpl) then,
-  ) = __$$PositionCellDtoImplCopyWithImpl<$Res>;
+abstract class _$$OrderItemDetailDtoImplCopyWith<$Res>
+    implements $OrderItemDetailDtoCopyWith<$Res> {
+  factory _$$OrderItemDetailDtoImplCopyWith(
+    _$OrderItemDetailDtoImpl value,
+    $Res Function(_$OrderItemDetailDtoImpl) then,
+  ) = __$$OrderItemDetailDtoImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    int positionId,
-    int branchId,
-    String status,
-    String zoneCode,
-    String firstLevelStorageType,
-    String flsNumber,
-    String? secondLevelStorage,
-    String? thirdLevelStorage,
-  });
+  $Res call({int itemId, String name, int quantity, double weightKg});
 }
 
 /// @nodoc
-class __$$PositionCellDtoImplCopyWithImpl<$Res>
-    extends _$PositionCellDtoCopyWithImpl<$Res, _$PositionCellDtoImpl>
-    implements _$$PositionCellDtoImplCopyWith<$Res> {
-  __$$PositionCellDtoImplCopyWithImpl(
-    _$PositionCellDtoImpl _value,
-    $Res Function(_$PositionCellDtoImpl) _then,
+class __$$OrderItemDetailDtoImplCopyWithImpl<$Res>
+    extends _$OrderItemDetailDtoCopyWithImpl<$Res, _$OrderItemDetailDtoImpl>
+    implements _$$OrderItemDetailDtoImplCopyWith<$Res> {
+  __$$OrderItemDetailDtoImplCopyWithImpl(
+    _$OrderItemDetailDtoImpl _value,
+    $Res Function(_$OrderItemDetailDtoImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of PositionCellDto
+  /// Create a copy of OrderItemDetailDto
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? positionId = null,
-    Object? branchId = null,
-    Object? status = null,
-    Object? zoneCode = null,
-    Object? firstLevelStorageType = null,
-    Object? flsNumber = null,
-    Object? secondLevelStorage = freezed,
-    Object? thirdLevelStorage = freezed,
+    Object? itemId = null,
+    Object? name = null,
+    Object? quantity = null,
+    Object? weightKg = null,
   }) {
     return _then(
-      _$PositionCellDtoImpl(
-        positionId: null == positionId
-            ? _value.positionId
-            : positionId // ignore: cast_nullable_to_non_nullable
+      _$OrderItemDetailDtoImpl(
+        itemId: null == itemId
+            ? _value.itemId
+            : itemId // ignore: cast_nullable_to_non_nullable
                   as int,
-        branchId: null == branchId
-            ? _value.branchId
-            : branchId // ignore: cast_nullable_to_non_nullable
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        quantity: null == quantity
+            ? _value.quantity
+            : quantity // ignore: cast_nullable_to_non_nullable
                   as int,
-        status: null == status
-            ? _value.status
-            : status // ignore: cast_nullable_to_non_nullable
-                  as String,
-        zoneCode: null == zoneCode
-            ? _value.zoneCode
-            : zoneCode // ignore: cast_nullable_to_non_nullable
-                  as String,
-        firstLevelStorageType: null == firstLevelStorageType
-            ? _value.firstLevelStorageType
-            : firstLevelStorageType // ignore: cast_nullable_to_non_nullable
-                  as String,
-        flsNumber: null == flsNumber
-            ? _value.flsNumber
-            : flsNumber // ignore: cast_nullable_to_non_nullable
-                  as String,
-        secondLevelStorage: freezed == secondLevelStorage
-            ? _value.secondLevelStorage
-            : secondLevelStorage // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        thirdLevelStorage: freezed == thirdLevelStorage
-            ? _value.thirdLevelStorage
-            : thirdLevelStorage // ignore: cast_nullable_to_non_nullable
-                  as String?,
+        weightKg: null == weightKg
+            ? _value.weightKg
+            : weightKg // ignore: cast_nullable_to_non_nullable
+                  as double,
       ),
     );
   }
@@ -1868,137 +1896,94 @@ class __$$PositionCellDtoImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$PositionCellDtoImpl implements _PositionCellDto {
-  const _$PositionCellDtoImpl({
-    required this.positionId,
-    required this.branchId,
-    this.status = "Active",
-    this.zoneCode = '',
-    this.firstLevelStorageType = '',
-    this.flsNumber = '',
-    this.secondLevelStorage,
-    this.thirdLevelStorage,
+class _$OrderItemDetailDtoImpl implements _OrderItemDetailDto {
+  const _$OrderItemDetailDtoImpl({
+    required this.itemId,
+    this.name = '',
+    this.quantity = 0,
+    this.weightKg = 0.0,
   });
 
-  factory _$PositionCellDtoImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PositionCellDtoImplFromJson(json);
+  factory _$OrderItemDetailDtoImpl.fromJson(Map<String, dynamic> json) =>
+      _$$OrderItemDetailDtoImplFromJson(json);
 
   @override
-  final int positionId;
-  @override
-  final int branchId;
+  final int itemId;
   @override
   @JsonKey()
-  final String status;
+  final String name;
   @override
   @JsonKey()
-  final String zoneCode;
+  final int quantity;
   @override
   @JsonKey()
-  final String firstLevelStorageType;
-  @override
-  @JsonKey()
-  final String flsNumber;
-  @override
-  final String? secondLevelStorage;
-  @override
-  final String? thirdLevelStorage;
+  final double weightKg;
 
   @override
   String toString() {
-    return 'PositionCellDto(positionId: $positionId, branchId: $branchId, status: $status, zoneCode: $zoneCode, firstLevelStorageType: $firstLevelStorageType, flsNumber: $flsNumber, secondLevelStorage: $secondLevelStorage, thirdLevelStorage: $thirdLevelStorage)';
+    return 'OrderItemDetailDto(itemId: $itemId, name: $name, quantity: $quantity, weightKg: $weightKg)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$PositionCellDtoImpl &&
-            (identical(other.positionId, positionId) ||
-                other.positionId == positionId) &&
-            (identical(other.branchId, branchId) ||
-                other.branchId == branchId) &&
-            (identical(other.status, status) || other.status == status) &&
-            (identical(other.zoneCode, zoneCode) ||
-                other.zoneCode == zoneCode) &&
-            (identical(other.firstLevelStorageType, firstLevelStorageType) ||
-                other.firstLevelStorageType == firstLevelStorageType) &&
-            (identical(other.flsNumber, flsNumber) ||
-                other.flsNumber == flsNumber) &&
-            (identical(other.secondLevelStorage, secondLevelStorage) ||
-                other.secondLevelStorage == secondLevelStorage) &&
-            (identical(other.thirdLevelStorage, thirdLevelStorage) ||
-                other.thirdLevelStorage == thirdLevelStorage));
+            other is _$OrderItemDetailDtoImpl &&
+            (identical(other.itemId, itemId) || other.itemId == itemId) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.quantity, quantity) ||
+                other.quantity == quantity) &&
+            (identical(other.weightKg, weightKg) ||
+                other.weightKg == weightKg));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    positionId,
-    branchId,
-    status,
-    zoneCode,
-    firstLevelStorageType,
-    flsNumber,
-    secondLevelStorage,
-    thirdLevelStorage,
-  );
+  int get hashCode =>
+      Object.hash(runtimeType, itemId, name, quantity, weightKg);
 
-  /// Create a copy of PositionCellDto
+  /// Create a copy of OrderItemDetailDto
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$PositionCellDtoImplCopyWith<_$PositionCellDtoImpl> get copyWith =>
-      __$$PositionCellDtoImplCopyWithImpl<_$PositionCellDtoImpl>(
+  _$$OrderItemDetailDtoImplCopyWith<_$OrderItemDetailDtoImpl> get copyWith =>
+      __$$OrderItemDetailDtoImplCopyWithImpl<_$OrderItemDetailDtoImpl>(
         this,
         _$identity,
       );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PositionCellDtoImplToJson(this);
+    return _$$OrderItemDetailDtoImplToJson(this);
   }
 }
 
-abstract class _PositionCellDto implements PositionCellDto {
-  const factory _PositionCellDto({
-    required final int positionId,
-    required final int branchId,
-    final String status,
-    final String zoneCode,
-    final String firstLevelStorageType,
-    final String flsNumber,
-    final String? secondLevelStorage,
-    final String? thirdLevelStorage,
-  }) = _$PositionCellDtoImpl;
+abstract class _OrderItemDetailDto implements OrderItemDetailDto {
+  const factory _OrderItemDetailDto({
+    required final int itemId,
+    final String name,
+    final int quantity,
+    final double weightKg,
+  }) = _$OrderItemDetailDtoImpl;
 
-  factory _PositionCellDto.fromJson(Map<String, dynamic> json) =
-      _$PositionCellDtoImpl.fromJson;
+  factory _OrderItemDetailDto.fromJson(Map<String, dynamic> json) =
+      _$OrderItemDetailDtoImpl.fromJson;
 
   @override
-  int get positionId;
+  int get itemId;
   @override
-  int get branchId;
+  String get name;
   @override
-  String get status;
+  int get quantity;
   @override
-  String get zoneCode;
-  @override
-  String get firstLevelStorageType;
-  @override
-  String get flsNumber;
-  @override
-  String? get secondLevelStorage;
-  @override
-  String? get thirdLevelStorage;
+  double get weightKg;
 
-  /// Create a copy of PositionCellDto
+  /// Create a copy of OrderItemDetailDto
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PositionCellDtoImplCopyWith<_$PositionCellDtoImpl> get copyWith =>
+  _$$OrderItemDetailDtoImplCopyWith<_$OrderItemDetailDtoImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2009,10 +1994,17 @@ AvailableOrderDto _$AvailableOrderDtoFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$AvailableOrderDto {
   int get orderId => throw _privateConstructorUsedError;
-  String get customerName => throw _privateConstructorUsedError;
+  String get orderNumber => throw _privateConstructorUsedError;
+  DateTime? get createdAt => throw _privateConstructorUsedError;
+  String get status => throw _privateConstructorUsedError;
+  String get deliveryType => throw _privateConstructorUsedError;
+  String get paymentType => throw _privateConstructorUsedError;
   DateTime? get deliveryDate => throw _privateConstructorUsedError;
-  String get type => throw _privateConstructorUsedError;
-  int get itemsCount => throw _privateConstructorUsedError;
+  String? get destinationAddress => throw _privateConstructorUsedError;
+  String? get postamatAddress => throw _privateConstructorUsedError;
+  String? get postamatCellNumber => throw _privateConstructorUsedError;
+  String? get postamatCellSize => throw _privateConstructorUsedError;
+  List<OrderItemDetailDto> get items => throw _privateConstructorUsedError;
 
   /// Serializes this AvailableOrderDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -2033,10 +2025,17 @@ abstract class $AvailableOrderDtoCopyWith<$Res> {
   @useResult
   $Res call({
     int orderId,
-    String customerName,
+    String orderNumber,
+    DateTime? createdAt,
+    String status,
+    String deliveryType,
+    String paymentType,
     DateTime? deliveryDate,
-    String type,
-    int itemsCount,
+    String? destinationAddress,
+    String? postamatAddress,
+    String? postamatCellNumber,
+    String? postamatCellSize,
+    List<OrderItemDetailDto> items,
   });
 }
 
@@ -2056,10 +2055,17 @@ class _$AvailableOrderDtoCopyWithImpl<$Res, $Val extends AvailableOrderDto>
   @override
   $Res call({
     Object? orderId = null,
-    Object? customerName = null,
+    Object? orderNumber = null,
+    Object? createdAt = freezed,
+    Object? status = null,
+    Object? deliveryType = null,
+    Object? paymentType = null,
     Object? deliveryDate = freezed,
-    Object? type = null,
-    Object? itemsCount = null,
+    Object? destinationAddress = freezed,
+    Object? postamatAddress = freezed,
+    Object? postamatCellNumber = freezed,
+    Object? postamatCellSize = freezed,
+    Object? items = null,
   }) {
     return _then(
       _value.copyWith(
@@ -2067,22 +2073,50 @@ class _$AvailableOrderDtoCopyWithImpl<$Res, $Val extends AvailableOrderDto>
                 ? _value.orderId
                 : orderId // ignore: cast_nullable_to_non_nullable
                       as int,
-            customerName: null == customerName
-                ? _value.customerName
-                : customerName // ignore: cast_nullable_to_non_nullable
+            orderNumber: null == orderNumber
+                ? _value.orderNumber
+                : orderNumber // ignore: cast_nullable_to_non_nullable
+                      as String,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            deliveryType: null == deliveryType
+                ? _value.deliveryType
+                : deliveryType // ignore: cast_nullable_to_non_nullable
+                      as String,
+            paymentType: null == paymentType
+                ? _value.paymentType
+                : paymentType // ignore: cast_nullable_to_non_nullable
                       as String,
             deliveryDate: freezed == deliveryDate
                 ? _value.deliveryDate
                 : deliveryDate // ignore: cast_nullable_to_non_nullable
                       as DateTime?,
-            type: null == type
-                ? _value.type
-                : type // ignore: cast_nullable_to_non_nullable
-                      as String,
-            itemsCount: null == itemsCount
-                ? _value.itemsCount
-                : itemsCount // ignore: cast_nullable_to_non_nullable
-                      as int,
+            destinationAddress: freezed == destinationAddress
+                ? _value.destinationAddress
+                : destinationAddress // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            postamatAddress: freezed == postamatAddress
+                ? _value.postamatAddress
+                : postamatAddress // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            postamatCellNumber: freezed == postamatCellNumber
+                ? _value.postamatCellNumber
+                : postamatCellNumber // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            postamatCellSize: freezed == postamatCellSize
+                ? _value.postamatCellSize
+                : postamatCellSize // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            items: null == items
+                ? _value.items
+                : items // ignore: cast_nullable_to_non_nullable
+                      as List<OrderItemDetailDto>,
           )
           as $Val,
     );
@@ -2100,10 +2134,17 @@ abstract class _$$AvailableOrderDtoImplCopyWith<$Res>
   @useResult
   $Res call({
     int orderId,
-    String customerName,
+    String orderNumber,
+    DateTime? createdAt,
+    String status,
+    String deliveryType,
+    String paymentType,
     DateTime? deliveryDate,
-    String type,
-    int itemsCount,
+    String? destinationAddress,
+    String? postamatAddress,
+    String? postamatCellNumber,
+    String? postamatCellSize,
+    List<OrderItemDetailDto> items,
   });
 }
 
@@ -2122,10 +2163,17 @@ class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? orderId = null,
-    Object? customerName = null,
+    Object? orderNumber = null,
+    Object? createdAt = freezed,
+    Object? status = null,
+    Object? deliveryType = null,
+    Object? paymentType = null,
     Object? deliveryDate = freezed,
-    Object? type = null,
-    Object? itemsCount = null,
+    Object? destinationAddress = freezed,
+    Object? postamatAddress = freezed,
+    Object? postamatCellNumber = freezed,
+    Object? postamatCellSize = freezed,
+    Object? items = null,
   }) {
     return _then(
       _$AvailableOrderDtoImpl(
@@ -2133,22 +2181,50 @@ class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
             ? _value.orderId
             : orderId // ignore: cast_nullable_to_non_nullable
                   as int,
-        customerName: null == customerName
-            ? _value.customerName
-            : customerName // ignore: cast_nullable_to_non_nullable
+        orderNumber: null == orderNumber
+            ? _value.orderNumber
+            : orderNumber // ignore: cast_nullable_to_non_nullable
+                  as String,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        deliveryType: null == deliveryType
+            ? _value.deliveryType
+            : deliveryType // ignore: cast_nullable_to_non_nullable
+                  as String,
+        paymentType: null == paymentType
+            ? _value.paymentType
+            : paymentType // ignore: cast_nullable_to_non_nullable
                   as String,
         deliveryDate: freezed == deliveryDate
             ? _value.deliveryDate
             : deliveryDate // ignore: cast_nullable_to_non_nullable
                   as DateTime?,
-        type: null == type
-            ? _value.type
-            : type // ignore: cast_nullable_to_non_nullable
-                  as String,
-        itemsCount: null == itemsCount
-            ? _value.itemsCount
-            : itemsCount // ignore: cast_nullable_to_non_nullable
-                  as int,
+        destinationAddress: freezed == destinationAddress
+            ? _value.destinationAddress
+            : destinationAddress // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        postamatAddress: freezed == postamatAddress
+            ? _value.postamatAddress
+            : postamatAddress // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        postamatCellNumber: freezed == postamatCellNumber
+            ? _value.postamatCellNumber
+            : postamatCellNumber // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        postamatCellSize: freezed == postamatCellSize
+            ? _value.postamatCellSize
+            : postamatCellSize // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        items: null == items
+            ? _value._items
+            : items // ignore: cast_nullable_to_non_nullable
+                  as List<OrderItemDetailDto>,
       ),
     );
   }
@@ -2159,11 +2235,18 @@ class __$$AvailableOrderDtoImplCopyWithImpl<$Res>
 class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
   const _$AvailableOrderDtoImpl({
     required this.orderId,
-    this.customerName = '',
+    this.orderNumber = '',
+    this.createdAt,
+    this.status = '',
+    this.deliveryType = '',
+    this.paymentType = '',
     this.deliveryDate,
-    this.type = '',
-    this.itemsCount = 0,
-  });
+    this.destinationAddress,
+    this.postamatAddress,
+    this.postamatCellNumber,
+    this.postamatCellSize,
+    final List<OrderItemDetailDto> items = const [],
+  }) : _items = items;
 
   factory _$AvailableOrderDtoImpl.fromJson(Map<String, dynamic> json) =>
       _$$AvailableOrderDtoImplFromJson(json);
@@ -2172,19 +2255,40 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
   final int orderId;
   @override
   @JsonKey()
-  final String customerName;
+  final String orderNumber;
+  @override
+  final DateTime? createdAt;
+  @override
+  @JsonKey()
+  final String status;
+  @override
+  @JsonKey()
+  final String deliveryType;
+  @override
+  @JsonKey()
+  final String paymentType;
   @override
   final DateTime? deliveryDate;
   @override
-  @JsonKey()
-  final String type;
+  final String? destinationAddress;
+  @override
+  final String? postamatAddress;
+  @override
+  final String? postamatCellNumber;
+  @override
+  final String? postamatCellSize;
+  final List<OrderItemDetailDto> _items;
   @override
   @JsonKey()
-  final int itemsCount;
+  List<OrderItemDetailDto> get items {
+    if (_items is EqualUnmodifiableListView) return _items;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_items);
+  }
 
   @override
   String toString() {
-    return 'AvailableOrderDto(orderId: $orderId, customerName: $customerName, deliveryDate: $deliveryDate, type: $type, itemsCount: $itemsCount)';
+    return 'AvailableOrderDto(orderId: $orderId, orderNumber: $orderNumber, createdAt: $createdAt, status: $status, deliveryType: $deliveryType, paymentType: $paymentType, deliveryDate: $deliveryDate, destinationAddress: $destinationAddress, postamatAddress: $postamatAddress, postamatCellNumber: $postamatCellNumber, postamatCellSize: $postamatCellSize, items: $items)';
   }
 
   @override
@@ -2193,13 +2297,26 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
         (other.runtimeType == runtimeType &&
             other is _$AvailableOrderDtoImpl &&
             (identical(other.orderId, orderId) || other.orderId == orderId) &&
-            (identical(other.customerName, customerName) ||
-                other.customerName == customerName) &&
+            (identical(other.orderNumber, orderNumber) ||
+                other.orderNumber == orderNumber) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.deliveryType, deliveryType) ||
+                other.deliveryType == deliveryType) &&
+            (identical(other.paymentType, paymentType) ||
+                other.paymentType == paymentType) &&
             (identical(other.deliveryDate, deliveryDate) ||
                 other.deliveryDate == deliveryDate) &&
-            (identical(other.type, type) || other.type == type) &&
-            (identical(other.itemsCount, itemsCount) ||
-                other.itemsCount == itemsCount));
+            (identical(other.destinationAddress, destinationAddress) ||
+                other.destinationAddress == destinationAddress) &&
+            (identical(other.postamatAddress, postamatAddress) ||
+                other.postamatAddress == postamatAddress) &&
+            (identical(other.postamatCellNumber, postamatCellNumber) ||
+                other.postamatCellNumber == postamatCellNumber) &&
+            (identical(other.postamatCellSize, postamatCellSize) ||
+                other.postamatCellSize == postamatCellSize) &&
+            const DeepCollectionEquality().equals(other._items, _items));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2207,10 +2324,17 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
   int get hashCode => Object.hash(
     runtimeType,
     orderId,
-    customerName,
+    orderNumber,
+    createdAt,
+    status,
+    deliveryType,
+    paymentType,
     deliveryDate,
-    type,
-    itemsCount,
+    destinationAddress,
+    postamatAddress,
+    postamatCellNumber,
+    postamatCellSize,
+    const DeepCollectionEquality().hash(_items),
   );
 
   /// Create a copy of AvailableOrderDto
@@ -2233,10 +2357,17 @@ class _$AvailableOrderDtoImpl implements _AvailableOrderDto {
 abstract class _AvailableOrderDto implements AvailableOrderDto {
   const factory _AvailableOrderDto({
     required final int orderId,
-    final String customerName,
+    final String orderNumber,
+    final DateTime? createdAt,
+    final String status,
+    final String deliveryType,
+    final String paymentType,
     final DateTime? deliveryDate,
-    final String type,
-    final int itemsCount,
+    final String? destinationAddress,
+    final String? postamatAddress,
+    final String? postamatCellNumber,
+    final String? postamatCellSize,
+    final List<OrderItemDetailDto> items,
   }) = _$AvailableOrderDtoImpl;
 
   factory _AvailableOrderDto.fromJson(Map<String, dynamic> json) =
@@ -2245,13 +2376,27 @@ abstract class _AvailableOrderDto implements AvailableOrderDto {
   @override
   int get orderId;
   @override
-  String get customerName;
+  String get orderNumber;
+  @override
+  DateTime? get createdAt;
+  @override
+  String get status;
+  @override
+  String get deliveryType;
+  @override
+  String get paymentType;
   @override
   DateTime? get deliveryDate;
   @override
-  String get type;
+  String? get destinationAddress;
   @override
-  int get itemsCount;
+  String? get postamatAddress;
+  @override
+  String? get postamatCellNumber;
+  @override
+  String? get postamatCellSize;
+  @override
+  List<OrderItemDetailDto> get items;
 
   /// Create a copy of AvailableOrderDto
   /// with the given fields replaced by the non-null parameter values.

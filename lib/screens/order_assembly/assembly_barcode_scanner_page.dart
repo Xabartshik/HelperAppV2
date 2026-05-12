@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_zxing/flutter_zxing.dart';
+import 'package:mobile_scanner/mobile_scanner.dart'; 
 import 'order_assembly_viewmodel.dart';
+import '../home/main_viewmodel.dart';
 import '../../core/utils/logger.dart';
 
-/// Экран сканирования для модуля сборки заказов.
-/// Адаптирован из механизма инвентаризации, поддерживает режимы Сбора и Размещения.
 class AssemblyBarcodeScannerPage extends ConsumerStatefulWidget {
   final int assignmentId;
   final int userId;
@@ -23,9 +22,8 @@ class AssemblyBarcodeScannerPage extends ConsumerStatefulWidget {
 
 class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScannerPage> {
   final Color _bgOffBlack = const Color(0xFF141414);
-  final Color _primaryColor = const Color(0xFF7C3AED);
-  final Color _pickColor = const Color(0xFF0D9488); // teal
-  final Color _placeColor = const Color(0xFFF59E0B); // amber
+  final Color _pickColor = const Color(0xFF0D9488); 
+  final Color _placeColor = const Color(0xFFF59E0B); 
 
   bool _isProcessing = false;
   bool _showSuccessOverlay = false;
@@ -33,30 +31,77 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
   bool _lastResultSuccess = false;
 
   final _manualCodeController = TextEditingController();
+  late MobileScannerController _scannerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _initScanner();
+  }
+
+  void _initScanner() {
+    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
+    final state = ref.read(orderAssemblyViewModelProvider(args));
+
+    // Квадратный режим (QR) нужен для размещения ячеек и для экспресс-выдачи
+    final bool isQrMode = state.mode != AssemblyMode.pick || state.isExpress;
+
+    _scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+      torchEnabled: false,
+      // Оптимизируем форматы: если не сбор, то ищем только QR-коды
+      formats: isQrMode
+          ? [BarcodeFormat.qrCode]
+          : [BarcodeFormat.ean13, BarcodeFormat.code128, BarcodeFormat.code39],
+    );
+  }
 
   @override
   void dispose() {
     _manualCodeController.dispose();
+    _scannerController.dispose();
     super.dispose();
   }
 
-  /// Обработка считанного кода (штрих-код товара или код ячейки)
-  void _handleCode(String code) async {
+void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
-    
-    // Вибрация при считывании
+
+    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
+    final state = ref.read(orderAssemblyViewModelProvider(args));
+    final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
+// Если это экспресс-заказ (режим выдачи), просто отдаем токен назад экрану сборки
+if (state.isExpress && state.mode == AssemblyMode.place) {
+      HapticFeedback.mediumImpact();
+      
+      // Вместо возврата строки, вызываем метод верификации во ViewModel
+      final result = await vm.verifyCustomerQr(code);
+      
+      if (!mounted) return;
+
+      if (result.$1) {
+        // Возвращаем true (bool), что совпадает с ожидаемым типом!
+        Navigator.pop(context, true); 
+      } else {
+        // Если QR не прошел проверку на сервере, показываем ошибку не выходя из сканера
+        setState(() {
+          _lastResultSuccess = false;
+          _message = result.$2;
+          _showSuccessOverlay = true;
+          _isProcessing = false;
+        });
+      }
+      return; 
+    }
+    // ------------------------------------
+
+    // --- СТАНДАРТНАЯ ЛОГИКА ДЛЯ СБОРА И РАЗМЕЩЕНИЯ ---
     HapticFeedback.lightImpact();
     
     setState(() {
       _isProcessing = true;
       _message = 'Обработка...';
     });
-
-    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
-    final provider = orderAssemblyViewModelProvider(args);
-    final vm = ref.read(provider.notifier);
-    final state = ref.read(provider);
-
     (bool, String) result;
 
     if (state.mode == AssemblyMode.pick) {
@@ -72,10 +117,16 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     var (success, message) = result;
     bool shouldPop = false;
 
-    // Проверка на завершение всех товаров (сигнал от VM)
+    if (!success) {
+      message = message.replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
+      if (message.contains('400') || message.toLowerCase().contains('формат')) {
+        message = '⚠️ Неверный код!\n\nПроверьте, что вы сканируете нужный объект.';
+      }
+    }
+
     if (success && message.startsWith('FINISH:')) {
       shouldPop = true;
-      message = message.substring(7); // Убираем префикс
+      message = message.substring(7);
     }
 
     setState(() {
@@ -86,14 +137,14 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     });
 
     if (shouldPop) {
-      // Краткая пауза для того, чтобы пользователь увидел «галочку» и сообщение
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
-          Navigator.pop(context);
+          Navigator.pop(context); 
         }
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -101,115 +152,114 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     final state = ref.watch(orderAssemblyViewModelProvider(args));
     
     final isPick = state.mode == AssemblyMode.pick;
+    final isQrMode = !isPick; // И ячейки, и экспресс используют QR
     final activeColor = isPick ? _pickColor : _placeColor;
-    final modeTitle = isPick ? 'Сбор товаров' : 'Размещение ячеек';
-    final hint = isPick ? 'Сканируйте штрих-код товара' : 'Сканируйте код ячейки выдачи';
+
+    final modeTitle = isPick 
+        ? 'Сбор товаров' 
+        : (state.isExpress ? 'Выдача клиенту' : 'Размещение ячеек');
+        
+    final hint = isPick 
+        ? 'Сканируйте штрих-код товара' 
+        : (state.isExpress ? 'Наведите камеру на QR-код покупателя' : 'Сканируйте QR-код ячейки');
 
     return Scaffold(
       backgroundColor: _bgOffBlack,
-      appBar: AppBar(
-        title: Text(modeTitle),
-        backgroundColor: const Color(0xFF1C1C1E),
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          // Область камеры
-          Expanded(
-            flex: 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ReaderWidget(
-                  onScan: (result) {
-                    if (result.isValid && result.text != null) {
-                      _handleCode(result.text!);
-                    }
-                  },
-                  codeFormat: Format.any,
-                  tryInverted: true, // Помогает с инвертированными кодами
-                  tryRotate: true,   // Помогает, когда код под углом
-                  showScannerOverlay: false,
-                ),
-                
-                // Рамка сканера
-                CustomPaint(
-                  painter: ScannerOverlayPainter(primaryColor: activeColor),
-                ),
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: (capture) {
+              final List<Barcode> barcodes = capture.barcodes;
+              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                _handleCode(barcodes.first.rawValue!);
+              }
+            },
+          ),
 
-                // Индикатор загрузки
-                if (_isProcessing && !_showSuccessOverlay)
-                  const Center(child: CircularProgressIndicator()),
-                
-                // Оверлей результата (как в инвентаризации)
-                if (_showSuccessOverlay)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _showSuccessOverlay = false;
-                        _manualCodeController.clear();
-                      });
-                    },
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.85),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
-                            color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, 
-                            size: 80
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            _message,
-                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 32),
-                          const Text(
-                            'Нажмите, чтобы продолжить',
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-              ],
+          Positioned.fill(
+            child: CustomPaint(
+              painter: ScannerOverlayPainter(
+                primaryColor: activeColor,
+                isSquare: isQrMode, // Устанавливаем квадратное окно
+              ),
             ),
           ),
-          
-          // Нижняя панель с ручным вводом
-          Expanded(
-            flex: 2,
+
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
             child: Container(
-              color: const Color(0xFF1C1C1E),
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.fromLTRB(10, MediaQuery.of(context).padding.top + 10, 20, 20),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          modeTitle,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          hint,
+                          style: const TextStyle(color: Colors.white54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.flash_on, color: Colors.white),
+                    onPressed: () => _scannerController.toggleTorch(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom + 24),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    hint,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
                   TextField(
                     controller: _manualCodeController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: _bgOffBlack,
-                      hintText: isPick ? 'Штрих-код...' : 'Код ячейки...',
+                      hintText: isPick ? 'Введите штрих-код...' : 'Введите код...',
                       hintStyle: const TextStyle(color: Colors.white38),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: activeColor),
                       ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -217,53 +267,103 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
                     onPressed: _isProcessing ? null : () => _handleCode(_manualCodeController.text),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: activeColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text(
-                      'Применить вручную', 
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-                    ),
+                    child: const Text('Применить вручную', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             ),
           ),
+
+          if (_isProcessing && !_showSuccessOverlay)
+            Container(
+              color: Colors.black54,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+
+          if (_showSuccessOverlay)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showSuccessOverlay = false;
+                  _manualCodeController.clear();
+                });
+              },
+              child: Container(
+                color: Colors.black.withOpacity(0.85),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
+                      color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, 
+                      size: 80
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _message,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    const Text(
+                      'Нажмите, чтобы продолжить',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            )
         ],
       ),
     );
   }
 }
 
-/// Отрисовка рамки сканера (адаптировано из инвентаризации)
 class ScannerOverlayPainter extends CustomPainter {
   final Color primaryColor;
+  final bool isSquare;
 
-  ScannerOverlayPainter({required this.primaryColor});
+  ScannerOverlayPainter({
+    required this.primaryColor,
+    this.isSquare = false,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final scanWindow = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height / 2),
-      width: 320,
-      height: 160,
-    );
-    
-    final backgroundPaint = Paint()..color = Colors.black54;
-    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(12)));
+    // Если квадрат — размер 260x260, если штрих-код — 320x160
+    final double windowWidth = isSquare ? 260.0 : 320.0;
+    final double windowHeight = isSquare ? 260.0 : 160.0;
 
-    final backgroundWithCutout = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
+    final double left = (size.width - windowWidth) / 2;
+    final double top = (size.height - windowHeight) / 2 - 40; 
+    final Rect rect = Rect.fromLTWH(left, top, windowWidth, windowHeight);
+
+    final Paint backgroundPaint = Paint()..color = Colors.black54;
+    final Path backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(20)));
+    final Path backgroundWithCutout = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
     canvas.drawPath(backgroundWithCutout, backgroundPaint);
 
-    final borderPaint = Paint()
+    final Paint paint = Paint()
       ..color = primaryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.0;
+      ..strokeWidth = 4.0;
 
-    canvas.drawRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(12)), borderPaint);
+    const double cornerLen = 25.0;
+    const double radius = 20.0;
+
+    canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
+    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
+    canvas.drawPath(Path()..moveTo(rect.left, rect.bottom - cornerLen)..lineTo(rect.left, rect.bottom - radius)..quadraticBezierTo(rect.left, rect.bottom, rect.left + radius, rect.bottom)..lineTo(rect.left + cornerLen, rect.bottom), paint);
+    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.bottom)..lineTo(rect.right - radius, rect.bottom)..quadraticBezierTo(rect.right, rect.bottom, rect.right, rect.bottom - radius)..lineTo(rect.right, rect.bottom - cornerLen), paint);
   }
 
   @override
-  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => primaryColor != oldDelegate.primaryColor;
+  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => 
+      primaryColor != oldDelegate.primaryColor || isSquare != oldDelegate.isSquare;
 }

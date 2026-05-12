@@ -3,50 +3,21 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/models/attendance/break_status_dto.dart';
+import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
+import 'package:helper_app/core/models/branch/branch_dto.dart';
+import 'package:helper_app/core/models/config/app_config_dto.dart';
+import 'package:helper_app/core/models/employee/employee_dto.dart';
+import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
+import 'package:helper_app/core/models/item/item_dto.dart';
+import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
+import 'api_endpoints.dart';
 import '../models/boss_panel/boss_panel_models.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
-
-/// Единый реестр всех эндпоинтов API.
-/// Все пути гарантированно используют префикс v1/.
-class ApiEndpoints {
-  // Auth
-  static const String login = 'v1/mobileappuser/login';
-
-  // Worker Tasks (Aggregator)
-  static String workerTasksPending(int employeeId) => 'v1/WorkerTasks/$employeeId/pending';
-  static String workerTaskStart(int taskId, int workerId) => 'v1/WorkerTasks/$taskId/start?workerId=$workerId';
-
-  // Boss Panel
-  static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
-  static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
-  static const String bossPanelAvailableEmployees = 'v1/bosspanel/employees/available';
-  static const String bossPanelPositions = 'v1/bosspanel/positions';
-  static String bossPanelAutoSelectEmployees(int count) => 'v1/bosspanel/employees/auto-select?count=$count';
-  static const String bossPanelCreateInventoryByZone = 'v1/bosspanel/inventory/create-by-zone';
-  static const String bossPanelAvailableOrders = 'v1/bosspanel/orders/available';
-  static const String bossPanelCreateOrderAssembly = 'v1/bosspanel/tasks/order-assembly/create';
-
-  // Inventory
-  static String inventoryTaskDetails(int assignmentId) => 'v1/Inventory/assignment/$assignmentId/details';
-  static const String inventoryCompleteAssignment = 'v1/Inventory/complete-assignment';
-  static const String inventoryProcessScan = 'v1/Inventory/scan';
-  static String itemInfo(int itemId) => 'v1/Item/$itemId';
-
-  // Order Assembly
-  static String orderAssemblyTasks(int userId) => 'v1/OrderAssembly/worker/$userId/assignments';
-  static String orderAssemblyDetails(int id) => 'v1/OrderAssembly/assignment/$id/details';
-  static String orderAssemblyStart(int id) => 'v1/OrderAssembly/assignment/$id/start';
-  static String orderAssemblyPause(int id) => 'v1/OrderAssembly/assignment/$id/pause';
-  static String orderAssemblyCancel(int id) => 'v1/OrderAssembly/assignment/$id/cancel';
-  
-  static const String orderAssemblyScanPick = 'v1/OrderAssembly/scan-pick';
-  static const String orderAssemblyScanPlaceBulk = 'v1/OrderAssembly/scan-place-bulk';
-  static const String orderAssemblyReportMissing = 'v1/OrderAssembly/report-missing';
-  static String orderAssemblyComplete(int assignmentId) => 'v1/OrderAssembly/complete/$assignmentId';
-}
+import '../models/tasks/mobile_base_task_dto.dart';
 
 /// Провайдер для получения инфы об устройстве
 final deviceInfoProvider = Provider((ref) => DeviceInfoPlugin());
@@ -97,24 +68,114 @@ class ApiClient {
       },
     ));
   }
+  Future<void> rejectCourierOrderAsync(int orderId) async {
+    try {
+      await postAsync(ApiEndpoints.rejectCourierOrder(orderId));
+    } catch (e) {
+      Logger.e('Ошибка фиксации отказа от заказа $orderId', e);
+      rethrow;
+    }
+  }
+  /// Единое завершение назначения работника (полиморфно для любой задачи)
+  Future<void> workerTaskCompleteAsync(int taskId, int workerId, {Map<String, dynamic>? data}) async {
+    final url = ApiEndpoints.workerTaskComplete(taskId, workerId);
+    await postAsync(url, data: data ?? {});
+  }
+  Future<dynamic> workerTaskDetailsAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskDetails(taskId, workerId);
+    return await getAsync(url);
+  }
 
-  void _handleResponseErrors(Response response) {
+  Future<void> workerTaskPauseAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskPause(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskCancelAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskCancel(taskId, workerId);
+    await postAsync(url);
+  }
+
+  Future<void> workerTaskStartAsync(int taskId, int workerId) async {
+    final url = ApiEndpoints.workerTaskStart(taskId, workerId);
+    await postAsync(url, data: {});
+  }
+void _handleResponseErrors(Response response) {
     if (response.statusCode == 401) {
       throw UnauthorizedException('Токен истёк или невалиден');
     }
     if (response.statusCode == 404) {
       throw NotFoundException('Ресурс не найден: ${response.requestOptions.path}');
     }
+
+    // Достаем текст ошибки из JSON ответа бэкенда
+    String serverMessage = 'HTTP ошибка: ${response.statusCode}';
+    if (response.data is Map) {
+      final msg = response.data['message'] ?? response.data['Message'] ?? response.data['error'];
+      final details = response.data['details'] ?? response.data['Details'];
+      
+      if (msg != null) serverMessage = msg.toString();
+      if (details != null) serverMessage += '\nДетали: $details';
+    }
+
+    if (response.statusCode == 409) {
+      throw ConflictException(serverMessage);
+    }
+    
     if (response.statusCode != null && response.statusCode! >= 400) {
-      throw ApiException('HTTP ошибка: ${response.statusCode}');
+      throw ApiException(serverMessage);
     }
   }
 
+  Future<void> updateCourierStatusAsync(int branchId, String checkType) async {
+    try {
+      await postAsync(
+        ApiEndpoints.updateCourierStatus,
+        data: {
+          'branchId': branchId,
+          'checkType': checkType,
+        },
+      );
+    } catch (e) {
+      Logger.w('Ошибка смены статуса транспорта: $e');
+      rethrow;
+    }
+  }
+  
+  
+  Future<CheckIOEmployeeDto?> getLastCheckAsync(int employeeId) async {
+    final response = await getAsync(ApiEndpoints.lastCheck(employeeId));
+    if (response == null) return null;
+    return CheckIOEmployeeDto.fromJson(response);
+  }
   static String? _cachedBaseUrl;
 
-  Future<String> _resolveBaseUrl() async {
-    if (_cachedBaseUrl != null) return _cachedBaseUrl!;
+  Future<AppConfigDto?> getAppConfigAsync() async {
+      final response = await getAsync(ApiEndpoints.getConfig);
+      if (response == null || response is! Map<String, dynamic>) return null;
+      return AppConfigDto.fromJson(response);
+  }
 
+  // Делаем геттер публичным, чтобы к нему можно было обратиться из MainPage
+  String get baseUrl => _cachedBaseUrl ?? 'http://localhost:5000';
+
+  Future<List<EmployeeWorkloadDto>> getDetailedBranchWorkloadAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.branchWorkload(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((x) => EmployeeWorkloadDto.fromJson(x)).toList();
+  }
+
+  Future<List<OrderDto>> getBranchOrdersAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.branchOrders(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((json) => OrderDto.fromJson(json)).toList();
+  }
+
+  Future<String> _resolveBaseUrl() async {
+    if (_cachedBaseUrl != null) {
+      _dio.options.baseUrl = _cachedBaseUrl!; // Обязательно обновляем baseUrl у Dio
+      return _cachedBaseUrl!;
+    }
     if (kIsWeb) {
       _cachedBaseUrl = 'http://localhost:5000/api/';
     } else if (Platform.isAndroid) {
@@ -128,7 +189,7 @@ class ApiClient {
           _cachedBaseUrl = 'http://10.0.2.2:5000/api/';
         } else {
           // Для физического Android устройства
-          const physicalDeviceAddress = "http://192.168.0.100:5000/api/";
+          const physicalDeviceAddress = "http://192.168.0.106:5000/api/";
           Logger.i('Обнаружено физическое Android устройство, используем $physicalDeviceAddress');
           _cachedBaseUrl = physicalDeviceAddress;
         }
@@ -163,12 +224,17 @@ class ApiClient {
       final response = await _dio.get(endpoint, queryParameters: queryParameters);
       return response.data;
     } on DioException catch (e) {
-      if (e.error is UnauthorizedException || e.error is NotFoundException) {
-        throw e.error!; // Пробрасываем кастомные ошибки
+        // Пропускаем все наши кастомные бизнес-ошибки дальше
+        if (e.error is UnauthorizedException || 
+            e.error is NotFoundException || 
+            e.error is ConflictException || 
+            e.error is ApiException) {
+          throw e.error!; 
+        }
+        throw NoNetworkException('Нет подключения к сети', e);
       }
-      throw NoNetworkException('Нет подключения к сети', e);
     }
-  }
+  
 
   Future<dynamic> postAsync(String endpoint, {dynamic data}) async {
     try {
@@ -176,11 +242,228 @@ class ApiClient {
       await _resolveBaseUrl();
       final response = await _dio.post(endpoint, data: data);
       return response.data;
-    } on DioException catch (e) {
-      if (e.error is UnauthorizedException || e.error is NotFoundException) {
-        throw e.error!;
+      } on DioException catch (e) {
+          // Пропускаем все наши кастомные бизнес-ошибки дальше
+          if (e.error is UnauthorizedException || 
+              e.error is NotFoundException || 
+              e.error is ConflictException || 
+              e.error is ApiException) {
+            throw e.error!; 
+          }
+          throw NoNetworkException('Нет подключения к сети', e);
+        }
+  }
+
+    Future<dynamic> deleteAsync(String endpoint, {dynamic data}) async {
+    try {
+      _hasNetwork = true;
+      await _resolveBaseUrl();
+      final response = await _dio.delete(endpoint, data: data);
+      return response.data;
+      } on DioException catch (e) {
+          // Пропускаем все наши кастомные бизнес-ошибки дальше
+          if (e.error is UnauthorizedException || 
+              e.error is NotFoundException || 
+              e.error is ConflictException || 
+              e.error is ApiException) {
+            throw e.error!; 
+          }
+          throw NoNetworkException('Нет подключения к сети', e);
+        }
+  }
+
+  Future<dynamic> putAsync(String endpoint, {dynamic data}) async {
+  try {
+    _hasNetwork = true;
+    await _resolveBaseUrl();
+    // Используем метод .put вместо .post
+    final response = await _dio.put(endpoint, data: data);
+    return response.data;
+  } on DioException catch (e) {
+    // Пропускаем все наши кастомные бизнес-ошибки дальше
+    if (e.error is UnauthorizedException || 
+        e.error is NotFoundException || 
+        e.error is ConflictException || 
+        e.error is ApiException) {
+      throw e.error!; 
+    }
+    throw NoNetworkException('Нет подключения к сети', e);
+  }
+}
+
+Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
+    try {
+      final response = await postAsync('Employee', data: data);
+      return int.parse(response.toString());
+    } catch (e) {
+      Logger.e('Ошибка создания сотрудника', e);
+      return -1;
+    }
+  }
+
+  // --- Админ-панель: Персонал (Чтение) ---
+  Future<List<EmployeeDto>> getEmployeesAsync() async {
+    try {
+      final response = await getAsync('Employee');
+      if (response != null && response is List) {
+        return response.map((e) => EmployeeDto.fromJson(e)).toList();
       }
-      throw NoNetworkException('Нет подключения к сети', e);
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки сотрудников: $e');
+      return [];
+    }
+  }
+
+  Future<List<PositionCellDto>?> createBulkPositionsAsync(Map<String, dynamic> bulkData) async {
+  try {
+    final response = await postAsync('PositionCell/bulk', data: bulkData);
+    if (response != null && response is List) {
+      return response.map((e) => PositionCellDto.fromJson(e)).toList();
+    }
+    return null;
+  } catch (e) {
+    Logger.e('Ошибка массового создания позиций', e);
+    return null;
+  }
+}
+
+
+  // Создание связи Товар-Позиция (Размещение)
+  Future<bool> placeItemInPositionAsync(ItemPositionDto dto) async {
+    try {
+      await postAsync('ItemPosition', data: dto.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при размещении товара в ячейку', e);
+      return false;
+    }
+  }
+
+  Future<List<ItemPositionDto>> getItemPositionsAsync() async {
+    try {
+      final response = await getAsync('ItemPosition');
+      if (response != null && response is List) {
+        return response.map((e) => ItemPositionDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка получения остатков в ячейках', e);
+      return [];
+    }
+  }
+
+// --- Админ-панель: Складские ячейки ---
+
+  Future<List<PositionCellDto>> getPositionsAsync() async {
+    try {
+      final response = await getAsync('PositionCell');
+      if (response != null && response is List) {
+        return response.map((e) => PositionCellDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка получения списка ячеек', e);
+      return [];
+    }
+  }
+
+  Future<bool> updatePositionAsync(Map<String, dynamic> data) async {
+    try {
+      await putAsync('PositionCell', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления ячейки', e);
+      return false;
+    }
+  }
+
+  Future<bool> deletePositionAsync(int id) async {
+    try {
+      await deleteAsync('PositionCell/$id');
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка удаления ячейки', e);
+      return false;
+    }
+  }
+
+  Future<bool> updateEmployeeAsync(EmployeeDto employee) async {
+    try {
+      await putAsync('Employee', data: employee.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления сотрудника', e);
+      return false;
+    }
+  }
+
+  // 2. Создание курьера (Возвращает ID)
+  Future<int> createCourierAsync(Map<String, dynamic> data) async {
+    try {
+      final response = await postAsync('Employee/courier', data: data);
+      return int.parse(response.toString());
+    } catch (e) {
+      Logger.e('Ошибка создания курьера', e);
+      return -1;
+    }
+  }
+
+  // 3. Создание пользователя мобильного приложения
+  Future<bool> registerMobileUserAsync(Map<String, dynamic> data) async {
+    try {
+      await postAsync('v1/mobileappuser/register', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка регистрации аккаунта', e);
+      return false;
+    }
+  }
+
+  // 3. Создание системного пользователя для сотрудника
+// 3. Создание пользователя мобильного приложения (для сотрудников)
+  Future<bool> createMobileAppUserAsync(Map<String, dynamic> data) async {
+    try {
+      // Отправляем POST запрос на корень контроллера MobileAppUser
+      await postAsync('v1/MobileAppUser', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания аккаунта', e);
+      return false;
+    }
+  }
+
+// --- Админ-панель: Товары ---
+  Future<List<ItemDto>> getItemsAsync() async {
+    try {
+      final response = await getAsync('v1/Item');
+      if (response != null && response is List) {
+        return response.map((e) => ItemDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки товаров: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createItemAsync(Map<String, dynamic> itemData) async {
+    try {
+      await postAsync('v1/Item', data: itemData);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания товара', e);
+      return false;
+    }
+  }
+
+  Future<bool> updateItemAsync(ItemDto item) async {
+    try {
+      await putAsync('v1/Item', data: item.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления товара', e);
+      return false;
     }
   }
 
@@ -199,7 +482,80 @@ class ApiClient {
     final response = await getAsync(ApiEndpoints.bossPanelAvailableEmployees);
     return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
   }
+  /// Скачивание отчета в виде массива байтов
+  Future<List<int>?> downloadReportBytesAsync(
+    String endpoint, 
+    DateTime startDate, 
+    DateTime endDate
+  ) async {
+    try {
+      _hasNetwork = true;
+      await _resolveBaseUrl();
 
+      // Передаем параметры как ожидает AnalyticsFilterDto
+      final queryParameters = {
+        'StartDate': startDate.toUtc().toIso8601String(),
+        'EndDate': endDate.toUtc().toIso8601String(),
+      };
+
+      // КРИТИЧНО: указываем ResponseType.bytes, чтобы Dio не пытался парсить PDF как JSON
+      final response = await _dio.get(
+        endpoint,
+        queryParameters: queryParameters,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      return response.data;
+    } on DioException catch (e) {
+      if (e.error is UnauthorizedException || 
+          e.error is NotFoundException || 
+          e.error is ConflictException || 
+          e.error is ApiException) {
+        throw e.error!; 
+      }
+      throw NoNetworkException('Нет подключения к сети при скачивании отчета', e);
+    }
+  }
+
+  // --- Админ-панель: Филиалы ---
+  Future<List<BranchDto>> getBranchesAsync() async {
+    try {
+      final response = await getAsync('Branches');
+      if (response != null && response is List) {
+        return response.map((e) => BranchDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки филиалов: $e');
+      return [];
+    }
+  }
+
+  Future<bool> updateBranchAsync(BranchDto branch) async {
+    try {
+      // Отправляем PUT запрос с полным объектом branch (включая ID)
+      await putAsync('Branches', data: branch.toJson());
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка при обновлении филиала', e);
+      return false;
+    }
+  }
+
+  Future<bool> createBranchAsync(Map<String, dynamic> branchData) async {
+    try {
+      await postAsync('Branches', data: branchData);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка создания филиала', e);
+      return false;
+    }
+  }
+  
+    Future<List<AvailableEmployeeDto>> getAllBranchEmployeesAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelAllEmployees);
+    return (response as List).map((x) => AvailableEmployeeDto.fromJson(x)).toList();
+  }
   Future<List<PositionCellDto>> getBossPanelPositionsAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelPositions);
     return (response as List).map((x) => PositionCellDto.fromJson(x)).toList();
@@ -229,7 +585,16 @@ class ApiClient {
       data: payload,
     );
   }
-
+  Future<void> scanQrCheckInAsync(String payload, int branchId, String checkType) async {
+    await postAsync(
+      ApiEndpoints.qrCheckInScan,
+      data: {
+        "payload": payload,
+        "branchId": branchId,
+        "checkType": checkType,
+      },
+    );
+  }
   Future<List<AvailableOrderDto>> getBossPanelAvailableOrdersAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelAvailableOrders);
     return (response as List).map((x) => AvailableOrderDto.fromJson(x)).toList();
@@ -314,9 +679,42 @@ class ApiClient {
     return WorkerAssemblyTaskDto.fromJson(response);
   }
 
-  Future<void> orderAssemblyScanPickAsync(int lineId, String barcode) async {
-    final request = ScanPickRequest(lineId: lineId, barcode: barcode);
-    await postAsync(ApiEndpoints.orderAssemblyScanPick, data: request.toJson());
+Future<void> scanAssemblyPickAsync(int assignmentId, int lineId, String barcode) async {
+    try {
+      await postAsync(ApiEndpoints.orderAssemblyScanPick(assignmentId), data: {
+        'lineId': lineId,
+        'barcode': barcode,
+      });
+    } catch (e) {
+      Logger.w('Ошибка при сканировании товара сборки: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> scanAssemblyPlaceAsync(int assignmentId, int lineId, String cellCode) async {
+    try {
+      await postAsync(ApiEndpoints.orderAssemblyScanPlace(assignmentId), data: {
+        'lineId': lineId,
+        'cellCode': cellCode,
+      });
+    } catch (e) {
+      Logger.w('Ошибка при сканировании ячейки сборки: $e');
+      rethrow;
+    }
+  }
+
+Future<void> scanReturnItemAsync(int assignmentId, int lineId, String barcode) async {
+    await postAsync(ApiEndpoints.returnScanItem(assignmentId), data: {
+      'lineId': lineId,
+      'barcode': barcode,
+    });
+  }
+
+  Future<void> scanReturnCellAsync(int assignmentId, int lineId, String cellCode) async {
+    await postAsync(ApiEndpoints.returnScanCell(assignmentId), data: {
+      'lineId': lineId,
+      'cellCode': cellCode,
+    });
   }
 
   Future<void> orderAssemblyScanPlaceBulkAsync(int assignmentId, String cellCode) async {
@@ -331,5 +729,270 @@ class ApiClient {
 
   Future<void> orderAssemblyCompleteAsync(int assignmentId) async {
     await postAsync(ApiEndpoints.orderAssemblyComplete(assignmentId), data: null);
+  }
+
+  /// Получить текущий статус перерыва сотрудника
+  Future<BreakStatusDto> getBreakStatusAsync(int employeeId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.breakStatus(employeeId));
+      return BreakStatusDto.fromJson(response);
+    } catch (e) {
+      Logger.e('Ошибка получения статуса перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+
+  /// Запрос на начало перерыва
+  Future<void> startBreakAsync(int employeeId) async {
+    try {
+      await postAsync(ApiEndpoints.startBreak(employeeId));
+    } catch (e) {
+      Logger.e('Ошибка начала перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+
+  /// Запрос на завершение перерыва
+  Future<void> endBreakAsync(int employeeId) async {
+    try {
+      await postAsync(ApiEndpoints.endBreak(employeeId));
+    } catch (e) {
+      Logger.e('Ошибка завершения перерыва для сотрудника $employeeId', e);
+      rethrow;
+    }
+  }
+  Future<List<OrderDto>> getCustomerOrdersAsync(int customerId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.customerOrders(customerId));
+      
+      // Поскольку getAsync уже возвращает response.data, 
+      // нам остается только проверить, что это список, и скрафтить DTO.
+      if (response != null && response is List) {
+        return response.map((json) => OrderDto.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.e('Ошибка загрузки заказов клиента $customerId', e);
+      throw Exception('Ошибка загрузки заказов: $e');
+    }
+  }
+Future<void> orderAssemblyVerifyQrAsync(int assignmentId, String qrToken) async {
+    try {
+      await postAsync(
+        ApiEndpoints.orderAssemblyVerifyQr(assignmentId),
+        data: { 'qrToken': qrToken },
+      );
+    } catch (e) {
+      Logger.w('Ошибка при верификации QR: $e');
+      rethrow;
+    }
+  }
+
+  // Внутри класса ApiClient
+void forceResetNetworkState() {
+  _hasNetwork = true;
+  Logger.i('ApiClient: Состояние сети принудительно сброшено (hasNetwork = true)');
+}
+
+Future<void> orderAssemblyExpressHandoverAsync(
+  int assignmentId, 
+  String qrToken, 
+  Map<int, int>? cancelledLines,
+) async {
+  try {
+    // Преобразуем Map<int, int> в Map<String, int>, чтобы JSON смог его прочитать
+    final Map<String, dynamic>? formattedCancelledLines = cancelledLines?.map(
+      (key, value) => MapEntry(key.toString(), value),
+    );
+
+    await postAsync(
+      ApiEndpoints.orderAssemblyExpressHandover(assignmentId),
+      data: {
+        'qrToken': qrToken,
+        'cancelledLines': formattedCancelledLines, // Теперь ключи — строки
+      },
+    );
+  } catch (e) {
+    Logger.w('Ошибка при экспресс-выдаче заказа: $e');
+    rethrow;
+  }
+}
+  Future<Map<String, dynamic>> orderHandoverScanAsync(int taskId, int workerId, String barcode) async {
+    final url = ApiEndpoints.orderHandoverScan(taskId, workerId);
+    
+    // Согласно требованию, отправляем строку в формате JSON: "$barcode"
+    final response = await postAsync(url, data: '"$barcode"');
+    
+    return response as Map<String, dynamic>;
+  }
+  
+  Future<List<AvailableEmployeeDto>> getBossPanelAvailableCouriersAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelAvailableCouriers);
+    if (response == null || response is! List) return [];
+    return response.map((x) => AvailableEmployeeDto.fromJson(x)).toList();
+  }
+
+  Future<List<AvailableOrderDto>> getBossPanelReadyOrdersAsync() async {
+    final response = await getAsync(ApiEndpoints.bossPanelReadyOrders);
+    if (response == null || response is! List) return [];
+    return response.map((x) => AvailableOrderDto.fromJson(x)).toList();
+  }
+
+Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
+    final response = await getAsync(ApiEndpoints.globalPoolTasks(branchId));
+    if (response == null || response is! List) return [];
+    return response.map((x) => MobileBaseTaskDto.fromJson(x)).toList();
+  }
+
+  Future<void> claimTaskFromPoolAsync(int taskId, int workerId) async {
+    await postAsync(ApiEndpoints.claimPoolTask(taskId, workerId));
+  }
+
+// 1. Для обычной выдачи в магазине
+  Future<void> completeWorkerTaskAsync(int taskId, int workerId, {Map<int, int>? cancelledLines}) async {
+    try {
+      // Собираем чистый Map<String, dynamic>, который Dio 100% переварит
+      final Map<String, dynamic> requestData = {};
+      
+      if (cancelledLines != null && cancelledLines.isNotEmpty) {
+        final Map<String, dynamic> serializedLines = {};
+        cancelledLines.forEach((key, value) {
+          serializedLines[key.toString()] = value;
+        });
+        requestData['cancelledLines'] = serializedLines;
+      }
+
+      await postAsync(
+        ApiEndpoints.workerTaskComplete(taskId, workerId),
+        data: requestData.isNotEmpty ? requestData : null,
+      );
+    } catch (e) {
+      Logger.w('Ошибка при завершении задачи: $e');
+      rethrow;
+    }
+  }
+
+  // 2. Для курьерской доставки
+  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken, {Map<int, int>? cancelledLines}) async {
+    try {
+      final Map<String, dynamic> requestData = {
+        'qrToken': qrToken,
+        'courierId': workerId,
+      };
+
+      if (cancelledLines != null && cancelledLines.isNotEmpty) {
+        final Map<String, dynamic> serializedLines = {};
+        cancelledLines.forEach((key, value) {
+          serializedLines[key.toString()] = value;
+        });
+        requestData['rejectedQuantities'] = serializedLines;
+      }
+
+      await postAsync(
+        ApiEndpoints.courierPartialComplete,
+        data: requestData,
+      );
+    } catch (e) {
+      Logger.e('Ошибка подтверждения доставки курьером: $e');
+      rethrow;
+    }
+  }
+
+
+
+  /// Запрос на получение временного QR-кода курьера для приемки товаров
+  Future<Map<String, dynamic>?> getCourierPickupQrAsync(int courierId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.getCourierPickupQr(courierId));
+      
+      if (response != null && response is Map<String, dynamic>) {
+        return response; // Возвращаем Map, чтобы достать Token и ExpiresInSeconds
+      }
+      return null;
+    } catch (e) {
+      Logger.e('Ошибка при получении QR-кода для курьера $courierId', e);
+      rethrow;
+    }
+  }
+
+  Future<List<OrderDto>> getCourierOrdersAsync(int courierId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.getCourierOrders(courierId));
+      if (response == null || response is! List) return [];
+      return response.map((x) => OrderDto.fromJson(x)).toList();
+    } catch (e) {
+      Logger.e('Ошибка загрузки заказов курьера $courierId', e);
+      throw Exception('Не удалось загрузить маршрутный лист');
+    }
+  }
+
+  Future<void> confirmDeliveryAsync(int orderId) async {
+    try {
+      await postAsync(ApiEndpoints.deliverCourierOrder(orderId));
+    } catch (e) {
+      Logger.e('Ошибка подтверждения доставки заказа $orderId', e);
+      rethrow;
+    }
+  }
+
+  Future<int?> initCourierBatchHandoverAsync(List<int> orderIds, int courierId, int branchId) async {
+    try {
+      final response = await postAsync(
+        ApiEndpoints.initCourierBatchHandover,
+        data: {
+          'orderIds': orderIds,
+          'courierId': courierId,
+          'branchId': branchId,
+        },
+      );
+      
+      if (response != null && response['taskId'] != null) {
+        return response['taskId'] as int;
+      }
+      return null;
+    } catch (e) {
+      Logger.w('Ошибка при формировании пакетной отгрузки курьеру: $e');
+      rethrow;
+    }
+  }
+
+Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId, int expectedOrderId) async {
+    try {
+      final response = await postAsync(
+        ApiEndpoints.initCustomerHandover,
+        data: {
+          'qrToken': qrToken,
+          'workerId': workerId,
+          'branchId': branchId,
+          'expectedOrderId': expectedOrderId,
+        },
+      );
+      
+      if (response != null && response['taskId'] != null) {
+        return response['taskId'] as int;
+      }
+      return null;
+    } catch (e) {
+      Logger.w('Ошибка при инициализации выдачи по QR: $e');
+      rethrow;
+    }
+  }
+
+  Future<OrderDto> getOrderByIdAsync(int orderId) async {
+    try {
+      final response = await getAsync(ApiEndpoints.orderDetails(orderId));
+      
+      if (response != null && response is Map<String, dynamic>) {
+        return OrderDto.fromJson(response);
+      }
+      throw ApiException('Неверный формат ответа от сервера');
+    } catch (e) {
+      Logger.e('Ошибка загрузки деталей заказа $orderId', e);
+      throw Exception('Ошибка загрузки деталей заказа: $e');
+    }
+  }
+
+  Future<String> getBaseUrlAsync() async {
+    return await _resolveBaseUrl();
   }
 }

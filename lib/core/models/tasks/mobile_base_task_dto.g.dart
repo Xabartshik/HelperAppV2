@@ -19,7 +19,7 @@ _$MobileBaseTaskDtoImpl _$$MobileBaseTaskDtoImplFromJson(
       : DateTime.parse(json['deadline'] as String),
   title: json['title'] as String? ?? 'Без названия',
   description: json['description'] as String?,
-  priority: (json['priorityLevel'] as num?)?.toInt() ?? 5,
+  priority: (json['priorityLevel'] as num?)?.toInt() ?? 1,
   createdAt: json['createdAt'] == null
       ? null
       : DateTime.parse(json['createdAt'] as String),

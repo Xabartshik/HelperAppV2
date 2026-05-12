@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:helper_app/core/network/api_endpoints.dart';
 import '../utils/logger.dart';
 import '../network/api_client.dart';
+import '../network/api_exceptions.dart';
 import '../models/tasks/mobile_base_task_dto.dart';
 import '../models/tasks/task_models.dart';
+import '../tasks/task_registry.dart';
 import '../models/inventory/inventory_dtos.dart';
 import '../models/order_assembly/order_assembly_dtos.dart';
 
@@ -14,13 +17,13 @@ final taskServiceProvider = Provider<TaskService>((ref) {
 
 class TaskService {
   final ApiClient _apiClient;
+  bool useUnifiedWorkerTasksApi = true;
   Timer? _periodicSyncTimer;
   // Коллбэк периодической синхронизации работает с базовым типом для поддержки обоих видов задач
   Function(List<TaskItemBase>)? _onTasksUpdated;
   int _lastSyncEmployeeId = 0;
 
   TaskService(this._apiClient);
-
   /// Возвращает объединённый список задач инвентаризации и сборки заказов для сотрудника
 Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     try {
@@ -35,19 +38,15 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       final List<TaskItemBase> allTasks = [];
 
       for (var item in response) {
-        // 1. Строго типизируем ответ бэкенда через DTO
         final dto = MobileBaseTaskDto.fromJson(item as Map<String, dynamic>);
-        
-        // 2. Маппим DTO в доменные объекты в зависимости от типа задачи
-        if (dto.taskType == 'Inventory') {
-          final task = _mapToUnifiedInventoryTask(dto, employeeId);
-          if (task != null) allTasks.add(task);
-        } else if (dto.taskType == 'OrderAssembly') {
-          final task = _mapToUnifiedOrderAssemblyTask(dto, employeeId);
-          if (task != null) allTasks.add(task);
-        } else {
+        final adapter = TaskRegistry.resolveByTaskType(dto.taskType);
+        if (adapter == null) {
           Logger.w('Неизвестный тип задачи от агрегатора: ${dto.taskType}');
+          continue;
         }
+
+        final task = adapter.parseListItem(dto, employeeId);
+        if (task != null) allTasks.add(task);
       }
 
       Logger.i('Получено ${allTasks.length} задач');
@@ -58,172 +57,6 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
     }
   }
 
-  // Обновленный метод парсинга Инвентаризации (принимает DTO, а не Map)
-  InventoryTaskItem? _mapToUnifiedInventoryTask(MobileBaseTaskDto dto, int employeeId) {
-    try {
-      final linesJson = _extractInventoryLines(dto.taskDetails);
-      
-      final lines = linesJson
-          .map((l) => InventoryAssignmentLineWithItemDto.fromJson(l as Map<String, dynamic>))
-          .map(_mapToInventoryLineItem)
-          .whereType<InventoryLineItem>()
-          .toList();
-
-      final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
-
-      final tDetails = dto.taskDetails;
-      final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
-      final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
-      return InventoryTaskItem(
-        taskId: dto.taskId,
-        type: TaskType.inventory,
-        branchId: dto.branchId,
-        title: dto.title,
-        description: dto.description,
-        status: _parseStatusFromInt(dto.status),
-        assignmentStatus: _parseAssignmentStatusFromInt(dto.assignmentStatus),
-        deadline: dto.deadline,
-        priority: dto.priority,
-        createdAt: createdAt,
-        completedAt: null,
-        assignedToEmployeeId: employeeId,
-        assignedAt: createdAt,
-        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
-        lines: lines,
-        totalLinesCount: totalLines,
-        completedLinesCount: completedLines,
-      );
-    } catch (e, stack) {
-      Logger.e('Ошибка маппинга задачи инвентаризации из DTO агрегатора', e, stack);
-      return null;
-    }
-  }
-
-  List<Map<String, dynamic>> _extractInventoryLines(Map<String, dynamic> taskDetails) {
-    final rawLines = taskDetails['lines'];
-    if (rawLines is List) {
-      return rawLines.whereType<Map<String, dynamic>>().toList();
-    }
-
-    final rawCells = taskDetails['cellInventories'];
-    if (rawCells is! List) return const [];
-
-    final lines = <Map<String, dynamic>>[];
-
-    for (final rawCell in rawCells) {
-      if (rawCell is! Map<String, dynamic>) continue;
-
-      final positionId = (rawCell['positionId'] as num?)?.toInt() ?? 0;
-      final positionCode = _buildPositionCodeJson(rawCell);
-      final rawItems = rawCell['items'];
-      if (rawItems is! List) continue;
-
-      for (final rawItem in rawItems) {
-        if (rawItem is! Map<String, dynamic>) continue;
-
-        lines.add({
-          'id': (rawItem['lineId'] as num?)?.toInt() ?? 0,
-          'itemPositionId': (rawItem['itemPositionId'] as num?)?.toInt() ?? positionId,
-          'positionId': positionId,
-          'expectedQuantity': (rawItem['expectedQuantity'] as num?)?.toInt() ?? 0,
-          'actualQuantity': (rawItem['actualQuantity'] as num?)?.toInt(),
-          'itemId': (rawItem['itemId'] as num?)?.toInt() ?? 0,
-          'itemName': (rawItem['itemName'] ?? '').toString(),
-          'displayName': (rawItem['displayName'] ?? rawItem['itemName'] ?? '').toString(),
-          'positionCode': positionCode,
-        });
-      }
-    }
-
-    return lines;
-  }
-
-  Map<String, dynamic> _buildPositionCodeJson(Map<String, dynamic> rawCell) {
-    final rawPositionCode = rawCell['positionCode'];
-    if (rawPositionCode is Map<String, dynamic>) {
-      return rawPositionCode;
-    }
-
-    return {
-      'branchId': (rawCell['branchId'] as num?)?.toInt() ?? 0,
-      'zoneCode': (rawCell['zoneCode'] ?? '').toString(),
-      'firstLevelStorageType': (rawCell['firstLevelStorageType'] ?? '').toString(),
-      'flsNumber': (rawCell['flsNumber'] ?? rawCell['fLSNumber'] ?? '').toString(),
-      'secondLevelStorage': rawCell['secondLevelStorage'],
-      'thirdLevelStorage': rawCell['thirdLevelStorage'],
-    };
-  }
-
-
-  TaskStatus _parseStatusFromInt(int serverStatus) {
-    switch (serverStatus) {
-      case 0: return TaskStatus.assigned;
-      case 1: return TaskStatus.inProgress;
-      case 2: return TaskStatus.paused;
-      case 3: return TaskStatus.completed;
-      case 4: return TaskStatus.cancelled;
-      default: return TaskStatus.newStatus;
-    }
-  }
-
-  AssignmentStatus _parseAssignmentStatusFromInt(int serverStatus) {
-    switch (serverStatus) {
-      case 0: return AssignmentStatus.assigned;
-      case 1: return AssignmentStatus.inProgress;
-      case 2: return AssignmentStatus.paused;
-      case 3: return AssignmentStatus.completed;
-      case 4: return AssignmentStatus.cancelled;
-      default: return AssignmentStatus.assigned;
-    }
-  }
-
-  OrderAssemblyTaskItem? _mapToUnifiedOrderAssemblyTask(MobileBaseTaskDto dto, int employeeId) {
-    try {
-      final cellPlacementsJson = dto.taskDetails['cellPlacements'] as List<dynamic>? ?? [];
-      
-      final cellPlacements = cellPlacementsJson.map((c) => CellPlacementInfo(
-        targetPositionId: c['targetPositionId'],
-        items: (c['items'] as List<dynamic>).map((i) => PlacementLineInfo(
-          lineId: i['lineId'],
-          itemPositionId: i['itemPositionId'],
-          quantity: i['quantity'],
-          status: i['status'] ?? 'pending',
-        )).toList(),
-      )).toList();
-
-      final createdAt = (dto.createdAt ?? DateTime.now()).toUtc();
-
-      final tDetails = dto.taskDetails;
-      final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
-      final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
-      final deadline = dto.deadline?.toUtc();
-      return OrderAssemblyTaskItem(
-        taskId: dto.taskId,
-        type: TaskType.orderAssembly,
-        branchId: dto.branchId,
-        title: dto.title,
-        description: dto.description,
-        status: _parseStatusFromInt(dto.status),
-        assignmentStatus: _parseAssignmentStatusFromInt(dto.assignmentStatus),
-        priority: dto.priority,
-        deadline: deadline,
-        createdAt: createdAt,
-        assignedToEmployeeId: employeeId,
-        assignedAt: createdAt,
-        assignmentId: dto.taskDetails['assignmentId'] ?? dto.taskId,
-        orderId: dto.taskDetails['orderId'] ?? 0,
-        totalLines: totalLines,
-        completedLinesCount: completedLines,
-        cellPlacements: cellPlacements,
-      );
-    } catch (e, stack) {
-      Logger.e('Ошибка маппинга задачи сборки из DTO агрегатора', e, stack);
-      return null;
-    }
-  }
-
-
-
   Future<InventoryTaskItem> getInventoryTaskDetailsAsync(int employeeId, int inventoryTaskId) async {
     try {
       Logger.i('Получение деталей задачи $inventoryTaskId для сотрудника $employeeId');
@@ -233,7 +66,7 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       }
 
       final tasks = await getTasksForCurrentUserAsync(employeeId);
-      final task = tasks.cast<InventoryTaskItem?>().firstWhere(
+      final task = tasks.whereType<InventoryTaskItem?>().firstWhere(
         (t) => t?.assignmentId == inventoryTaskId,
         orElse: () => null,
       );
@@ -371,16 +204,29 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       Logger.i('Запуск задачи $taskId для работника $workerId');
 
       // Используем вынесенный эндпоинт
-      final response = await _apiClient.postAsync(
-        ApiEndpoints.workerTaskStart(taskId, workerId),
-        data: {}, // Тело пустое, так как параметры в Query
-      );
+      if (useUnifiedWorkerTasksApi) {
+        await _apiClient.workerTaskStartAsync(taskId, workerId);
+      } else {
+        await _apiClient.postAsync(
+          ApiEndpoints.workerTaskStart(taskId, workerId),
+          data: {}, // legacy fallback
+        );
+      }
 
-      // После успешного запуска обновляем список задач, 
-      // чтобы получить актуальные статусы (включая Paused для других задач)
       await _performPeriodicSync();
-      
       return true;
+    } on NotFoundException catch (e) {
+      Logger.w('Задача $taskId не найдена при старте: $e');
+      await _performPeriodicSync();
+      return false;
+    } on ApiException catch (e, stack) {
+      if (e.message.contains('400')) {
+        Logger.w('Некорректный старт задачи $taskId (400): $e');
+        await _performPeriodicSync();
+        return false;
+      }
+      Logger.e('Ошибка API при старте задачи $taskId', e, stack);
+      return false;
     } catch (e, stack) {
       Logger.e('Ошибка при старте задачи $taskId', e, stack);
       return false;
@@ -411,6 +257,54 @@ Future<List<TaskItemBase>> getTasksForCurrentUserAsync(int employeeId) async {
       secondLevelStorage: dto.secondLevelStorage,
       thirdLevelStorage: dto.thirdLevelStorage,
     );
+  }
+
+
+  Future<InventoryTaskItem?> getUnifiedInventoryTaskDetailsAsync(int employeeId, int taskId) async {
+    final tasks = await getTasksForCurrentUserAsync(employeeId);
+    return tasks.whereType<InventoryTaskItem?>().firstWhere(
+      (t) => t?.taskId == taskId || t?.assignmentId == taskId,
+      orElse: () => null,
+    );
+  }
+
+  Future<OrderAssemblyTaskItem?> getUnifiedOrderAssemblyTaskDetailsAsync(int employeeId, int assignmentId) async {
+    final tasks = await getTasksForCurrentUserAsync(employeeId);
+    return tasks.whereType<OrderAssemblyTaskItem?>().firstWhere(
+      (t) => t?.assignmentId == assignmentId || t?.taskId == assignmentId,
+      orElse: () => null,
+    );
+  }
+
+  Future<int?> initCustomerHandoverAsync(String qrToken, int workerId, int branchId) async {
+    try {
+      Logger.i('Инициализация выдачи по QR для сотрудника $workerId на филиале $branchId');
+
+      // Отправляем POST запрос на наш новый контроллер
+      final response = await _apiClient.postAsync(
+        '/api/v1/OrderHandover/init-customer', // Проверь, чтобы путь совпадал с твоим API
+        data: {
+          'qrToken': qrToken,
+          'workerId': workerId,
+          'branchId': branchId,
+        },
+      );
+
+      // Бэкенд возвращает нам JSON вида { "message": "...", "taskId": 42, "orderId": 10 }
+      if (response != null && response['taskId'] != null) {
+        final newTaskId = response['taskId'] as int;
+        Logger.i('Успешно сгенерирована задача выдачи TaskId: $newTaskId');
+        return newTaskId;
+      }
+      return null;
+    } on ApiException catch (e) {
+      // Здесь перехватываем кастомные ошибки (например, неверный QR)
+      Logger.w('Ошибка при инициализации выдачи: ${e.message}');
+      rethrow; // Пробрасываем дальше, чтобы показать SnackBar в UI
+    } catch (e, stack) {
+      Logger.e('Неизвестная ошибка при обработке QR', e, stack);
+      return null;
+    }
   }
 
   void dispose() {

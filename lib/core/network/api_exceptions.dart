@@ -23,3 +23,11 @@ class UnauthorizedException extends ApiException {
 class NotFoundException extends ApiException {
   NotFoundException(super.message, [super.innerException]);
 }
+
+class ConflictException implements Exception {
+  final String message;
+  ConflictException(this.message);
+  
+  @override
+  String toString() => message;
+}

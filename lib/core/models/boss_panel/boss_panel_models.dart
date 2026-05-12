@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 
 part 'boss_panel_models.freezed.dart';
 part 'boss_panel_models.g.dart';
@@ -41,6 +42,7 @@ class EmployeeWorkloadDto with _$EmployeeWorkloadDto {
     @Default('') String fullName,
     @Default(false) bool isAtWork,
     @Default(0) int activeTasksCount,
+    @Default(0.0) double totalComplexity,
     @Default([]) List<ActiveTaskBriefDto> activeTasks,
   }) = _EmployeeWorkloadDto;
 
@@ -70,6 +72,9 @@ class AvailableEmployeeDto with _$AvailableEmployeeDto {
     @Default(false) bool isAtWork,
     @Default(0) int activeTasksCount,
     @Default(false) bool isRecommended,
+    double? maxWeightKg,
+    String? vehicleName,
+    @Default(false) bool isOnRoute,
   }) = _AvailableEmployeeDto;
 
   factory AvailableEmployeeDto.fromJson(Map<String, dynamic> json) => _$AvailableEmployeeDtoFromJson(json);
@@ -89,30 +94,35 @@ class CreateInventoryByZoneDto with _$CreateInventoryByZoneDto {
   factory CreateInventoryByZoneDto.fromJson(Map<String, dynamic> json) => _$CreateInventoryByZoneDtoFromJson(json);
 }
 
+// ДОБАВЬ НОВУЮ МОДЕЛЬ ДЛЯ ТОВАРОВ
 @freezed
-class PositionCellDto with _$PositionCellDto {
-  const factory PositionCellDto({
-    required int positionId,
-    required int branchId,
-    @Default("Active") String status,
-    @Default('') String zoneCode,
-    @Default('') String firstLevelStorageType,
-    @Default('') String flsNumber,
-    String? secondLevelStorage,
-    String? thirdLevelStorage,
-  }) = _PositionCellDto;
+class OrderItemDetailDto with _$OrderItemDetailDto {
+  const factory OrderItemDetailDto({
+    required int itemId,
+    @Default('') String name,
+    @Default(0) int quantity,
+    @Default(0.0) double weightKg,
+  }) = _OrderItemDetailDto;
 
-  factory PositionCellDto.fromJson(Map<String, dynamic> json) => _$PositionCellDtoFromJson(json);
+  factory OrderItemDetailDto.fromJson(Map<String, dynamic> json) => _$OrderItemDetailDtoFromJson(json);
 }
 
+// ОБНОВИ ЭТУ МОДЕЛЬ
 @freezed
 class AvailableOrderDto with _$AvailableOrderDto {
   const factory AvailableOrderDto({
     required int orderId,
-    @Default('') String customerName,
+    @Default('') String orderNumber,
+    DateTime? createdAt,
+    @Default('') String status,
+    @Default('') String deliveryType,
+    @Default('') String paymentType,
     DateTime? deliveryDate,
-    @Default('') String type,
-    @Default(0) int itemsCount,
+    String? destinationAddress,
+    String? postamatAddress,
+    String? postamatCellNumber,
+    String? postamatCellSize,
+    @Default([]) List<OrderItemDetailDto> items, // Теперь тут живет список товаров
   }) = _AvailableOrderDto;
 
   factory AvailableOrderDto.fromJson(Map<String, dynamic> json) => _$AvailableOrderDtoFromJson(json);

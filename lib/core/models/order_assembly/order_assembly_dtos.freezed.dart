@@ -1148,6 +1148,9 @@ mixin _$WorkerAssemblyTaskDto {
   int get totalLines => throw _privateConstructorUsedError;
   List<CellPlacementInfoDto> get cellPlacements =>
       throw _privateConstructorUsedError;
+  bool get isCooperative => throw _privateConstructorUsedError;
+  String? get partnerName => throw _privateConstructorUsedError;
+  AssignmentStatus? get partnerStatus => throw _privateConstructorUsedError;
 
   /// Serializes this WorkerAssemblyTaskDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1175,6 +1178,9 @@ abstract class $WorkerAssemblyTaskDtoCopyWith<$Res> {
     DateTime? createdDate,
     int totalLines,
     List<CellPlacementInfoDto> cellPlacements,
+    bool isCooperative,
+    String? partnerName,
+    AssignmentStatus? partnerStatus,
   });
 }
 
@@ -1204,6 +1210,9 @@ class _$WorkerAssemblyTaskDtoCopyWithImpl<
     Object? createdDate = freezed,
     Object? totalLines = null,
     Object? cellPlacements = null,
+    Object? isCooperative = null,
+    Object? partnerName = freezed,
+    Object? partnerStatus = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -1239,6 +1248,18 @@ class _$WorkerAssemblyTaskDtoCopyWithImpl<
                 ? _value.cellPlacements
                 : cellPlacements // ignore: cast_nullable_to_non_nullable
                       as List<CellPlacementInfoDto>,
+            isCooperative: null == isCooperative
+                ? _value.isCooperative
+                : isCooperative // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            partnerName: freezed == partnerName
+                ? _value.partnerName
+                : partnerName // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            partnerStatus: freezed == partnerStatus
+                ? _value.partnerStatus
+                : partnerStatus // ignore: cast_nullable_to_non_nullable
+                      as AssignmentStatus?,
           )
           as $Val,
     );
@@ -1263,6 +1284,9 @@ abstract class _$$WorkerAssemblyTaskDtoImplCopyWith<$Res>
     DateTime? createdDate,
     int totalLines,
     List<CellPlacementInfoDto> cellPlacements,
+    bool isCooperative,
+    String? partnerName,
+    AssignmentStatus? partnerStatus,
   });
 }
 
@@ -1289,6 +1313,9 @@ class __$$WorkerAssemblyTaskDtoImplCopyWithImpl<$Res>
     Object? createdDate = freezed,
     Object? totalLines = null,
     Object? cellPlacements = null,
+    Object? isCooperative = null,
+    Object? partnerName = freezed,
+    Object? partnerStatus = freezed,
   }) {
     return _then(
       _$WorkerAssemblyTaskDtoImpl(
@@ -1324,6 +1351,18 @@ class __$$WorkerAssemblyTaskDtoImplCopyWithImpl<$Res>
             ? _value._cellPlacements
             : cellPlacements // ignore: cast_nullable_to_non_nullable
                   as List<CellPlacementInfoDto>,
+        isCooperative: null == isCooperative
+            ? _value.isCooperative
+            : isCooperative // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        partnerName: freezed == partnerName
+            ? _value.partnerName
+            : partnerName // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        partnerStatus: freezed == partnerStatus
+            ? _value.partnerStatus
+            : partnerStatus // ignore: cast_nullable_to_non_nullable
+                  as AssignmentStatus?,
       ),
     );
   }
@@ -1341,6 +1380,9 @@ class _$WorkerAssemblyTaskDtoImpl implements _WorkerAssemblyTaskDto {
     this.createdDate,
     required this.totalLines,
     final List<CellPlacementInfoDto> cellPlacements = const [],
+    this.isCooperative = false,
+    this.partnerName,
+    this.partnerStatus,
   }) : _cellPlacements = cellPlacements;
 
   factory _$WorkerAssemblyTaskDtoImpl.fromJson(Map<String, dynamic> json) =>
@@ -1370,8 +1412,16 @@ class _$WorkerAssemblyTaskDtoImpl implements _WorkerAssemblyTaskDto {
   }
 
   @override
+  @JsonKey()
+  final bool isCooperative;
+  @override
+  final String? partnerName;
+  @override
+  final AssignmentStatus? partnerStatus;
+
+  @override
   String toString() {
-    return 'WorkerAssemblyTaskDto(assignmentId: $assignmentId, taskId: $taskId, taskNumber: $taskNumber, orderId: $orderId, status: $status, createdDate: $createdDate, totalLines: $totalLines, cellPlacements: $cellPlacements)';
+    return 'WorkerAssemblyTaskDto(assignmentId: $assignmentId, taskId: $taskId, taskNumber: $taskNumber, orderId: $orderId, status: $status, createdDate: $createdDate, totalLines: $totalLines, cellPlacements: $cellPlacements, isCooperative: $isCooperative, partnerName: $partnerName, partnerStatus: $partnerStatus)';
   }
 
   @override
@@ -1393,7 +1443,13 @@ class _$WorkerAssemblyTaskDtoImpl implements _WorkerAssemblyTaskDto {
             const DeepCollectionEquality().equals(
               other._cellPlacements,
               _cellPlacements,
-            ));
+            ) &&
+            (identical(other.isCooperative, isCooperative) ||
+                other.isCooperative == isCooperative) &&
+            (identical(other.partnerName, partnerName) ||
+                other.partnerName == partnerName) &&
+            (identical(other.partnerStatus, partnerStatus) ||
+                other.partnerStatus == partnerStatus));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1408,6 +1464,9 @@ class _$WorkerAssemblyTaskDtoImpl implements _WorkerAssemblyTaskDto {
     createdDate,
     totalLines,
     const DeepCollectionEquality().hash(_cellPlacements),
+    isCooperative,
+    partnerName,
+    partnerStatus,
   );
 
   /// Create a copy of WorkerAssemblyTaskDto
@@ -1438,6 +1497,9 @@ abstract class _WorkerAssemblyTaskDto implements WorkerAssemblyTaskDto {
     final DateTime? createdDate,
     required final int totalLines,
     final List<CellPlacementInfoDto> cellPlacements,
+    final bool isCooperative,
+    final String? partnerName,
+    final AssignmentStatus? partnerStatus,
   }) = _$WorkerAssemblyTaskDtoImpl;
 
   factory _WorkerAssemblyTaskDto.fromJson(Map<String, dynamic> json) =
@@ -1459,6 +1521,12 @@ abstract class _WorkerAssemblyTaskDto implements WorkerAssemblyTaskDto {
   int get totalLines;
   @override
   List<CellPlacementInfoDto> get cellPlacements;
+  @override
+  bool get isCooperative;
+  @override
+  String? get partnerName;
+  @override
+  AssignmentStatus? get partnerStatus;
 
   /// Create a copy of WorkerAssemblyTaskDto
   /// with the given fields replaced by the non-null parameter values.

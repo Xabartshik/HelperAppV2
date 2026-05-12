@@ -49,13 +49,13 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
 
   @override
   Future<void> onTaskStarted() async {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     await ref.read(provider.notifier).loadDetailsAsync();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     final state = ref.watch(provider);
     final vm = ref.read(provider.notifier);
 
@@ -250,7 +250,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
           if (group.isExpanded) ...[
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId}) : null,
+              onPressed: canEditTask ? () => context.push('/barcode-scanner', extra: {'positionCode': group.positionCode, 'assignmentId': widget.assignmentId, 'workerId': widget.workerId, 'taskId': widget.taskId}) : null,
               icon: const Icon(Icons.camera_alt, color: Colors.white, size: 18),
               label: const Text('Сканировать', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
@@ -396,7 +396,7 @@ class _InventoryDetailsPageState extends ConsumerState<InventoryDetailsPage>
   }
 
   void _handleComplete(InventoryViewModel vm) async {
-    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId));
+    final provider = inventoryViewModelProvider((workerId: widget.workerId, assignmentId: widget.assignmentId, taskId: widget.taskId));
     final state = ref.read(provider);
 
     final allItems = state.groupedItems.expand((g) => g.items).toList();
