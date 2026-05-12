@@ -8,7 +8,7 @@ import 'admin_items_viewmodel.dart';
 class AdminItemsTab extends ConsumerWidget {
   const AdminItemsTab({super.key});
 
-  @override
+@override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(adminItemsProvider);
 
@@ -16,35 +16,37 @@ class AdminItemsTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)));
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: state.filteredItems.isEmpty
-          ? const Center(child: Text("Товары не найдены", style: TextStyle(color: Colors.white54)))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: state.filteredItems.length,
-              itemBuilder: (context, index) {
-                final item = state.filteredItems[index];
-                return Card(
-                  color: const Color(0xFF1C1C1E),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    onTap: () {
-                      ref.read(editingItemProvider.notifier).state = item;
-                      Scaffold.of(context).openEndDrawer();
-                    },
-                    leading: const CircleAvatar(
-                      backgroundColor: Color(0xFF7C3AED),
-                      child: Icon(Icons.inventory_2, color: Colors.white, size: 18),
-                    ),
-                    title: Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    subtitle: Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
-                      style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                    trailing: Text('${item.price} ₽', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
-                  ),
-                );
-              },
+    if (state.filteredItems.isEmpty) {
+      return const Center(child: Text("Товары не найдены", style: TextStyle(color: Colors.white54)));
+    }
+
+    // ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ: Возвращаем ListView напрямую, без Scaffold!
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: state.filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = state.filteredItems[index];
+        return Card(
+          color: const Color(0xFF1C1C1E),
+          margin: const EdgeInsets.only(bottom: 8),
+          child: ListTile(
+            onTap: () {
+              // 1. Записываем товар в провайдер редактирования
+              ref.read(editingItemProvider.notifier).state = item;
+              // 2. Теперь контекст без помех найдет главный Scaffold (AdminDashboardPage) и откроет форму!
+              Scaffold.of(context).openEndDrawer();
+            },
+            leading: const CircleAvatar(
+              backgroundColor: Color(0xFF7C3AED),
+              child: Icon(Icons.inventory_2, color: Colors.white, size: 18),
             ),
+            title: Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            subtitle: Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            trailing: Text('${item.price} ₽', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+          ),
+        );
+      },
     );
   }
 }

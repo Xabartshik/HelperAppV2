@@ -7,6 +7,7 @@ import 'package:helper_app/core/models/attendance/break_status_dto.dart';
 import 'package:helper_app/core/models/attendance/check_io_employee_dto.dart';
 import 'package:helper_app/core/models/branch/branch_dto.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
+import 'package:helper_app/core/models/employee/employee_dto.dart';
 import 'package:helper_app/core/models/item/item_dto.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import '../utils/logger.dart';
@@ -270,6 +271,52 @@ void _handleResponseErrors(Response response) {
     throw NoNetworkException('Нет подключения к сети', e);
   }
 }
+
+Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
+    try {
+      final response = await postAsync('Employee', data: data);
+      return int.parse(response.toString());
+    } catch (e) {
+      Logger.e('Ошибка создания сотрудника', e);
+      return -1;
+    }
+  }
+
+  // --- Админ-панель: Персонал (Чтение) ---
+  Future<List<EmployeeDto>> getEmployeesAsync() async {
+    try {
+      final response = await getAsync('Employee');
+      if (response != null && response is List) {
+        return response.map((e) => EmployeeDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки сотрудников: $e');
+      return [];
+    }
+  }
+
+  // 2. Создание курьера (Возвращает ID)
+  Future<int> createCourierAsync(Map<String, dynamic> data) async {
+    try {
+      final response = await postAsync('Employee/courier', data: data);
+      return int.parse(response.toString());
+    } catch (e) {
+      Logger.e('Ошибка создания курьера', e);
+      return -1;
+    }
+  }
+
+  // 3. Создание пользователя мобильного приложения
+  Future<bool> registerMobileUserAsync(Map<String, dynamic> data) async {
+    try {
+      await postAsync('v1/mobileappuser/register', data: data);
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка регистрации аккаунта', e);
+      return false;
+    }
+  }
 
 // --- Админ-панель: Товары ---
   Future<List<ItemDto>> getItemsAsync() async {
