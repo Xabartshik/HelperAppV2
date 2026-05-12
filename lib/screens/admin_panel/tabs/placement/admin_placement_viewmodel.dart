@@ -8,9 +8,9 @@ class AdminPlacementState {
   final bool isLoading;
   final List<ItemDto> allItems; 
   final List<PositionCellDto> allPositions; 
-  final List<ItemPositionDto> stock; // Остатки: ItemId + PositionId + Qty
+  final List<ItemPositionDto> stock; 
   
-  final String contentSearchQuery; // Фильтр по названию товара внутри ячеек
+  final String contentSearchQuery; 
   final int? selectedBranchId;
   final ItemDto? itemToPlace; 
 
@@ -24,15 +24,25 @@ class AdminPlacementState {
     this.itemToPlace,
   });
 
-// Получить список товаров в конкретной ячейке
+  // Получить список товаров в конкретной ячейке (с суммированием одинаковых)
   List<Map<String, dynamic>> getItemsInPosition(int positionId) {
     final itemsInPos = stock.where((s) => s.positionId == positionId);
-    return itemsInPos.map((s) {
+    
+    // Группируем по ItemId и суммируем количество
+    final Map<int, int> groupedStock = {};
+    for (var s in itemsInPos) {
+      groupedStock[s.itemId] = (groupedStock[s.itemId] ?? 0) + s.quantity;
+    }
+
+    return groupedStock.entries.map((entry) {
+      final itemId = entry.key;
+      final quantity = entry.value;
+
       final item = allItems.firstWhere(
-        (i) => i.itemId == s.itemId, 
+        (i) => i.itemId == itemId, 
         orElse: () => ItemDto(
-          name: "ID: ${s.itemId}", 
-          itemId: s.itemId,
+          name: "ID: $itemId", 
+          itemId: itemId,
           weight: 0.0,
           length: 0.0,
           width: 0.0,
@@ -42,48 +52,56 @@ class AdminPlacementState {
       );
       return {
         'name': item.name,
-        'quantity': s.quantity,
+        'quantity': quantity,
       };
     }).toList();
   }
 
-  // УМНАЯ ФИЛЬТРАЦИЯ ТОПОЛОГИИ
+  // УМНАЯ ФИЛЬТРАЦИЯ И СОРТИРОВКА ТОПОЛОГИИ
   List<PositionCellDto> get filteredPositions {
-    var list = allPositions;
+    var list = List<PositionCellDto>.from(allPositions);
 
     if (selectedBranchId != null) {
       list = list.where((p) => p.branchId == selectedBranchId).toList();
     }
 
-    // Если введен запрос по содержимому
     if (contentSearchQuery.isNotEmpty) {
       final q = contentSearchQuery.toLowerCase();
       
-      // Находим ID всех товаров, подходящих под поиск
       final matchingItemIds = allItems
           .where((i) => i.name.toLowerCase().contains(q))
           .map((i) => i.itemId)
           .toSet();
 
-      // Находим ID всех позиций, где лежат эти товары
       final positionsWithMatch = stock
           .where((s) => matchingItemIds.contains(s.itemId))
           .map((s) => s.positionId)
           .toSet();
 
-      // Оставляем только эти позиции
       list = list.where((p) => positionsWithMatch.contains(p.positionId)).toList();
     }
 
-    // Сортировка (Зона -> Стеллаж -> Полка)
+    // Сортировка: Филиал -> Зона -> Стеллаж -> Полка
     list.sort((a, b) {
-      int cmp = a.zoneCode.compareTo(b.zoneCode);
-      if (cmp != 0) return cmp;
+      int cmp = a.branchId.compareTo(b.branchId);
+      if (cmp != 0) {
+        return cmp;
+      }
+
+      cmp = a.zoneCode.compareTo(b.zoneCode);
+      if (cmp != 0) {
+        return cmp;
+      }
+      
       int flsA = int.tryParse(a.flsNumber) ?? 0;
       int flsB = int.tryParse(b.flsNumber) ?? 0;
       cmp = flsA.compareTo(flsB);
-      if (cmp == 0) cmp = (int.tryParse(a.secondLevelStorage ?? '0') ?? 0)
-          .compareTo(int.tryParse(b.secondLevelStorage ?? '0') ?? 0);
+      
+      if (cmp == 0) {
+        cmp = (int.tryParse(a.secondLevelStorage ?? '0') ?? 0)
+            .compareTo(int.tryParse(b.secondLevelStorage ?? '0') ?? 0);
+      }
+      
       return cmp;
     });
 
@@ -118,7 +136,10 @@ final adminPlacementProvider = AutoDisposeNotifierProvider<AdminPlacementViewMod
 
 class AdminPlacementViewModel extends AutoDisposeNotifier<AdminPlacementState> {
   @override
-  AdminPlacementState build() => AdminPlacementState();
+  AdminPlacementState build() {
+    Future.microtask(() => refreshData());
+    return AdminPlacementState();
+  }
 
   Future<void> refreshData() async {
     state = state.copyWith(isLoading: true);

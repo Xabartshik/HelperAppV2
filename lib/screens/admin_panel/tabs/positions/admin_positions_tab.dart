@@ -108,7 +108,7 @@ class AdminPositionsTab extends ConsumerWidget {
                 if (state.selectedPositionIds.isNotEmpty) ...[
                   ElevatedButton.icon(
                     onPressed: () => ref.read(adminPositionsProvider.notifier).exportSelectedToPdf(),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white,),
                     icon: const Icon(Icons.print, size: 18),
                     label: Text("Печать (${state.selectedPositionIds.length})"),
                   ),
