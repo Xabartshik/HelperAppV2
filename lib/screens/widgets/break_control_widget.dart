@@ -187,7 +187,7 @@ class _BreakControlWidgetState extends ConsumerState<BreakControlWidget> {
           ),
           const SizedBox(width: 8),
           Text(
-            'Накоплено: $displayMins/$requiredMins мин',
+            'Отдыз: $displayMins/$requiredMins мин',
             style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],

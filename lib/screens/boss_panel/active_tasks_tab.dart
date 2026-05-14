@@ -39,6 +39,14 @@ class ActiveTasksTab extends ConsumerWidget {
     );
   }
 }
+String _mapTaskType(String type) {
+  switch (type) {
+    case 'ReturnToStock': return 'Возврат на полку';
+    case 'OrderAssembly': return 'Сборка товара';
+    case 'OrderHandover': return 'Выдача товара';
+    default: return type;
+  }
+}
 
 class _TaskMainCard extends StatelessWidget {
   final BossPanelTaskCardDto task;
@@ -79,7 +87,7 @@ class _TaskMainCard extends StatelessWidget {
                               style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
                         Text(task.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text(task.taskType, style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                        Text(_mapTaskType(task.taskType), style: const TextStyle(color: Colors.white38, fontSize: 12)),
                       ],
                     ),
                   ),

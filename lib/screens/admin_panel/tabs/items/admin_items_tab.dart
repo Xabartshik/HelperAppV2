@@ -190,18 +190,68 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           // Получаем текущее значение прямо из состояния формы
+// Получаем текущее значение прямо из состояния формы
                           child: Builder(
                             builder: (context) {
                               final currentValue = _formKey.currentState?.fields['barcode']?.value?.toString() ?? 
                                                    (isEdit ? editingItem?.barcode ?? '' : '');
                               
                               if (currentValue.isNotEmpty) {
-                                return BarcodeWidget(
-                                  barcode: Barcode.code128(), // Надежный складской формат
-                                  data: currentValue,
-                                  drawText: false, // Отключаем дублирование цифр под полосками
-                                  errorBuilder: (context, error) => const Center(
-                                    child: Text('Ошибка', style: TextStyle(color: Colors.red, fontSize: 10))
+                                return GestureDetector(
+                                  // Обработчик нажатия
+                                  onTap: () {
+                                    // Убираем фокус с клавиатуры, чтобы она не перекрывала диалог
+                                    FocusScope.of(context).unfocus(); 
+                                    
+                                    // Показываем увеличенный штрих-код
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => Dialog(
+                                        backgroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(32.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              BarcodeWidget(
+                                                barcode: Barcode.code128(),
+                                                data: currentValue,
+                                                width: 300, // Увеличенная ширина
+                                                height: 120, // Увеличенная высота
+                                                drawText: true, // В крупном виде цифры полезны
+                                                style: const TextStyle(fontSize: 24, letterSpacing: 2.0),
+                                                errorBuilder: (context, error) => const Text('Ошибка генерации', style: TextStyle(color: Colors.red)),
+                                              ),
+                                              const SizedBox(height: 24),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                child: ElevatedButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF7C3AED),
+                                                    foregroundColor: Colors.white,
+                                                  ),
+                                                  child: const Text('ЗАКРЫТЬ'),
+                                                ),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  // Миниатюра штрих-кода в самой форме
+                                  child: Container(
+                                    color: Colors.transparent, // Чтобы клик срабатывал по всей области
+                                    child: BarcodeWidget(
+                                      barcode: Barcode.code128(), 
+                                      data: currentValue,
+                                      drawText: false, 
+                                      errorBuilder: (context, error) => const Center(
+                                        child: Text('Ошибка', style: TextStyle(color: Colors.red, fontSize: 10))
+                                      ),
+                                    ),
                                   ),
                                 );
                               } else {

@@ -266,15 +266,17 @@ class _EmployeeCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ТЕПЕРЬ ТУТ ЗАГОЛОВОК ЗАДАЧИ (Контекст)
                 Text(
-                  _mapTaskType(task.taskType), 
+                  task.title.isEmpty ? "Задача #${task.taskId}" : task.title, 
                   style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  task.title, 
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                ),
+                // А ТУТ ТИП ЗАДАЧИ (Операция)
+                Text(
+                  _mapTaskType(task.taskType), 
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
             ),
