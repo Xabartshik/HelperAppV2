@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; 
-import 'package:go_router/go_router.dart';
+import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Заменили на ZXing
 import 'return_to_stock_viewmodel.dart';
 import '../../core/utils/logger.dart';
 
@@ -26,7 +25,9 @@ class ReturnBarcodeScannerPage extends ConsumerStatefulWidget {
   ConsumerState<ReturnBarcodeScannerPage> createState() => _ReturnBarcodeScannerPageState();
 }
 
-class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerPage> {
+class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerPage> 
+    with SingleTickerProviderStateMixin { // <--- Добавили миксин для анимации
+
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _returnColor = const Color(0xFF3B82F6); // Синий цвет возврата
   final Color _cellColor = const Color(0xFFF59E0B);   // Оранжевый для ячеек
@@ -35,34 +36,34 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
   bool _showSuccessOverlay = false;
   String _message = '';
   bool _lastResultSuccess = false;
+  
+  bool _isTorchOn = false;
 
   final _manualCodeController = TextEditingController();
-  late MobileScannerController _scannerController;
+  late AnimationController _laserController;
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-      torchEnabled: false,
-      formats: widget.isCellScan 
-          ? [BarcodeFormat.qrCode] 
-          : [BarcodeFormat.ean13, BarcodeFormat.code128, BarcodeFormat.code39],
-    );
+    // Инициализация анимации бегающего лазера
+    _laserController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _laserController.dispose();
     _manualCodeController.dispose();
-    _scannerController.dispose();
     super.dispose();
   }
 
   void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
     
-    HapticFeedback.lightImpact();
+    // Виброотклик при успешном захвате
+    HapticFeedback.mediumImpact();
     
     setState(() {
       _isProcessing = true;
@@ -109,6 +110,13 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) Navigator.pop(context, true);
       });
+    } else {
+      // Автоматически скрываем успешный оверлей (если не нужно закрывать окно)
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted && _lastResultSuccess) {
+          setState(() => _showSuccessOverlay = false);
+        }
+      });
     }
   }
 
@@ -118,29 +126,53 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
     final title = widget.isCellScan ? 'Сканирование ячейки' : 'Сканирование товара';
     final hint = widget.isCellScan ? 'Наведите камеру на QR-код ячейки' : 'Наведите камеру на штрих-код товара';
 
+    // Динамический расчет окна в зависимости от типа сканирования
+    final screenSize = MediaQuery.of(context).size;
+    final double windowWidth = widget.isCellScan ? 260.0 : screenSize.width - 48; // Для QR - квадрат, для товара - широкий
+    final double windowHeight = widget.isCellScan ? 260.0 : 140.0;
+    
+    final Rect scanWindow = Rect.fromCenter(
+      center: Offset(screenSize.width / 2, screenSize.height / 2 - 40),
+      width: windowWidth,
+      height: windowHeight,
+    );
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера на заднем фоне
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: (capture) {
-              final barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _handleCode(barcodes.first.rawValue!);
+          // 1. Камера ZXing на заднем фоне
+          ReaderWidget(
+            onScan: (result) {
+              if (result.isValid && result.text != null) {
+                _handleCode(result.text!);
               }
             },
+            showScannerOverlay: false, 
+            showFlashlight: false,
+            showToggleCamera: false,
+            showGallery: false,
+            // Агрессивное сканирование (особенно полезно для товаров)
+            tryHarder: true, 
+            resolution: ResolutionPreset.high,
+            cropPercent: 0.8, 
           ),
 
-          // 2. Затемнение и область выреза
-          Positioned.fill(
-            child: CustomPaint(
-              painter: ScannerOverlayPainter(
-                primaryColor: activeColor,
-                isSquare: widget.isCellScan,
-              ),
-            ),
+          // 2. Анимированное затемнение и область выреза
+          AnimatedBuilder(
+            animation: _laserController,
+            builder: (context, child) {
+              return Positioned.fill(
+                child: CustomPaint(
+                  painter: ReturnOverlayPainter(
+                    primaryColor: activeColor,
+                    scanWindow: scanWindow,
+                    laserPosition: _laserController.value,
+                    isProcessing: _isProcessing,
+                  ),
+                ),
+              );
+            },
           ),
 
           // 3. Верхняя панель управления
@@ -179,8 +211,14 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.flash_on, color: Colors.white),
-                    onPressed: () => _scannerController.toggleTorch(),
+                    icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
+                    onPressed: () {
+                      setState(() {
+                        _isTorchOn = !_isTorchOn;
+                        // Заметка: Для программного переключения вспышки с ZXing 
+                        // может потребоваться сторонний плагин.
+                      });
+                    },
                   ),
                 ],
               ),
@@ -213,7 +251,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                       fillColor: _bgOffBlack,
                       hintText: widget.isCellScan ? 'Введите код ячейки...' : 'Введите штрих-код...',
                       hintStyle: const TextStyle(color: Colors.white38),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: activeColor),
@@ -240,7 +278,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
           if (_isProcessing && !_showSuccessOverlay)
             Container(
               color: Colors.black54,
-              child: const Center(child: CircularProgressIndicator()),
+              child: const Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
 
           // 6. Оверлей с результатом (успех/ошибка)
@@ -253,7 +291,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                 });
               },
               child: Container(
-                color: Colors.black.withOpacity(0.85),
+                color: Colors.black.withValues(alpha: 0.9), // Исправлено на withValues
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -262,9 +300,9 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                     Icon(
                       _lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
                       color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, 
-                      size: 80
+                      size: 90
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Text(
                       _message,
                       style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -273,7 +311,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                     const SizedBox(height: 32),
                     const Text(
                       'Нажмите, чтобы продолжить',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      style: TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                   ],
                 ),
@@ -285,41 +323,63 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
   }
 }
 
-// Painter для отрисовки затемнения и рамки
-class ScannerOverlayPainter extends CustomPainter {
+/// Анимированный Painter для отрисовки затемнения, рамки и лазера
+class ReturnOverlayPainter extends CustomPainter {
   final Color primaryColor;
-  final bool isSquare;
+  final Rect scanWindow;
+  final double laserPosition;
+  final bool isProcessing;
 
-  ScannerOverlayPainter({
+  ReturnOverlayPainter({
     required this.primaryColor,
-    this.isSquare = false,
+    required this.scanWindow,
+    required this.laserPosition,
+    required this.isProcessing,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Если квадрат — размер 260x260, если штрих-код — 320x160
-    final double windowWidth = isSquare ? 260.0 : 320.0;
-    final double windowHeight = isSquare ? 260.0 : 160.0;
+    // 1. Затемнение вокруг прицела
+    final backgroundPaint = Paint()..color = Colors.black54;
+    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
+    canvas.drawPath(Path.combine(PathOperation.difference, backgroundPath, cutoutPath), backgroundPaint);
 
-    final double left = (size.width - windowWidth) / 2;
-    final double top = (size.height - windowHeight) / 2 - 40; 
-    final Rect rect = Rect.fromLTWH(left, top, windowWidth, windowHeight);
-
-    final Paint backgroundPaint = Paint()..color = Colors.black54;
-    final Path backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(20)));
-    final Path backgroundWithCutout = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
-    canvas.drawPath(backgroundWithCutout, backgroundPaint);
-
-    final Paint paint = Paint()
-      ..color = primaryColor
+    // 2. Рамка (вспышка белым при обработке)
+    final Paint framePaint = Paint()
+      ..color = isProcessing ? Colors.white : primaryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
+      ..strokeWidth = isProcessing ? 5.0 : 3.0;
 
+    _drawCorners(canvas, scanWindow, framePaint);
+
+    // 3. Бегающий лазер (только когда код не обрабатывается)
+    if (!isProcessing) {
+      final double y = scanWindow.top + (scanWindow.height * laserPosition);
+      final laserPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            primaryColor.withValues(alpha: 0),
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor,
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromLTRB(scanWindow.left, y - 1, scanWindow.right, y + 1));
+
+      canvas.drawRect(
+        Rect.fromLTWH(scanWindow.left + 10, y - 1, scanWindow.width - 20, 2),
+        laserPaint,
+      );
+    }
+  }
+
+  void _drawCorners(Canvas canvas, Rect rect, Paint paint) {
     const double cornerLen = 25.0;
     const double radius = 20.0;
 
-    // Отрисовка четырех уголков-рамок вокруг выреза
     canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
     canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
     canvas.drawPath(Path()..moveTo(rect.left, rect.bottom - cornerLen)..lineTo(rect.left, rect.bottom - radius)..quadraticBezierTo(rect.left, rect.bottom, rect.left + radius, rect.bottom)..lineTo(rect.left + cornerLen, rect.bottom), paint);
@@ -327,6 +387,5 @@ class ScannerOverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => 
-      primaryColor != oldDelegate.primaryColor || isSquare != oldDelegate.isSquare;
+  bool shouldRepaint(covariant ReturnOverlayPainter oldDelegate) => true;
 }

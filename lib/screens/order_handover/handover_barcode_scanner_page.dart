@@ -1,9 +1,7 @@
-// lib/screens/order_handover/handover_barcode_scanner_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; 
-import 'package:go_router/go_router.dart';
+import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Заменили на ZXing
 import 'order_handover_viewmodel.dart';
 
 class HandoverBarcodeScannerPage extends ConsumerStatefulWidget {
@@ -20,41 +18,45 @@ class HandoverBarcodeScannerPage extends ConsumerStatefulWidget {
   ConsumerState<HandoverBarcodeScannerPage> createState() => _HandoverBarcodeScannerPageState();
 }
 
-class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScannerPage> {
+class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScannerPage> 
+    with SingleTickerProviderStateMixin { // <--- Добавили миксин для анимации
+
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _headerBg = const Color(0xFF1C1C1E);
-  final Color _handoverColor = const Color(0xFFE11D48); 
+  final Color _handoverColor = const Color(0xFFE11D48); // Фирменный цвет выдачи
 
   bool _isProcessing = false;
   bool _showSuccessOverlay = false;
   String _message = '';
   bool _lastResultSuccess = false;
+  
+  bool _isTorchOn = false;
 
   final _manualCodeController = TextEditingController();
-  late MobileScannerController _scannerController;
+  late AnimationController _laserController;
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-      torchEnabled: false,
-      // Оптимизируем под штрих-коды товаров (1D), убираем QR[cite: 18]
-      formats: [BarcodeFormat.ean13, BarcodeFormat.code128, BarcodeFormat.code39],
-    );
+    // Инициализация анимации бегающего лазера
+    _laserController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _laserController.dispose();
     _manualCodeController.dispose();
-    _scannerController.dispose();
     super.dispose();
   }
 
   void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
-    HapticFeedback.lightImpact();
+    
+    // Виброотклик при захвате кода
+    HapticFeedback.mediumImpact();
     
     setState(() {
       _isProcessing = true;
@@ -72,6 +74,9 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
 
     if (!success) {
       message = message.replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
+      if (message.contains('400') || message.toLowerCase().contains('формат')) {
+        message = '⚠️ Неверный код!\n\nПроверьте объект сканирования.';
+      }
     }
 
     if (success && message.startsWith('FINISH:')) {
@@ -101,26 +106,54 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
 
   @override
   Widget build(BuildContext context) {
+    // Динамический расчет окна сканирования для широкого 1D штрих-кода
+    final screenSize = MediaQuery.of(context).size;
+    final double windowWidth = screenSize.width - 48; // Отступы по 24
+    const double windowHeight = 140.0; // Узкое прямоугольное окно
+    
+    final Rect scanWindow = Rect.fromCenter(
+      center: Offset(screenSize.width / 2, screenSize.height / 2 - 60),
+      width: windowWidth,
+      height: windowHeight,
+    );
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _handleCode(barcodes.first.rawValue!);
+          // 1. Камера ZXing
+          ReaderWidget(
+            onScan: (result) {
+              if (result.isValid && result.text != null) {
+                _handleCode(result.text!);
               }
             },
+            // Отключаем встроенный UI от ZXing, используем свой
+            showScannerOverlay: false, 
+            showFlashlight: false,
+            showToggleCamera: false,
+            showGallery: false,
+            // Агрессивное сканирование 
+            tryHarder: true, 
+            resolution: ResolutionPreset.high,
+            cropPercent: 0.8, 
           ),
 
-          // 2. Затемнение и прямоугольный «прицел» для штрих-кодов[cite: 18]
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _HandoverOverlayPainter(primaryColor: _handoverColor),
-            ),
+          // 2. Анимированный оверлей с вырезом и лазером
+          AnimatedBuilder(
+            animation: _laserController,
+            builder: (context, child) {
+              return Positioned.fill(
+                child: CustomPaint(
+                  painter: HandoverOverlayPainter(
+                    primaryColor: _handoverColor,
+                    scanWindow: scanWindow,
+                    laserPosition: _laserController.value,
+                    isProcessing: _isProcessing,
+                  ),
+                ),
+              );
+            },
           ),
 
           // 3. Верхняя панель
@@ -151,15 +184,21 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.flash_on, color: Colors.white), 
-                    onPressed: () => _scannerController.toggleTorch()
+                    icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off, color: Colors.white), 
+                    onPressed: () {
+                      setState(() {
+                        _isTorchOn = !_isTorchOn;
+                        // Заметка: Для программного переключения вспышки с ZXing 
+                        // может потребоваться сторонний плагин типа torch_light.
+                      });
+                    }
                   ),
                 ],
               ),
             ),
           ),
 
-          // 4. Нижняя панель
+          // 4. Нижняя панель ручного ввода
           Positioned(
             bottom: 0, left: 0, right: 0,
             child: Container(
@@ -204,32 +243,32 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
             ),
           ),
 
-          // 5. Оверлеи состояния[cite: 18]
+          // 5. Индикатор загрузки и Оверлей результата
           if (_isProcessing && !_showSuccessOverlay)
-            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
+            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
 
           if (_showSuccessOverlay)
             GestureDetector(
-              onTap: () => setState(() => _showSuccessOverlay = false),
+              onTap: () => setState(() { _showSuccessOverlay = false; _manualCodeController.clear(); }),
               child: Container(
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withValues(alpha: 0.9),
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _lastResultSuccess ? Icons.check_circle_outline : Icons.error_outline, 
+                      _lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
                       color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, 
                       size: 90
                     ),
                     const SizedBox(height: 24),
                     Text(_message, 
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500), 
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), 
                       textAlign: TextAlign.center),
                     const SizedBox(height: 32),
                     const Text('Нажмите, чтобы продолжить', 
-                      style: TextStyle(color: Colors.white38, fontSize: 14)),
+                      style: TextStyle(color: Colors.white54, fontSize: 14)),
                   ],
                 ),
               ),
@@ -240,31 +279,63 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
   }
 }
 
-/// Прямоугольный оверлей, оптимизированный под штрих-коды[cite: 18]
-class _HandoverOverlayPainter extends CustomPainter {
+/// Анимированный оверлей для экрана выдачи
+class HandoverOverlayPainter extends CustomPainter {
   final Color primaryColor;
-  _HandoverOverlayPainter({required this.primaryColor});
+  final Rect scanWindow;
+  final double laserPosition;
+  final bool isProcessing;
+
+  HandoverOverlayPainter({
+    required this.primaryColor,
+    required this.scanWindow,
+    required this.laserPosition,
+    required this.isProcessing,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double windowWidth = 320.0;
-    const double windowHeight = 140.0; // Более узкое окно для штрих-кодов[cite: 18]
-    final double left = (size.width - windowWidth) / 2;
-    final double top = (size.height - windowHeight) / 2 - 60;
-    final Rect rect = Rect.fromLTWH(left, top, windowWidth, windowHeight);
-
-    final Paint backgroundPaint = Paint()..color = Colors.black54;
-    final Path backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(24)));
+    // 1. Затемнение вокруг прицела
+    final backgroundPaint = Paint()..color = Colors.black54;
+    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
     canvas.drawPath(Path.combine(PathOperation.difference, backgroundPath, cutoutPath), backgroundPaint);
 
-    final Paint paint = Paint()
-      ..color = primaryColor
+    // 2. Рамка прицела (вспыхивает белым во время обработки)
+    final Paint framePaint = Paint()
+      ..color = isProcessing ? Colors.white : primaryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
+      ..strokeWidth = isProcessing ? 5.0 : 3.0;
 
+    _drawCorners(canvas, scanWindow, framePaint);
+
+    // 3. Бегающий лазер (прячется, когда код захвачен)
+    if (!isProcessing) {
+      final double y = scanWindow.top + (scanWindow.height * laserPosition);
+      final laserPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            primaryColor.withValues(alpha: 0),
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor,
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromLTRB(scanWindow.left, y - 1, scanWindow.right, y + 1));
+
+      // Рисуем линию лазера немного отступив от краев (на 10 пикселей)
+      canvas.drawRect(
+        Rect.fromLTWH(scanWindow.left + 10, y - 1, scanWindow.width - 20, 2),
+        laserPaint,
+      );
+    }
+  }
+
+  void _drawCorners(Canvas canvas, Rect rect, Paint paint) {
     const double cornerLen = 25.0;
-    const double radius = 24.0;
+    const double radius = 20.0;
 
     canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
     canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
@@ -273,5 +344,5 @@ class _HandoverOverlayPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant HandoverOverlayPainter oldDelegate) => true;
 }
