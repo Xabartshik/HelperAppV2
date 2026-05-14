@@ -23,6 +23,7 @@ ItemDto _$ItemDtoFromJson(Map<String, dynamic> json) {
 mixin _$ItemDto {
   int get itemId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
+  String get barcode => throw _privateConstructorUsedError;
   double get weight => throw _privateConstructorUsedError;
   double get length => throw _privateConstructorUsedError;
   double get width => throw _privateConstructorUsedError;
@@ -46,6 +47,7 @@ abstract class $ItemDtoCopyWith<$Res> {
   $Res call({
     int itemId,
     String name,
+    String barcode,
     double weight,
     double length,
     double width,
@@ -71,6 +73,7 @@ class _$ItemDtoCopyWithImpl<$Res, $Val extends ItemDto>
   $Res call({
     Object? itemId = null,
     Object? name = null,
+    Object? barcode = null,
     Object? weight = null,
     Object? length = null,
     Object? width = null,
@@ -86,6 +89,10 @@ class _$ItemDtoCopyWithImpl<$Res, $Val extends ItemDto>
             name: null == name
                 ? _value.name
                 : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            barcode: null == barcode
+                ? _value.barcode
+                : barcode // ignore: cast_nullable_to_non_nullable
                       as String,
             weight: null == weight
                 ? _value.weight
@@ -124,6 +131,7 @@ abstract class _$$ItemDtoImplCopyWith<$Res> implements $ItemDtoCopyWith<$Res> {
   $Res call({
     int itemId,
     String name,
+    String barcode,
     double weight,
     double length,
     double width,
@@ -148,6 +156,7 @@ class __$$ItemDtoImplCopyWithImpl<$Res>
   $Res call({
     Object? itemId = null,
     Object? name = null,
+    Object? barcode = null,
     Object? weight = null,
     Object? length = null,
     Object? width = null,
@@ -163,6 +172,10 @@ class __$$ItemDtoImplCopyWithImpl<$Res>
         name: null == name
             ? _value.name
             : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        barcode: null == barcode
+            ? _value.barcode
+            : barcode // ignore: cast_nullable_to_non_nullable
                   as String,
         weight: null == weight
             ? _value.weight
@@ -195,6 +208,7 @@ class _$ItemDtoImpl implements _ItemDto {
   const _$ItemDtoImpl({
     this.itemId = 0,
     required this.name,
+    required this.barcode,
     required this.weight,
     required this.length,
     required this.width,
@@ -211,6 +225,8 @@ class _$ItemDtoImpl implements _ItemDto {
   @override
   final String name;
   @override
+  final String barcode;
+  @override
   final double weight;
   @override
   final double length;
@@ -224,7 +240,7 @@ class _$ItemDtoImpl implements _ItemDto {
 
   @override
   String toString() {
-    return 'ItemDto(itemId: $itemId, name: $name, weight: $weight, length: $length, width: $width, height: $height, price: $price)';
+    return 'ItemDto(itemId: $itemId, name: $name, barcode: $barcode, weight: $weight, length: $length, width: $width, height: $height, price: $price)';
   }
 
   @override
@@ -234,6 +250,7 @@ class _$ItemDtoImpl implements _ItemDto {
             other is _$ItemDtoImpl &&
             (identical(other.itemId, itemId) || other.itemId == itemId) &&
             (identical(other.name, name) || other.name == name) &&
+            (identical(other.barcode, barcode) || other.barcode == barcode) &&
             (identical(other.weight, weight) || other.weight == weight) &&
             (identical(other.length, length) || other.length == length) &&
             (identical(other.width, width) || other.width == width) &&
@@ -247,6 +264,7 @@ class _$ItemDtoImpl implements _ItemDto {
     runtimeType,
     itemId,
     name,
+    barcode,
     weight,
     length,
     width,
@@ -272,6 +290,7 @@ abstract class _ItemDto implements ItemDto {
   const factory _ItemDto({
     final int itemId,
     required final String name,
+    required final String barcode,
     required final double weight,
     required final double length,
     required final double width,
@@ -285,6 +304,8 @@ abstract class _ItemDto implements ItemDto {
   int get itemId;
   @override
   String get name;
+  @override
+  String get barcode;
   @override
   double get weight;
   @override

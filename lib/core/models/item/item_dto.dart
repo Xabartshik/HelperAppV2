@@ -8,6 +8,7 @@ class ItemDto with _$ItemDto {
   const factory ItemDto({
     @Default(0) int itemId,
     required String name,
+    required String barcode,
     required double weight,
     required double length,
     required double width,

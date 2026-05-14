@@ -44,6 +44,7 @@ class AdminPlacementState {
         (i) => i.itemId == itemId, 
         orElse: () => ItemDto(
           name: "ID: $itemId", 
+          barcode: "Штрих-код",
           itemId: itemId,
           weight: 0.0,
           length: 0.0,

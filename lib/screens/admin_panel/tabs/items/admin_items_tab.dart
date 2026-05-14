@@ -1,4 +1,6 @@
+import 'package:barcode_widget/barcode_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
@@ -41,8 +43,18 @@ class AdminItemsTab extends ConsumerWidget {
               child: Icon(Icons.inventory_2, color: Colors.white, size: 18),
             ),
             title: Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            subtitle: Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
-              style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Показываем штрих-код, если он есть
+                if (item.barcode != null && item.barcode!.isNotEmpty)
+                  Text('Штрих-код: ${item.barcode}', 
+                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace')),
+                const SizedBox(height: 2),
+                Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
             trailing: Text('${item.price} ₽', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
           ),
         );
@@ -65,7 +77,7 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
       final values = Map<String, dynamic>.from(_formKey.currentState!.value);
       final editingItem = ref.read(editingItemProvider);
-      
+      final String barcode = values['barcode']?.toString() ?? ''; // Извлекаем штрих-код
       // Парсим числовые значения
       final double weight = double.tryParse(values['weight'].toString()) ?? 0;
       final double length = double.tryParse(values['length'].toString()) ?? 0;
@@ -77,6 +89,7 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
       if (editingItem != null) {
         final updated = editingItem.copyWith(
           name: values['name'],
+          barcode: barcode,
           weight: weight,
           length: length,
           width: width,
@@ -87,6 +100,7 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
       } else {
         success = await ref.read(adminItemsProvider.notifier).createItem({
           'name': values['name'],
+          'barcode': barcode,
           'weight': weight,
           'length': length,
           'width': width,
@@ -139,6 +153,67 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
                       style: const TextStyle(color: Colors.white),
                       decoration: _inputDecoration('Название'),
                       validator: FormBuilderValidators.required(),
+                    ),
+                    const SizedBox(height: 16),
+// НОВЫЙ БЛОК ШТРИХ-КОДА С ГЕНЕРАЦИЕЙ
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: FormBuilderTextField(
+                            name: 'barcode',
+                            initialValue: isEdit ? editingItem?.barcode : null,
+                            style: const TextStyle(color: Colors.white),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: _inputDecoration('Штрих-код').copyWith(
+                              prefixIcon: const Icon(Icons.qr_code_scanner, color: Colors.white54, size: 20),
+                            ),
+                            validator: FormBuilderValidators.numeric(errorText: 'Только цифры'),
+                            // Обновляем UI при каждом вводе символа
+                            onChanged: (val) {
+                              setState(() {}); 
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        
+                        // Генератор штрих-кода
+                        Container(
+                          width: 120, // Сделали пошире для 1D штрих-кода
+                          height: 52,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          // Получаем текущее значение прямо из состояния формы
+                          child: Builder(
+                            builder: (context) {
+                              final currentValue = _formKey.currentState?.fields['barcode']?.value?.toString() ?? 
+                                                   (isEdit ? editingItem?.barcode ?? '' : '');
+                              
+                              if (currentValue.isNotEmpty) {
+                                return BarcodeWidget(
+                                  barcode: Barcode.code128(), // Надежный складской формат
+                                  data: currentValue,
+                                  drawText: false, // Отключаем дублирование цифр под полосками
+                                  errorBuilder: (context, error) => const Center(
+                                    child: Text('Ошибка', style: TextStyle(color: Colors.red, fontSize: 10))
+                                  ),
+                                );
+                              } else {
+                                // Заглушка, если поле пустое
+                                return const Center(
+                                  child: Icon(Icons.barcode_reader, color: Colors.black26, size: 32),
+                                );
+                              }
+                            }
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Row(
