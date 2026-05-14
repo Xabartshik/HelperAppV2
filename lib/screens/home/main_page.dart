@@ -5,6 +5,7 @@ import 'package:helper_app/core/models/user/current_user.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/core/models/user/worker_role.dart';
 import 'package:helper_app/core/network/api_client.dart';
+import 'package:helper_app/core/router/app_router.dart';
 import 'main_viewmodel.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/models/tasks/task_card_vm.dart';
@@ -39,10 +40,60 @@ class _MainPageState extends ConsumerState<MainPage> {
     _setupSignalR();
   }
 
-  void _setupSignalR() async {
+void _setupSignalR() async {
     _signalRService.onNotificationReceived = (title, message, type) {
+      
+      // НОВАЯ ЛОГИКА: ОБРАБОТКА ОТМЕНЫ ЗАДАЧИ
+      if (type == 'task_cancelled') {
+        if (!context.mounted) return;
+
+        // 1. Показываем красный Snackbar поверх всего
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.redAccent.shade700,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.cancel_outlined, color: Colors.white, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text(message, style: const TextStyle(fontSize: 13, color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        // 2. Получаем текущий маршрут через глобальный routerProvider
+        final router = ref.read(routerProvider);
+        final currentPath = router.routerDelegate.currentConfiguration.uri.path;
+
+        // 3. Если кладовщик внутри экрана задачи или сканера - выкидываем его!
+        final isInsideTask = currentPath.contains('/active') || 
+                             currentPath.contains('/scanner');
+
+        if (isInsideTask) {
+          context.go('/home'); // Сбрасываем стек навигации
+        }
+
+        // 4. Тихо обновляем списки задач, чтобы отмененная задача исчезла
+        ref.read(mainViewModelProvider.notifier).refreshTasks(isSilent: true);
+        return; 
+      }
+      //===========================================
       if (type == 'priority_escalated_1') {
-        ref.read(mainViewModelProvider.notifier).refreshTasks();
+        ref.read(mainViewModelProvider.notifier).refreshTasks(isSilent: true);
         return; 
       }
 
@@ -55,7 +106,7 @@ class _MainPageState extends ConsumerState<MainPage> {
         _showNotificationSnackbar(title, message, type);
       }
       
-      ref.read(mainViewModelProvider.notifier).refreshTasks(); 
+      ref.read(mainViewModelProvider.notifier).refreshTasks(isSilent: true); 
     };
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
