@@ -64,14 +64,15 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     super.dispose();
   }
 
-void _handleCode(String code) async {
+  void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
 
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);
     final state = ref.read(orderAssemblyViewModelProvider(args));
     final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
-// Если это экспресс-заказ (режим выдачи), просто отдаем токен назад экрану сборки
-if (state.isExpress && state.mode == AssemblyMode.place) {
+    
+    // Если это экспресс-заказ (режим выдачи), просто отдаем токен назад экрану сборки
+    if (state.isExpress && state.mode == AssemblyMode.place) {
       HapticFeedback.mediumImpact();
       
       // Вместо возврата строки, вызываем метод верификации во ViewModel
@@ -145,7 +146,6 @@ if (state.isExpress && state.mode == AssemblyMode.place) {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);
@@ -163,12 +163,26 @@ if (state.isExpress && state.mode == AssemblyMode.place) {
         ? 'Сканируйте штрих-код товара' 
         : (state.isExpress ? 'Наведите камеру на QR-код покупателя' : 'Сканируйте QR-код ячейки');
 
+    // 1. Вычисляем размеры и позицию окна сканирования
+    final screenSize = MediaQuery.of(context).size;
+    // Если QR — делаем квадрат 260x260, если штрих-код товара — вытянутый прямоугольник (ширина экрана минус отступы)
+    final double windowWidth = isQrMode ? 260.0 : screenSize.width - 48;
+    final double windowHeight = isQrMode ? 260.0 : 160.0;
+    
+    final Rect scanWindow = Rect.fromCenter(
+      center: Offset(screenSize.width / 2, screenSize.height / 2 - 40),
+      width: windowWidth,
+      height: windowHeight,
+    );
+
     return Scaffold(
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
+          // 2. Камера теперь ограничена окном сканирования (scanWindow)
           MobileScanner(
             controller: _scannerController,
+            scanWindow: scanWindow, // <--- Указываем окно для ML Kit
             onDetect: (capture) {
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
@@ -177,11 +191,12 @@ if (state.isExpress && state.mode == AssemblyMode.place) {
             },
           ),
 
+          // 3. Рисуем прицел по нашему scanWindow
           Positioned.fill(
             child: CustomPaint(
               painter: ScannerOverlayPainter(
                 primaryColor: activeColor,
-                isSquare: isQrMode, // Устанавливаем квадратное окно
+                scanWindow: scanWindow, // <--- Передаем вычисленный Rect
               ),
             ),
           ),
@@ -324,28 +339,21 @@ if (state.isExpress && state.mode == AssemblyMode.place) {
   }
 }
 
+// 4. Обновленный Painter, который рисует прицел ровно по переданному окну (Rect)
 class ScannerOverlayPainter extends CustomPainter {
   final Color primaryColor;
-  final bool isSquare;
+  final Rect scanWindow; // Заменили isSquare на scanWindow
 
   ScannerOverlayPainter({
     required this.primaryColor,
-    this.isSquare = false,
+    required this.scanWindow,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Если квадрат — размер 260x260, если штрих-код — 320x160
-    final double windowWidth = isSquare ? 260.0 : 320.0;
-    final double windowHeight = isSquare ? 260.0 : 160.0;
-
-    final double left = (size.width - windowWidth) / 2;
-    final double top = (size.height - windowHeight) / 2 - 40; 
-    final Rect rect = Rect.fromLTWH(left, top, windowWidth, windowHeight);
-
     final Paint backgroundPaint = Paint()..color = Colors.black54;
     final Path backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(20)));
+    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
     final Path backgroundWithCutout = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
     canvas.drawPath(backgroundWithCutout, backgroundPaint);
 
@@ -357,13 +365,14 @@ class ScannerOverlayPainter extends CustomPainter {
     const double cornerLen = 25.0;
     const double radius = 20.0;
 
-    canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
-    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
-    canvas.drawPath(Path()..moveTo(rect.left, rect.bottom - cornerLen)..lineTo(rect.left, rect.bottom - radius)..quadraticBezierTo(rect.left, rect.bottom, rect.left + radius, rect.bottom)..lineTo(rect.left + cornerLen, rect.bottom), paint);
-    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.bottom)..lineTo(rect.right - radius, rect.bottom)..quadraticBezierTo(rect.right, rect.bottom, rect.right, rect.bottom - radius)..lineTo(rect.right, rect.bottom - cornerLen), paint);
+    // Рисуем уголки, используя координаты scanWindow
+    canvas.drawPath(Path()..moveTo(scanWindow.left, scanWindow.top + cornerLen)..lineTo(scanWindow.left, scanWindow.top + radius)..quadraticBezierTo(scanWindow.left, scanWindow.top, scanWindow.left + radius, scanWindow.top)..lineTo(scanWindow.left + cornerLen, scanWindow.top), paint);
+    canvas.drawPath(Path()..moveTo(scanWindow.right - cornerLen, scanWindow.top)..lineTo(scanWindow.right - radius, scanWindow.top)..quadraticBezierTo(scanWindow.right, scanWindow.top, scanWindow.right, scanWindow.top + radius)..lineTo(scanWindow.right, scanWindow.top + cornerLen), paint);
+    canvas.drawPath(Path()..moveTo(scanWindow.left, scanWindow.bottom - cornerLen)..lineTo(scanWindow.left, scanWindow.bottom - radius)..quadraticBezierTo(scanWindow.left, scanWindow.bottom, scanWindow.left + radius, scanWindow.bottom)..lineTo(scanWindow.left + cornerLen, scanWindow.bottom), paint);
+    canvas.drawPath(Path()..moveTo(scanWindow.right - cornerLen, scanWindow.bottom)..lineTo(scanWindow.right - radius, scanWindow.bottom)..quadraticBezierTo(scanWindow.right, scanWindow.bottom, scanWindow.right, scanWindow.bottom - radius)..lineTo(scanWindow.right, scanWindow.bottom - cornerLen), paint);
   }
 
   @override
   bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => 
-      primaryColor != oldDelegate.primaryColor || isSquare != oldDelegate.isSquare;
+      primaryColor != oldDelegate.primaryColor || scanWindow != oldDelegate.scanWindow;
 }
