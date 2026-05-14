@@ -1,9 +1,9 @@
+// lib/screens/order_assembly/assembly_barcode_scanner_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mobile_scanner/mobile_scanner.dart'; 
+import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Используем ZXing
 import 'order_assembly_viewmodel.dart';
-import '../home/main_viewmodel.dart';
 import '../../core/utils/logger.dart';
 
 class AssemblyBarcodeScannerPage extends ConsumerStatefulWidget {
@@ -20,7 +20,9 @@ class AssemblyBarcodeScannerPage extends ConsumerStatefulWidget {
   ConsumerState<AssemblyBarcodeScannerPage> createState() => _AssemblyBarcodeScannerPageState();
 }
 
-class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScannerPage> {
+class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScannerPage> 
+    with SingleTickerProviderStateMixin {
+  
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _pickColor = const Color(0xFF0D9488); 
   final Color _placeColor = const Color(0xFFF59E0B); 
@@ -29,38 +31,28 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
   bool _showSuccessOverlay = false;
   String _message = '';
   bool _lastResultSuccess = false;
+  
+  // Флаг для кастомной кнопки фонарика
+  bool _isTorchOn = false;
 
   final _manualCodeController = TextEditingController();
-  late MobileScannerController _scannerController;
+  late AnimationController _laserController;
 
   @override
   void initState() {
     super.initState();
-    _initScanner();
-  }
-
-  void _initScanner() {
-    final args = (assignmentId: widget.assignmentId, userId: widget.userId);
-    final state = ref.read(orderAssemblyViewModelProvider(args));
-
-    // Квадратный режим (QR) нужен для размещения ячеек и для экспресс-выдачи
-    final bool isQrMode = state.mode != AssemblyMode.pick || state.isExpress;
-
-    _scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-      facing: CameraFacing.back,
-      torchEnabled: false,
-      // Оптимизируем форматы: если не сбор, то ищем только QR-коды
-      formats: isQrMode
-          ? [BarcodeFormat.qrCode]
-          : [BarcodeFormat.ean13, BarcodeFormat.code128, BarcodeFormat.code39],
-    );
+    
+    // Инициализация анимации лазера (бегает туда-сюда за 2 секунды)
+    _laserController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
+    _laserController.dispose();
     _manualCodeController.dispose();
-    _scannerController.dispose();
     super.dispose();
   }
 
@@ -70,21 +62,23 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     final args = (assignmentId: widget.assignmentId, userId: widget.userId);
     final state = ref.read(orderAssemblyViewModelProvider(args));
     final vm = ref.read(orderAssemblyViewModelProvider(args).notifier);
+
+    // Виброотклик при захвате кода
+    HapticFeedback.mediumImpact();
     
-    // Если это экспресс-заказ (режим выдачи), просто отдаем токен назад экрану сборки
+    setState(() {
+      _isProcessing = true;
+      _message = 'Обработка...';
+    });
+
+    // ЛОГИКА ЭКСПРЕСС-ВЫДАЧИ
     if (state.isExpress && state.mode == AssemblyMode.place) {
-      HapticFeedback.mediumImpact();
-      
-      // Вместо возврата строки, вызываем метод верификации во ViewModel
       final result = await vm.verifyCustomerQr(code);
-      
       if (!mounted) return;
 
       if (result.$1) {
-        // Возвращаем true (bool), что совпадает с ожидаемым типом!
         Navigator.pop(context, true); 
       } else {
-        // Если QR не прошел проверку на сервере, показываем ошибку не выходя из сканера
         setState(() {
           _lastResultSuccess = false;
           _message = result.$2;
@@ -94,17 +88,9 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
       }
       return; 
     }
-    // ------------------------------------
 
-    // --- СТАНДАРТНАЯ ЛОГИКА ДЛЯ СБОРА И РАЗМЕЩЕНИЯ ---
-    HapticFeedback.lightImpact();
-    
-    setState(() {
-      _isProcessing = true;
-      _message = 'Обработка...';
-    });
+    // СТАНДАРТНАЯ ЛОГИКА (СБОР/РАЗМЕЩЕНИЕ)
     (bool, String) result;
-
     if (state.mode == AssemblyMode.pick) {
       Logger.i('AssemblyScanner: сканирование товара $code');
       result = await vm.processScanPick(code);
@@ -121,7 +107,7 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     if (!success) {
       message = message.replaceAll('ApiException: ', '').replaceAll('Exception: ', '');
       if (message.contains('400') || message.toLowerCase().contains('формат')) {
-        message = '⚠️ Неверный код!\n\nПроверьте, что вы сканируете нужный объект.';
+        message = '⚠️ Неверный код!\n\nПроверьте объект сканирования.';
       }
     }
 
@@ -139,9 +125,7 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
 
     if (shouldPop) {
       Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context); 
-        }
+        if (mounted) Navigator.pop(context); 
       });
     }
   }
@@ -152,20 +136,11 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     final state = ref.watch(orderAssemblyViewModelProvider(args));
     
     final isPick = state.mode == AssemblyMode.pick;
-    final isQrMode = !isPick; // И ячейки, и экспресс используют QR
+    final isQrMode = !isPick; 
     final activeColor = isPick ? _pickColor : _placeColor;
 
-    final modeTitle = isPick 
-        ? 'Сбор товаров' 
-        : (state.isExpress ? 'Выдача клиенту' : 'Размещение ячеек');
-        
-    final hint = isPick 
-        ? 'Сканируйте штрих-код товара' 
-        : (state.isExpress ? 'Наведите камеру на QR-код покупателя' : 'Сканируйте QR-код ячейки');
-
-    // 1. Вычисляем размеры и позицию окна сканирования
+    // Расчет окна сканирования
     final screenSize = MediaQuery.of(context).size;
-    // Если QR — делаем квадрат 260x260, если штрих-код товара — вытянутый прямоугольник (ширина экрана минус отступы)
     final double windowWidth = isQrMode ? 260.0 : screenSize.width - 48;
     final double windowHeight = isQrMode ? 260.0 : 160.0;
     
@@ -179,200 +154,228 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 2. Камера теперь ограничена окном сканирования (scanWindow)
-          MobileScanner(
-            controller: _scannerController,
-            scanWindow: scanWindow, // <--- Указываем окно для ML Kit
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _handleCode(barcodes.first.rawValue!);
+          // 1. Камера ZXing
+          ReaderWidget(
+            onScan: (result) {
+              if (result.isValid && result.text != null) {
+                _handleCode(result.text!);
               }
+            },
+            // Отключаем встроенный UI от ZXing
+            showScannerOverlay: false, 
+            showFlashlight: false,
+            showToggleCamera: false,
+            showGallery: false,
+            // Настройки для агрессивного сканирования плохих штрих-кодов
+            tryHarder: true, 
+            resolution: ResolutionPreset.high,
+            // Ограничение зоны внимания матрицы для ускорения
+            cropPercent: 0.8, 
+          ),
+
+          // 2. Анимированный оверлей
+          AnimatedBuilder(
+            animation: _laserController,
+            builder: (context, child) {
+              return Positioned.fill(
+                child: CustomPaint(
+                  painter: ScannerOverlayPainter(
+                    primaryColor: activeColor,
+                    scanWindow: scanWindow,
+                    laserPosition: _laserController.value,
+                    isProcessing: _isProcessing,
+                  ),
+                ),
+              );
             },
           ),
 
-          // 3. Рисуем прицел по нашему scanWindow
-          Positioned.fill(
-            child: CustomPaint(
-              painter: ScannerOverlayPainter(
-                primaryColor: activeColor,
-                scanWindow: scanWindow, // <--- Передаем вычисленный Rect
-              ),
-            ),
-          ),
+          // 3. Верхняя панель
+          _buildHeader(isPick, state.isExpress),
 
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(10, MediaQuery.of(context).padding.top + 10, 20, 20),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          modeTitle,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          hint,
-                          style: const TextStyle(color: Colors.white54, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.flash_on, color: Colors.white),
-                    onPressed: () => _scannerController.toggleTorch(),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // 4. Нижняя панель
+          _buildBottomPanel(isPick, activeColor),
 
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom + 24),
-              decoration: const BoxDecoration(
-                color: Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: _manualCodeController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: _bgOffBlack,
-                      hintText: isPick ? 'Введите штрих-код...' : 'Введите код...',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: activeColor),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isProcessing ? null : () => _handleCode(_manualCodeController.text),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: activeColor,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Применить вручную', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
+          // 5. Оверлеи состояний
           if (_isProcessing && !_showSuccessOverlay)
-            Container(
-              color: Colors.black54,
-              child: const Center(child: CircularProgressIndicator()),
-            ),
+            Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator())),
 
           if (_showSuccessOverlay)
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _showSuccessOverlay = false;
-                  _manualCodeController.clear();
-                });
-              },
-              child: Container(
-                color: Colors.black.withOpacity(0.85),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
-                      color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, 
-                      size: 80
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      _message,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 32),
-                    const Text(
-                      'Нажмите, чтобы продолжить',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-            )
+            _buildResultOverlay(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isPick, bool isExpress) {
+    final title = isPick ? 'Сбор товаров' : (isExpress ? 'Выдача клиенту' : 'Размещение ячеек');
+    final hint = isPick ? 'Штрих-код товара (ZXing)' : (isExpress ? 'QR-код покупателя (ZXing)' : 'QR-код ячейки (ZXing)');
+
+    return Positioned(
+      top: 0, left: 0, right: 0,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(10, MediaQuery.of(context).padding.top + 10, 20, 20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        child: Row(
+          children: [
+            IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(hint, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: Icon(_isTorchOn ? Icons.flash_on : Icons.flash_off, color: Colors.white), 
+              onPressed: () {
+                setState(() {
+                  _isTorchOn = !_isTorchOn;
+                  // Примечание: Для аппаратного включения вспышки в связке с кастомным UI ReaderWidget 
+                  // может потребоваться отдельный пакет вроде torch_light
+                });
+              }
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomPanel(bool isPick, Color activeColor) {
+    return Positioned(
+      bottom: 0, left: 0, right: 0,
+      child: Container(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).padding.bottom + 24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _manualCodeController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: _bgOffBlack,
+                hintText: isPick ? 'Введите штрих-код...' : 'Введите код...',
+                hintStyle: const TextStyle(color: Colors.white38),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: activeColor)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _isProcessing ? null : () => _handleCode(_manualCodeController.text),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: activeColor,
+                minimumSize: const Size(double.infinity, 54),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Применить вручную', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultOverlay() {
+    return GestureDetector(
+      onTap: () => setState(() { _showSuccessOverlay = false; _manualCodeController.clear(); }),
+      child: Container(
+        // Исправлено: замена устаревшего withOpacity на withValues
+        color: Colors.black.withValues(alpha: 0.9),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_lastResultSuccess ? Icons.check_circle : Icons.error_outline, 
+                 color: _lastResultSuccess ? Colors.greenAccent : Colors.redAccent, size: 90),
+            const SizedBox(height: 24),
+            Text(_message, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 32),
+            const Text('Нажмите, чтобы продолжить', style: TextStyle(color: Colors.white38, fontSize: 14)),
+          ],
+        ),
       ),
     );
   }
 }
 
-// 4. Обновленный Painter, который рисует прицел ровно по переданному окну (Rect)
 class ScannerOverlayPainter extends CustomPainter {
   final Color primaryColor;
-  final Rect scanWindow; // Заменили isSquare на scanWindow
+  final Rect scanWindow;
+  final double laserPosition;
+  final bool isProcessing;
 
   ScannerOverlayPainter({
     required this.primaryColor,
     required this.scanWindow,
+    required this.laserPosition,
+    required this.isProcessing,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint backgroundPaint = Paint()..color = Colors.black54;
-    final Path backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final Path cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
-    final Path backgroundWithCutout = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
-    canvas.drawPath(backgroundWithCutout, backgroundPaint);
+    // 1. Затемнение области вне сканирования
+    final backgroundPaint = Paint()..color = Colors.black54;
+    final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
+    canvas.drawPath(Path.combine(PathOperation.difference, backgroundPath, cutoutPath), backgroundPaint);
 
-    final Paint paint = Paint()
-      ..color = primaryColor
+    // 2. Рамка (вспышка белым при обработке)
+    final Paint framePaint = Paint()
+      ..color = isProcessing ? Colors.white : primaryColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
+      ..strokeWidth = isProcessing ? 5.0 : 3.0;
 
+    _drawCorners(canvas, scanWindow, framePaint);
+
+    // 3. Лазерная линия (только когда не обрабатываем код)
+    if (!isProcessing) {
+      final double y = scanWindow.top + (scanWindow.height * laserPosition);
+      final laserPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            // Исправлено: замена устаревшего withOpacity на withValues
+            primaryColor.withValues(alpha: 0),
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor,
+            primaryColor.withValues(alpha: 0.5),
+            primaryColor.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromLTRB(scanWindow.left, y - 1, scanWindow.right, y + 1));
+
+      canvas.drawRect(
+        Rect.fromLTWH(scanWindow.left + 10, y - 1, scanWindow.width - 20, 2),
+        laserPaint,
+      );
+    }
+  }
+
+  void _drawCorners(Canvas canvas, Rect rect, Paint paint) {
     const double cornerLen = 25.0;
     const double radius = 20.0;
 
-    // Рисуем уголки, используя координаты scanWindow
-    canvas.drawPath(Path()..moveTo(scanWindow.left, scanWindow.top + cornerLen)..lineTo(scanWindow.left, scanWindow.top + radius)..quadraticBezierTo(scanWindow.left, scanWindow.top, scanWindow.left + radius, scanWindow.top)..lineTo(scanWindow.left + cornerLen, scanWindow.top), paint);
-    canvas.drawPath(Path()..moveTo(scanWindow.right - cornerLen, scanWindow.top)..lineTo(scanWindow.right - radius, scanWindow.top)..quadraticBezierTo(scanWindow.right, scanWindow.top, scanWindow.right, scanWindow.top + radius)..lineTo(scanWindow.right, scanWindow.top + cornerLen), paint);
-    canvas.drawPath(Path()..moveTo(scanWindow.left, scanWindow.bottom - cornerLen)..lineTo(scanWindow.left, scanWindow.bottom - radius)..quadraticBezierTo(scanWindow.left, scanWindow.bottom, scanWindow.left + radius, scanWindow.bottom)..lineTo(scanWindow.left + cornerLen, scanWindow.bottom), paint);
-    canvas.drawPath(Path()..moveTo(scanWindow.right - cornerLen, scanWindow.bottom)..lineTo(scanWindow.right - radius, scanWindow.bottom)..quadraticBezierTo(scanWindow.right, scanWindow.bottom, scanWindow.right, scanWindow.bottom - radius)..lineTo(scanWindow.right, scanWindow.bottom - cornerLen), paint);
+    canvas.drawPath(Path()..moveTo(rect.left, rect.top + cornerLen)..lineTo(rect.left, rect.top + radius)..quadraticBezierTo(rect.left, rect.top, rect.left + radius, rect.top)..lineTo(rect.left + cornerLen, rect.top), paint);
+    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.top)..lineTo(rect.right - radius, rect.top)..quadraticBezierTo(rect.right, rect.top, rect.right, rect.top + radius)..lineTo(rect.right, rect.top + cornerLen), paint);
+    canvas.drawPath(Path()..moveTo(rect.left, rect.bottom - cornerLen)..lineTo(rect.left, rect.bottom - radius)..quadraticBezierTo(rect.left, rect.bottom, rect.left + radius, rect.bottom)..lineTo(rect.left + cornerLen, rect.bottom), paint);
+    canvas.drawPath(Path()..moveTo(rect.right - cornerLen, rect.bottom)..lineTo(rect.right - radius, rect.bottom)..quadraticBezierTo(rect.right, rect.bottom, rect.right, rect.bottom - radius)..lineTo(rect.right, rect.bottom - cornerLen), paint);
   }
 
   @override
-  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => 
-      primaryColor != oldDelegate.primaryColor || scanWindow != oldDelegate.scanWindow;
+  bool shouldRepaint(covariant ScannerOverlayPainter oldDelegate) => true;
 }
