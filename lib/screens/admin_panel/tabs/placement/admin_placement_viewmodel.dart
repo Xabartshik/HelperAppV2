@@ -30,8 +30,7 @@ class AdminPlacementState {
   });
 
   List<Map<String, dynamic>> getItemsInPosition(int positionId) {
-    final itemsInPos = stock.where((s) => s.positionId == positionId);
-    
+    final itemsInPos = stock.where((s) => s.positionId == positionId && s.quantity > 0);
     final Map<int, int> groupedStock = {};
     for (var s in itemsInPos) {
       groupedStock[s.itemId] = (groupedStock[s.itemId] ?? 0) + s.quantity;
@@ -71,7 +70,11 @@ class AdminPlacementState {
 
     // 2. Фильтр "Только пустые"
     if (showOnlyEmpty) {
-      final filledPositionIds = stock.map((s) => s.positionId).toSet();
+      // Учитываем только те записи в стоке, где количество реально больше 0
+      final filledPositionIds = stock
+          .where((s) => s.quantity > 0) 
+          .map((s) => s.positionId)
+          .toSet();
       list = list.where((p) => !filledPositionIds.contains(p.positionId)).toList();
     }
 
