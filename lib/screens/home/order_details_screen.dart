@@ -316,7 +316,7 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
                 const SizedBox(height: 32),
                 
                 // Кнопка отмены заказа
-                if (order.status != 'Completed' && order.status != 'Cancelled')
+                if (order.status != 'Completed' && order.status != 'InTransit' && order.status != 'Cancelled')
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
