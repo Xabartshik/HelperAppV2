@@ -61,7 +61,7 @@ class AdminPlacementTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Фильтр содержимого ячеек (ограничен по ширине, чтобы не растягивался на весь экран)
+          // Фильтр содержимого ячеек
           SizedBox(
             width: 350,
             child: TextField(
@@ -119,6 +119,7 @@ class AdminPlacementTab extends ConsumerWidget {
     String? currentBranch;
     String? currentZone;
     String? currentStorage;
+    String? currentStorageType; // Отслеживаем смену типа
     final items = state.filteredPositions;
 
     List<PositionCellDto> chunk = [];
@@ -128,7 +129,6 @@ class AdminPlacementTab extends ConsumerWidget {
         slivers.add(SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
-            // ИСПРАВЛЕНИЕ: Сделали ячейки шире (250) и вернули правильные пропорции (2.5)
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 250, 
               childAspectRatio: 2.5, 
@@ -143,10 +143,15 @@ class AdminPlacementTab extends ConsumerWidget {
     }
 
     for (var pos in items) {
-      if (pos.branchId.toString() != currentBranch || pos.zoneCode != currentZone || pos.flsNumber != currentStorage) {
+      bool branchChanged = pos.branchId.toString() != currentBranch;
+      bool zoneChanged = branchChanged || pos.zoneCode != currentZone;
+      // Группа хранилища меняется, если изменился номер ИЛИ тип
+      bool storageChanged = zoneChanged || pos.flsNumber != currentStorage || pos.firstLevelStorageType != currentStorageType;
+
+      if (storageChanged) {
         flush();
         // Заголовок филиала
-        if (pos.branchId.toString() != currentBranch) {
+        if (branchChanged) {
           currentBranch = pos.branchId.toString();
           final branchStr = branchesState.branches.any((b) => b.branchId == pos.branchId) 
               ? branchesState.branches.firstWhere((b) => b.branchId == pos.branchId).branchName 
@@ -154,13 +159,20 @@ class AdminPlacementTab extends ConsumerWidget {
           slivers.add(SliverToBoxAdapter(child: _header("Филиал: $branchStr", Icons.business, 16)));
         }
         // Заголовок зоны
-        if (pos.zoneCode != currentZone) {
+        if (zoneChanged) {
           currentZone = pos.zoneCode;
           slivers.add(SliverToBoxAdapter(child: _header("Зона $currentZone", Icons.map, 20)));
         }
-        // Заголовок стеллажа
+        // Заголовок стеллажа / паллеты
         currentStorage = pos.flsNumber;
-        slivers.add(SliverToBoxAdapter(child: _header("Стеллаж $currentStorage", Icons.view_column, 40)));
+        currentStorageType = pos.firstLevelStorageType;
+        
+        String typeName = pos.firstLevelStorageType == 'RACK' ? 'Стеллаж' 
+                        : pos.firstLevelStorageType == 'PALLET' ? 'Паллетное место' 
+                        : 'Хранилище';
+        IconData icon = pos.firstLevelStorageType == 'RACK' ? Icons.view_column : Icons.inventory_2;
+
+        slivers.add(SliverToBoxAdapter(child: _header("$typeName $currentStorage", icon, 40)));
       }
       chunk.add(pos);
     }
@@ -172,7 +184,6 @@ class AdminPlacementTab extends ConsumerWidget {
   Widget _buildCell(BuildContext context, WidgetRef ref, AdminPlacementState state, PositionCellDto pos) {
     final contents = state.getItemsInPosition(pos.positionId);
     final hasItems = contents.isNotEmpty;
-    // Считаем общее количество физических единиц в ячейке
     final totalUnits = contents.fold<int>(0, (sum, item) => sum + (item['quantity'] as int));
 
     return InkWell(
@@ -340,7 +351,7 @@ class _ItemSelectorDialogState extends State<ItemSelectorDialog> {
       title: const Text('Выберите товар', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       content: SizedBox(
         width: 500,
-        height: 400, // ИСПРАВЛЕНИЕ: Ограничили высоту диалога, чтобы он не был на весь экран!
+        height: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -357,7 +368,7 @@ class _ItemSelectorDialogState extends State<ItemSelectorDialog> {
               onChanged: (v) => setState(() => query = v),
             ),
             const SizedBox(height: 16),
-            Expanded( // Заменили Flexible на Expanded
+            Expanded(
               child: ListView.builder(
                 itemCount: filtered.length,
                 itemBuilder: (c, i) => ListTile(

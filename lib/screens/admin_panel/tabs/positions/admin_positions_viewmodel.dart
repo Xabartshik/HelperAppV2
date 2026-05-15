@@ -51,9 +51,14 @@ class AdminPositionsState {
       list = list.where((p) => p.fullName.toLowerCase().contains(q)).toList();
     }
 
-    // 2. Умная сортировка: Зона -> Стеллаж -> Полка -> Ячейка
+    // 2. Умная сортировка: Зона -> Тип -> Стеллаж -> Полка -> Ячейка
     list.sort((a, b) {
+      // Сортируем зоны
       int cmp = a.zoneCode.compareTo(b.zoneCode);
+      if (cmp != 0) return cmp;
+
+      // Сортируем по типу хранилища (чтобы RACK и PALLET с одинаковым номером не смешивались)
+      cmp = a.firstLevelStorageType.compareTo(b.firstLevelStorageType);
       if (cmp != 0) return cmp;
 
       // Сортируем номера стеллажей как числа, чтобы 2 шло перед 10

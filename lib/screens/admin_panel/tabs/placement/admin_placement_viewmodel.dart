@@ -16,7 +16,7 @@ class AdminPlacementState {
   final String contentSearchQuery; 
   final int? selectedBranchId;
   final ItemDto? itemToPlace; 
-  final bool showOnlyEmpty; // НОВЫЙ ФИЛЬТР: Только пустые ячейки
+  final bool showOnlyEmpty;
 
   AdminPlacementState({
     this.isLoading = false,
@@ -60,7 +60,6 @@ class AdminPlacementState {
     }).toList();
   }
 
-  // ОБНОВЛЕННАЯ УМНАЯ ФИЛЬТРАЦИЯ
   List<PositionCellDto> get filteredPositions {
     var list = List<PositionCellDto>.from(allPositions);
 
@@ -71,7 +70,6 @@ class AdminPlacementState {
 
     // 2. Фильтр "Только пустые"
     if (showOnlyEmpty) {
-      // Учитываем только те записи в стоке, где количество реально больше 0
       final filledPositionIds = stock
           .where((s) => s.quantity > 0) 
           .map((s) => s.positionId)
@@ -93,14 +91,13 @@ class AdminPlacementState {
           .map((s) => s.positionId)
           .toSet();
 
-      // Оставляем ячейку, если в ней есть искомый товар ИЛИ её имя содержит запрос
       list = list.where((p) => 
         positionsWithMatch.contains(p.positionId) || 
         p.fullName.toLowerCase().contains(q)
       ).toList();
     }
 
-    // 4. Сортировка: Филиал -> Зона -> Стеллаж -> Полка
+    // 4. Сортировка: Филиал -> Зона -> ТИП ХРАНИЛИЩА -> Стеллаж -> Полка
     list.sort((a, b) {
       int cmp = a.branchId.compareTo(b.branchId);
       if (cmp != 0) return cmp;
@@ -108,13 +105,19 @@ class AdminPlacementState {
       cmp = a.zoneCode.compareTo(b.zoneCode);
       if (cmp != 0) return cmp;
       
+      // Сортировка по типу (чтобы отделить паллеты от стеллажей)
+      cmp = a.firstLevelStorageType.compareTo(b.firstLevelStorageType);
+      if (cmp != 0) return cmp;
+
       int flsA = int.tryParse(a.flsNumber) ?? 0;
       int flsB = int.tryParse(b.flsNumber) ?? 0;
       cmp = flsA.compareTo(flsB);
+      if (cmp == 0) cmp = a.flsNumber.compareTo(b.flsNumber); 
       
       if (cmp == 0) {
         cmp = (int.tryParse(a.secondLevelStorage ?? '0') ?? 0)
             .compareTo(int.tryParse(b.secondLevelStorage ?? '0') ?? 0);
+        if (cmp == 0) cmp = (a.secondLevelStorage ?? '').compareTo(b.secondLevelStorage ?? '');
       }
       return cmp;
     });

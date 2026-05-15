@@ -155,7 +155,7 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                     style: const TextStyle(color: Colors.white), // Цвет выбранного текста
                     items: const [
                       DropdownMenuItem(value: 'storekeeper', child: Text('Сборщик заказов')),
-                      DropdownMenuItem(value: 'issuer', child: Text('Кассир (Выдача)')),
+                      // DropdownMenuItem(value: 'issuer', child: Text('Кассир (Выдача)')),
                       DropdownMenuItem(value: 'courier', child: Text('Курьер')),
                       DropdownMenuItem(value: 'manager', child: Text('Начальник (Supervisor)')),
                       DropdownMenuItem(value: 'admin', child: Text('Администратор')),
@@ -181,17 +181,18 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _numField('maxWeight', 'Вес (г)')),
+                        // Передаем минимальные значения согласно требованиям
+                        Expanded(child: _numField('maxWeight', 'Вес (г)', minValue: 1000)),
                         const SizedBox(width: 12),
-                        Expanded(child: _numField('maxLength', 'Длина (мм)')),
+                        Expanded(child: _numField('maxLength', 'Длина (мм)', minValue: 100)),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _numField('maxWidth', 'Ширина (мм)')),
+                        Expanded(child: _numField('maxWidth', 'Ширина (мм)', minValue: 100)),
                         const SizedBox(width: 12),
-                        Expanded(child: _numField('maxHeight', 'Высота (мм)')),
+                        Expanded(child: _numField('maxHeight', 'Высота (мм)', minValue: 100)),
                       ],
                     ),
                   ],
@@ -232,15 +233,17 @@ class _EmployeeFormPanelState extends ConsumerState<EmployeeFormPanel> {
     validator: required ? FormBuilderValidators.required(errorText: 'Обязательное поле') : null,
   );
 
-  Widget _numField(String name, String label) => FormBuilderTextField(
+  // Обновленный метод _numField с проверками на целое число и минимум
+  Widget _numField(String name, String label, {required int minValue}) => FormBuilderTextField(
     name: name,
     keyboardType: TextInputType.number,
     style: const TextStyle(color: Colors.white),
     decoration: _inputDecoration(label),
-    initialValue: '0',
+    initialValue: minValue.toString(), // В качестве стартового значения логично поставить минимум
     validator: FormBuilderValidators.compose([
-      FormBuilderValidators.required(),
-      FormBuilderValidators.numeric(),
+      FormBuilderValidators.required(errorText: 'Обязательное поле'),
+      FormBuilderValidators.integer(errorText: 'Только целые числа'),
+      FormBuilderValidators.min(minValue, errorText: 'Мин. значение: $minValue'),
     ]),
   );
 

@@ -45,7 +45,6 @@ class AdminPositionsTab extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // Плавающих кнопок больше нет
       body: Column(
         children: [
           Container(
@@ -156,13 +155,13 @@ class AdminPositionsTab extends ConsumerWidget {
     List<Widget> slivers = [];
     String? currentZone;
     String? currentStorage;
+    String? currentStorageType; // Добавлено отслеживание типа хранилища
     String? currentShelf;
 
     List<PositionCellDto> currentChunk = [];
 
     void flushChunk() {
       if (currentChunk.isNotEmpty) {
-        // ИСПРАВЛЕНИЕ RangeError: создаем жесткую копию списка для ленивого билдера
         final chunkToRender = List<PositionCellDto>.from(currentChunk);
         
         slivers.add(
@@ -188,7 +187,8 @@ class AdminPositionsTab extends ConsumerWidget {
 
     for (var pos in items) {
       bool zoneChanged = pos.zoneCode != currentZone;
-      bool storageChanged = zoneChanged || pos.flsNumber != currentStorage;
+      // Хранилище считается измененным, если изменился номер ИЛИ тип (например, номер 01 у паллеты сменился на 01 у стеллажа)
+      bool storageChanged = zoneChanged || pos.flsNumber != currentStorage || pos.firstLevelStorageType != currentStorageType;
       bool shelfChanged = storageChanged || pos.secondLevelStorage != currentShelf;
 
       if (shelfChanged || storageChanged || zoneChanged) {
@@ -215,6 +215,8 @@ class AdminPositionsTab extends ConsumerWidget {
 
       if (storageChanged) {
         currentStorage = pos.flsNumber;
+        currentStorageType = pos.firstLevelStorageType; // Сохраняем текущий тип
+        
         String typeName = pos.firstLevelStorageType == 'RACK' ? 'Стеллаж' : pos.firstLevelStorageType == 'PALLET' ? 'Паллетное место' : 'Хранилище';
         slivers.add(
           SliverToBoxAdapter(
