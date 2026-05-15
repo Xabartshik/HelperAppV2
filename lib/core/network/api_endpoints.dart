@@ -109,5 +109,5 @@ static const String courierPartialComplete = 'v1/CourierDelivery/partial-complet
   static const String exportDashboardPdf = 'analytics/export/dashboard/pdf';
 static const String exportEmployeeFullPdf = 'analytics/export/employee-full/pdf';
 static const String exportOrderLeadTimeCsv = 'analytics/export/orders/csv';
-static String confirmPayment(int orderId) => 'v1/Orders/$orderId/confirm-payment';
+static String confirmPayment(int orderId) => 'Orders/$orderId/confirm-payment';
 }

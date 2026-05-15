@@ -812,27 +812,31 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                           
                           try {
                             // Вызываем эндпоинт ConfirmPayment
-                            final dynamic response = await ref.read(apiClientProvider).postAsync('/api/Orders/$orderId/ConfirmPayment', data: {}); 
-                            
-                            // Симулируем успешный ответ для заглушки:
-                            final success = true; 
+                            final bool success = await ref.read(apiClientProvider).confirmPaymentAsync(orderId);
 
                             if (success) {
-                              if (ctx.mounted) Navigator.of(ctx).pop();
-                              if (this.context.mounted) {
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  const SnackBar(content: Text('Оплата успешна! Заказ передан в сборку.'), backgroundColor: Colors.green)
-                                );
-                                Navigator.of(this.context).pop(); 
-                              }
+                                // Оплата прошла, бэкенд перевел статус в Created и запустил задачи
+                                if (ctx.mounted) Navigator.of(ctx).pop(); // Закрываем диалог оплаты
+                                if (this.context.mounted) {
+                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Оплата успешна! Заказ передан в сборку.'), 
+                                            backgroundColor: Colors.green,
+                                            behavior: SnackBarBehavior.floating,
+                                        )
+                                    );
+                                    Navigator.of(this.context).pop(); // Уходим с экрана создания заказа
+                                }
                             } else {
-                              setState(() => isProcessing = false);
-                              if (ctx.mounted) {
+                                // Ошибка (например, 404 если метод не найден или 400 если заказ нельзя оплатить)
+                                setState(() => isProcessing = false);
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(content: Text('Ошибка проведения оплаты'), backgroundColor: Colors.red)
+                                    const SnackBar(
+                                        content: Text('Не удалось подтвердить оплату. Проверьте соединение.'), 
+                                        backgroundColor: Colors.red
+                                    )
                                 );
-                              }
-                            }
+}
                           } catch (e) {
                              setState(() => isProcessing = false);
                              if (ctx.mounted) {
