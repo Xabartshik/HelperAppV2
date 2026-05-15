@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Заменили на ZXing
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'order_handover_viewmodel.dart';
 
 class HandoverBarcodeScannerPage extends ConsumerStatefulWidget {
@@ -19,11 +19,11 @@ class HandoverBarcodeScannerPage extends ConsumerStatefulWidget {
 }
 
 class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScannerPage> 
-    with SingleTickerProviderStateMixin { // <--- Добавили миксин для анимации
+    with SingleTickerProviderStateMixin { 
 
   final Color _bgOffBlack = const Color(0xFF141414);
   final Color _headerBg = const Color(0xFF1C1C1E);
-  final Color _handoverColor = const Color(0xFFE11D48); // Фирменный цвет выдачи
+  final Color _handoverColor = const Color(0xFFE11D48); 
 
   bool _isProcessing = false;
   bool _showSuccessOverlay = false;
@@ -38,7 +38,6 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
   @override
   void initState() {
     super.initState();
-    // Инициализация анимации бегающего лазера
     _laserController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -55,7 +54,6 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
   void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
     
-    // Виброотклик при захвате кода
     HapticFeedback.mediumImpact();
     
     setState(() {
@@ -106,10 +104,10 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
 
   @override
   Widget build(BuildContext context) {
-    // Динамический расчет окна сканирования для широкого 1D штрих-кода
+    // Окно настроено исключительно под 1D штрих-коды
     final screenSize = MediaQuery.of(context).size;
-    final double windowWidth = screenSize.width - 48; // Отступы по 24
-    const double windowHeight = 140.0; // Узкое прямоугольное окно
+    final double windowWidth = screenSize.width - 48;
+    const double windowHeight = 140.0; 
     
     final Rect scanWindow = Rect.fromCenter(
       center: Offset(screenSize.width / 2, screenSize.height / 2 - 60),
@@ -121,25 +119,23 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера ZXing
+          // 1. Камера ZXing (идеальна для 1D)
           ReaderWidget(
             onScan: (result) {
               if (result.isValid && result.text != null) {
                 _handleCode(result.text!);
               }
             },
-            // Отключаем встроенный UI от ZXing, используем свой
             showScannerOverlay: false, 
             showFlashlight: false,
             showToggleCamera: false,
             showGallery: false,
-            // Агрессивное сканирование 
             tryHarder: true, 
             resolution: ResolutionPreset.high,
             cropPercent: 0.8, 
           ),
 
-          // 2. Анимированный оверлей с вырезом и лазером
+          // 2. Анимированный оверлей
           AnimatedBuilder(
             animation: _laserController,
             builder: (context, child) {
@@ -178,7 +174,7 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
                       children: [
                         Text('Сверка товаров', 
                           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text('Сканируйте штрих-код на упаковке', 
+                        Text('Сканируйте штрих-код на упаковке (ZXing)', 
                           style: TextStyle(color: Colors.white54, fontSize: 13)),
                       ],
                     ),
@@ -188,9 +184,9 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
                     onPressed: () {
                       setState(() {
                         _isTorchOn = !_isTorchOn;
-                        // Заметка: Для программного переключения вспышки с ZXing 
-                        // может потребоваться сторонний плагин типа torch_light.
                       });
+                      // Для включения вспышки в ReaderWidget потребуется сторонний плагин, 
+                      // например torch_light: TorchLight.toggleTorch();
                     }
                   ),
                 ],
@@ -243,7 +239,7 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
             ),
           ),
 
-          // 5. Индикатор загрузки и Оверлей результата
+          // 5. Оверлеи состояний
           if (_isProcessing && !_showSuccessOverlay)
             Container(color: Colors.black54, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
 
@@ -279,7 +275,6 @@ class _HandoverBarcodeScannerPageState extends ConsumerState<HandoverBarcodeScan
   }
 }
 
-/// Анимированный оверлей для экрана выдачи
 class HandoverOverlayPainter extends CustomPainter {
   final Color primaryColor;
   final Rect scanWindow;
@@ -295,13 +290,11 @@ class HandoverOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Затемнение вокруг прицела
     final backgroundPaint = Paint()..color = Colors.black54;
     final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
     canvas.drawPath(Path.combine(PathOperation.difference, backgroundPath, cutoutPath), backgroundPaint);
 
-    // 2. Рамка прицела (вспыхивает белым во время обработки)
     final Paint framePaint = Paint()
       ..color = isProcessing ? Colors.white : primaryColor
       ..style = PaintingStyle.stroke
@@ -309,7 +302,6 @@ class HandoverOverlayPainter extends CustomPainter {
 
     _drawCorners(canvas, scanWindow, framePaint);
 
-    // 3. Бегающий лазер (прячется, когда код захвачен)
     if (!isProcessing) {
       final double y = scanWindow.top + (scanWindow.height * laserPosition);
       final laserPaint = Paint()
@@ -325,7 +317,6 @@ class HandoverOverlayPainter extends CustomPainter {
           ],
         ).createShader(Rect.fromLTRB(scanWindow.left, y - 1, scanWindow.right, y + 1));
 
-      // Рисуем линию лазера немного отступив от краев (на 10 пикселей)
       canvas.drawRect(
         Rect.fromLTWH(scanWindow.left + 10, y - 1, scanWindow.width - 20, 2),
         laserPaint,

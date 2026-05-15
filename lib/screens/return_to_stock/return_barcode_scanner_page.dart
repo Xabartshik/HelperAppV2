@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Заменили на ZXing
+import 'package:flutter_zxing/flutter_zxing.dart';
+import 'package:mobile_scanner/mobile_scanner.dart'; // <--- Добавили Mobile Scanner
 import 'return_to_stock_viewmodel.dart';
 import '../../core/utils/logger.dart';
 
@@ -10,7 +11,7 @@ class ReturnBarcodeScannerPage extends ConsumerStatefulWidget {
   final int taskId;
   final int workerId;
   final int lineId;
-  final bool isCellScan; // Режим: true - сканим ячейку (QR), false - товар (Barcode)
+  final bool isCellScan; 
 
   const ReturnBarcodeScannerPage({
     super.key,
@@ -26,11 +27,11 @@ class ReturnBarcodeScannerPage extends ConsumerStatefulWidget {
 }
 
 class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerPage> 
-    with SingleTickerProviderStateMixin { // <--- Добавили миксин для анимации
+    with SingleTickerProviderStateMixin { 
 
   final Color _bgOffBlack = const Color(0xFF141414);
-  final Color _returnColor = const Color(0xFF3B82F6); // Синий цвет возврата
-  final Color _cellColor = const Color(0xFFF59E0B);   // Оранжевый для ячеек
+  final Color _returnColor = const Color(0xFF3B82F6); 
+  final Color _cellColor = const Color(0xFFF59E0B);   
 
   bool _isProcessing = false;
   bool _showSuccessOverlay = false;
@@ -41,11 +42,18 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
 
   final _manualCodeController = TextEditingController();
   late AnimationController _laserController;
+  late MobileScannerController _mobileScannerController; // <--- Контроллер для QR
 
   @override
   void initState() {
     super.initState();
-    // Инициализация анимации бегающего лазера
+    
+    // Инициализируем контроллер для QR-сканера
+    _mobileScannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
+
     _laserController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -54,6 +62,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
 
   @override
   void dispose() {
+    _mobileScannerController.dispose(); // <--- Очистка контроллера
     _laserController.dispose();
     _manualCodeController.dispose();
     super.dispose();
@@ -62,7 +71,6 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
   void _handleCode(String code) async {
     if (_isProcessing || code.trim().isEmpty) return;
     
-    // Виброотклик при успешном захвате
     HapticFeedback.mediumImpact();
     
     setState(() {
@@ -111,7 +119,6 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
         if (mounted) Navigator.pop(context, true);
       });
     } else {
-      // Автоматически скрываем успешный оверлей (если не нужно закрывать окно)
       Future.delayed(const Duration(milliseconds: 1500), () {
         if (mounted && _lastResultSuccess) {
           setState(() => _showSuccessOverlay = false);
@@ -124,11 +131,12 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
   Widget build(BuildContext context) {
     final activeColor = widget.isCellScan ? _cellColor : _returnColor;
     final title = widget.isCellScan ? 'Сканирование ячейки' : 'Сканирование товара';
-    final hint = widget.isCellScan ? 'Наведите камеру на QR-код ячейки' : 'Наведите камеру на штрих-код товара';
+    final hint = widget.isCellScan 
+        ? 'Наведите камеру на QR-код ячейки (Mobile Scanner)' 
+        : 'Наведите камеру на штрих-код товара (ZXing)';
 
-    // Динамический расчет окна в зависимости от типа сканирования
     final screenSize = MediaQuery.of(context).size;
-    final double windowWidth = widget.isCellScan ? 260.0 : screenSize.width - 48; // Для QR - квадрат, для товара - широкий
+    final double windowWidth = widget.isCellScan ? 260.0 : screenSize.width - 48; 
     final double windowHeight = widget.isCellScan ? 260.0 : 140.0;
     
     final Rect scanWindow = Rect.fromCenter(
@@ -141,24 +149,36 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера ZXing на заднем фоне
-          ReaderWidget(
-            onScan: (result) {
-              if (result.isValid && result.text != null) {
-                _handleCode(result.text!);
-              }
-            },
-            showScannerOverlay: false, 
-            showFlashlight: false,
-            showToggleCamera: false,
-            showGallery: false,
-            // Агрессивное сканирование (особенно полезно для товаров)
-            tryHarder: true, 
-            resolution: ResolutionPreset.high,
-            cropPercent: 0.8, 
-          ),
+          // 1. Умный выбор камеры
+          widget.isCellScan
+              ? MobileScanner(
+                  controller: _mobileScannerController,
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    for (final barcode in barcodes) {
+                      if (barcode.rawValue != null) {
+                        _handleCode(barcode.rawValue!);
+                        break; 
+                      }
+                    }
+                  },
+                )
+              : ReaderWidget(
+                  onScan: (result) {
+                    if (result.isValid && result.text != null) {
+                      _handleCode(result.text!);
+                    }
+                  },
+                  showScannerOverlay: false, 
+                  showFlashlight: false,
+                  showToggleCamera: false,
+                  showGallery: false,
+                  tryHarder: true, 
+                  resolution: ResolutionPreset.high,
+                  cropPercent: 0.8, 
+                ),
 
-          // 2. Анимированное затемнение и область выреза
+          // 2. Анимированное затемнение и вырез
           AnimatedBuilder(
             animation: _laserController,
             builder: (context, child) {
@@ -175,7 +195,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
             },
           ),
 
-          // 3. Верхняя панель управления
+          // 3. Верхняя панель
           Positioned(
             top: 0,
             left: 0,
@@ -215,9 +235,12 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                     onPressed: () {
                       setState(() {
                         _isTorchOn = !_isTorchOn;
-                        // Заметка: Для программного переключения вспышки с ZXing 
-                        // может потребоваться сторонний плагин.
                       });
+                      
+                      // Управление встроенной вспышкой Mobile Scanner
+                      if (widget.isCellScan) {
+                        _mobileScannerController.toggleTorch();
+                      }
                     },
                   ),
                 ],
@@ -225,7 +248,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
             ),
           ),
 
-          // 4. Нижняя панель для ручного ввода
+          // 4. Нижняя панель ручного ввода
           Positioned(
             bottom: 0,
             left: 0,
@@ -281,7 +304,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
               child: const Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
 
-          // 6. Оверлей с результатом (успех/ошибка)
+          // 6. Оверлей результата
           if (_showSuccessOverlay)
             GestureDetector(
               onTap: () {
@@ -291,7 +314,7 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
                 });
               },
               child: Container(
-                color: Colors.black.withValues(alpha: 0.9), // Исправлено на withValues
+                color: Colors.black.withValues(alpha: 0.9),
                 alignment: Alignment.center,
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -323,7 +346,6 @@ class _ReturnBarcodeScannerPageState extends ConsumerState<ReturnBarcodeScannerP
   }
 }
 
-/// Анимированный Painter для отрисовки затемнения, рамки и лазера
 class ReturnOverlayPainter extends CustomPainter {
   final Color primaryColor;
   final Rect scanWindow;
@@ -339,13 +361,11 @@ class ReturnOverlayPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Затемнение вокруг прицела
     final backgroundPaint = Paint()..color = Colors.black54;
     final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(scanWindow, const Radius.circular(20)));
     canvas.drawPath(Path.combine(PathOperation.difference, backgroundPath, cutoutPath), backgroundPaint);
 
-    // 2. Рамка (вспышка белым при обработке)
     final Paint framePaint = Paint()
       ..color = isProcessing ? Colors.white : primaryColor
       ..style = PaintingStyle.stroke
@@ -353,7 +373,6 @@ class ReturnOverlayPainter extends CustomPainter {
 
     _drawCorners(canvas, scanWindow, framePaint);
 
-    // 3. Бегающий лазер (только когда код не обрабатывается)
     if (!isProcessing) {
       final double y = scanWindow.top + (scanWindow.height * laserPosition);
       final laserPaint = Paint()

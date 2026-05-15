@@ -139,8 +139,8 @@ class AdminPositionsTab extends ConsumerWidget {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 200,
-        childAspectRatio: 2.5,
+        maxCrossAxisExtent: 300,
+        childAspectRatio: 3.0,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -169,8 +169,8 @@ class AdminPositionsTab extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                childAspectRatio: 2.5,
+                maxCrossAxisExtent: 300,
+                childAspectRatio: 3.0,
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
