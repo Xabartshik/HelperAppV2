@@ -27,6 +27,7 @@ static String globalPoolTasks(int branchId) => 'v1/WorkerTasks/$branchId/pool';
   static const String updateCourierStatus = 'QrCheckIn/status';
   // В класс ApiEndpoints добавь:
 static const String courierPartialComplete = 'v1/CourierDelivery/partial-complete';
+static String completeCourierHandover(int taskId) => 'v1/OrderHandover/$taskId/complete-courier';
 // // Обновленный метод для деталей (теперь использует путь /workerId/taskId/details)
 // static String workerTaskDetails(int taskId, int workerId) => 
 //     'v1/WorkerTasks/$workerId/$taskId/details';

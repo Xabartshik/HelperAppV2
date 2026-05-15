@@ -884,31 +884,56 @@ Future<List<MobileBaseTaskDto>> getGlobalPoolTasksAsync(int branchId) async {
   }
 
   // 2. Для курьерской доставки
-  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken, {Map<int, int>? cancelledLines}) async {
+// 2. Для курьерской доставки (Передача собранного заказа курьеру)
+  Future<void> completeCourierHandoverAsync(int taskId, int workerId, String qrToken) async {
     try {
       final Map<String, dynamic> requestData = {
         'qrToken': qrToken,
-        'courierId': workerId,
+        'workerId': workerId, // ИСПРАВЛЕНО: Бэкенд ждет WorkerId, а не courierId
       };
 
-      if (cancelledLines != null && cancelledLines.isNotEmpty) {
-        final Map<String, dynamic> serializedLines = {};
-        cancelledLines.forEach((key, value) {
-          serializedLines[key.toString()] = value;
-        });
-        requestData['rejectedQuantities'] = serializedLines;
-      }
-
+      // ИСПРАВЛЕНО: Убрана частичная отмена и заменен URL на контроллер выдачи
       await postAsync(
-        ApiEndpoints.courierPartialComplete,
+        ApiEndpoints.completeCourierHandover(taskId), 
         data: requestData,
       );
     } catch (e) {
-      Logger.e('Ошибка подтверждения доставки курьером: $e');
+      Logger.e('Ошибка подтверждения отгрузки курьеру: $e');
       rethrow;
     }
   }
 
+// api_client.dart
+
+/// Завершение доставки покупателю с возможностью частичного возврата
+Future<void> confirmCustomerDeliveryAsync({
+  required int orderId,
+  Map<int, int>? rejectedQuantities, // lineId -> количество отказанного товара
+}) async {
+  try {
+    final Map<String, dynamic> requestData = {
+      'orderId': orderId,
+    };
+
+    // Если есть отказы, формируем мапу rejectedQuantities
+    if (rejectedQuantities != null && rejectedQuantities.isNotEmpty) {
+      final Map<String, dynamic> serializedRejections = {};
+      rejectedQuantities.forEach((lineId, qty) {
+        serializedRejections[lineId.toString()] = qty;
+      });
+      requestData['rejectedQuantities'] = serializedRejections;
+    }
+
+    // Вызываем эндпоинт частичного завершения доставки
+    await postAsync(
+      ApiEndpoints.courierPartialComplete,
+      data: requestData,
+    );
+  } catch (e) {
+    Logger.e('Ошибка при финальной выдаче заказа $orderId: $e');
+    rethrow;
+  }
+}
 
 
   /// Запрос на получение временного QR-кода курьера для приемки товаров

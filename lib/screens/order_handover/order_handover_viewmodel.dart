@@ -118,13 +118,13 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
     }
   }
 
-  /// Завершение задачи выдачи в магазине
+  /// Завершение задачи выдачи в магазине (самовывоз)
   Future<(bool, String)> completeTask() async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
       
-      // Передаем собранные отмены через именованный параметр
+      // Здесь отмены разрешены
       await client.completeWorkerTaskAsync(
         arg.taskId, 
         arg.workerId,
@@ -139,16 +139,17 @@ class OrderHandoverViewModel extends AutoDisposeFamilyNotifier<OrderHandoverStat
   }
 
   /// Завершение отгрузки курьеру с QR-подтверждением
-Future<(bool, String)> completeCourierHandover(String qrToken) async {
+  Future<(bool, String)> completeCourierHandover(String qrToken) async {
     state = state.copyWith(isLoading: true);
     try {
       final client = ref.read(apiClientProvider);
       
+      // ИСПРАВЛЕНО: Убрана передача cancelledLines. 
+      // Курьер обязан принять все товары, поэтому вызывается только полная отгрузка.
       await client.completeCourierHandoverAsync(
         arg.taskId, 
         arg.workerId, 
-        qrToken, 
-        cancelledLines: state.cancelledQuantities, // <-- ДОБАВЛЕНО ИМЯ ПАРАМЕТРА
+        qrToken,
       ); 
       
       return (true, 'Отгрузка успешно подтверждена!');
@@ -172,21 +173,18 @@ Future<(bool, String)> completeCourierHandover(String qrToken) async {
     if (quantity <= 0) {
       newMap.remove(lineId);
     } else {
-      // Количество не может превышать то, что еще не отсканировано
       newMap[lineId] = quantity > maxAvailable ? maxAvailable : quantity;
     }
     
     state = state.copyWith(cancelledQuantities: newMap);
   }
 
-  /// Выбрать все несобранные товары для отмены
-/// Выбрать все товары для отмены (даже если они были отсканированы)
+  /// Выбрать все товары для отмены
   void selectAllForCancellation() {
     if (state.details == null) return;
     
     final newMap = <int, int>{};
     for (var item in state.details!.itemsToScan) {
-      // ИЗМЕНЕНИЕ: Записываем в отмену ВСЁ ожидаемое количество товара
       if (item.quantity > 0) {
         newMap[item.lineId] = item.quantity;
       }

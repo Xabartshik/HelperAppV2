@@ -38,12 +38,12 @@ class _CourierHomePageState extends ConsumerState<CourierHomePage> with SingleTi
     final isActive = state.isShiftActive;
     
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      // Убраны отступы margin, чтобы виджет был во всю ширину
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         // Используем зеленый для активной смены, фиолетовый для неактивной
         color: isActive ? Colors.green.shade800 : const Color(0xFF6D28D9), 
-        borderRadius: BorderRadius.circular(16),
+        // borderRadius удален, теперь углы прямые
       ),
       child: Row(
         children: [
@@ -277,6 +277,14 @@ Widget build(BuildContext context) {
         ],
       ),
       actions: [
+        // Добавлена кнопка принудительного обновления
+        state.isLoading 
+          ? const SizedBox(width: 48, height: 48, child: Padding(padding: EdgeInsets.all(14), child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70)))
+          : IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              tooltip: 'Обновить данные',
+              onPressed: () => ref.read(courierViewModelProvider.notifier).loadOrders(),
+            ),
         IconButton(
           icon: const Icon(Icons.qr_code, color: Colors.white),
           tooltip: 'Мой QR',
@@ -284,6 +292,7 @@ Widget build(BuildContext context) {
         ),
         IconButton(
           icon: const Icon(Icons.logout, color: Colors.redAccent),
+          tooltip: 'Выйти',
           onPressed: () => ref.read(authServiceProvider).logoutAsync(),
         ),
       ],
@@ -305,17 +314,16 @@ Widget build(BuildContext context) {
           _buildShiftBanner(context, state, ref),
           _buildTransportBanner(context, state, ref),
 
-        const SizedBox(height: 8),
+        // SizedBox убран, чтобы баннеры прилегали к списку, если они во всю ширину
+        // const SizedBox(height: 8), 
 
         // Занимаем оставшееся пространство списком заказов или индикатором загрузки
         Expanded(
-          child: state.isLoading && state.readyOrders.isEmpty && state.inTransitOrders.isEmpty
-              ? const Center(child: CircularProgressIndicator(color: _primaryColor))
-              : TabBarView(
+          child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildOrderList(state.readyOrders, false, ref),
-                    _buildOrderList(state.inTransitOrders, true, ref),
+                    _buildOrderList(state.readyOrders, false, ref, state.isLoading),
+                    _buildOrderList(state.inTransitOrders, true, ref, state.isLoading),
                   ],
                 ),
         ),
@@ -324,12 +332,35 @@ Widget build(BuildContext context) {
   );
 }
 
-  Widget _buildOrderList(List<OrderDto> orders, bool isInTransit, WidgetRef ref) {
+  Widget _buildOrderList(List<OrderDto> orders, bool isInTransit, WidgetRef ref, bool isModelLoading) {
+    // Если глобальная загрузка и список пуст, показываем один большой лоадер
+    if (isModelLoading && orders.isEmpty) {
+       return const Center(child: CircularProgressIndicator(color: _primaryColor));
+    }
+
     if (orders.isEmpty) {
-      return Center(
-        child: Text(
-          isInTransit ? 'Багажник пуст. Заберите заказы со склада.' : 'Нет заказов к погрузке на складе.',
-          style: const TextStyle(color: Colors.white54, fontSize: 16),
+      // Иначе показываем сообщение о пустоте.
+      // RefreshIndicator нужен, чтобы можно было потянуть и обновить даже пустой список.
+      return RefreshIndicator(
+        color: _primaryColor,
+        onRefresh: () async => ref.read(courierViewModelProvider.notifier).loadOrders(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(), // Важно для RefreshIndicator на пустом списке
+          children: [
+            SizedBox(
+              height: MediaQuery.of(context).size.height * 0.4, // Центрируем текст примерно
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    isInTransit ? 'Багажник пуст. Заберите заказы со склада.' : 'Нет заказов к погрузке на складе.',
+                    style: const TextStyle(color: Colors.white54, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -338,7 +369,7 @@ Widget build(BuildContext context) {
       color: _primaryColor,
       onRefresh: () async => ref.read(courierViewModelProvider.notifier).loadOrders(),
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80), // Отступ снизу, чтобы кнопка "Мой QR" не перекрывала
         itemCount: orders.length,
         itemBuilder: (context, index) {
           final order = orders[index];
