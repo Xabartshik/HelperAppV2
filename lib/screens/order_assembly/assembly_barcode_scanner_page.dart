@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_zxing/flutter_zxing.dart'; // <--- Используем ZXing
+import 'package:flutter_zxing/flutter_zxing.dart';
+import 'package:mobile_scanner/mobile_scanner.dart'; // <--- Добавили mobile_scanner
 import 'order_assembly_viewmodel.dart';
 import '../../core/utils/logger.dart';
 
@@ -31,17 +32,23 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
   String _message = '';
   bool _lastResultSuccess = false;
   
-  // Флаг для кастомной кнопки фонарика
   bool _isTorchOn = false;
 
   final _manualCodeController = TextEditingController();
   late AnimationController _laserController;
+  late MobileScannerController _mobileScannerController; // <--- Контроллер для QR
 
   @override
   void initState() {
     super.initState();
     
-    // Инициализация анимации лазера (бегает туда-сюда за 2 секунды)
+    // Инициализация контроллера MobileScanner
+    _mobileScannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
+
+    // Инициализация анимации лазера
     _laserController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -50,6 +57,7 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
 
   @override
   void dispose() {
+    _mobileScannerController.dispose(); // <--- Очистка контроллера
     _laserController.dispose();
     _manualCodeController.dispose();
     super.dispose();
@@ -153,24 +161,34 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
       backgroundColor: _bgOffBlack,
       body: Stack(
         children: [
-          // 1. Камера ZXing
-          ReaderWidget(
-            onScan: (result) {
-              if (result.isValid && result.text != null) {
-                _handleCode(result.text!);
-              }
-            },
-            // Отключаем встроенный UI от ZXing
-            showScannerOverlay: false, 
-            showFlashlight: false,
-            showToggleCamera: false,
-            showGallery: false,
-            // Настройки для агрессивного сканирования плохих штрих-кодов
-            tryHarder: true, 
-            resolution: ResolutionPreset.high,
-            // Ограничение зоны внимания матрицы для ускорения
-            cropPercent: 0.8, 
-          ),
+          // 1. Умный выбор движка камеры в зависимости от режима
+          isQrMode
+              ? MobileScanner(
+                  controller: _mobileScannerController,
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    for (final barcode in barcodes) {
+                      if (barcode.rawValue != null) {
+                        _handleCode(barcode.rawValue!);
+                        break; 
+                      }
+                    }
+                  },
+                )
+              : ReaderWidget(
+                  onScan: (result) {
+                    if (result.isValid && result.text != null) {
+                      _handleCode(result.text!);
+                    }
+                  },
+                  showScannerOverlay: false, 
+                  showFlashlight: false,
+                  showToggleCamera: false,
+                  showGallery: false,
+                  tryHarder: true, 
+                  resolution: ResolutionPreset.high,
+                  cropPercent: 0.8, 
+                ),
 
           // 2. Анимированный оверлей
           AnimatedBuilder(
@@ -190,7 +208,7 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
           ),
 
           // 3. Верхняя панель
-          _buildHeader(isPick, state.isExpress),
+          _buildHeader(isPick, state.isExpress, isQrMode),
 
           // 4. Нижняя панель
           _buildBottomPanel(isPick, activeColor),
@@ -206,9 +224,9 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     );
   }
 
-  Widget _buildHeader(bool isPick, bool isExpress) {
+  Widget _buildHeader(bool isPick, bool isExpress, bool isQrMode) {
     final title = isPick ? 'Сбор товаров' : (isExpress ? 'Выдача клиенту' : 'Размещение ячеек');
-    final hint = isPick ? 'Штрих-код товара (ZXing)' : (isExpress ? 'QR-код покупателя (ZXing)' : 'QR-код ячейки (ZXing)');
+    final hint = isPick ? 'Штрих-код товара (ZXing)' : (isExpress ? 'QR-код покупателя (Mobile Scanner)' : 'QR-код ячейки (Mobile Scanner)');
 
     return Positioned(
       top: 0, left: 0, right: 0,
@@ -236,9 +254,12 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
               onPressed: () {
                 setState(() {
                   _isTorchOn = !_isTorchOn;
-                  // Примечание: Для аппаратного включения вспышки в связке с кастомным UI ReaderWidget 
-                  // может потребоваться отдельный пакет вроде torch_light
                 });
+                
+                // Включаем встроенную вспышку для Mobile Scanner
+                if (isQrMode) {
+                  _mobileScannerController.toggleTorch();
+                }
               }
             ),
           ],
@@ -292,7 +313,6 @@ class _AssemblyBarcodeScannerPageState extends ConsumerState<AssemblyBarcodeScan
     return GestureDetector(
       onTap: () => setState(() { _showSuccessOverlay = false; _manualCodeController.clear(); }),
       child: Container(
-        // Исправлено: замена устаревшего withOpacity на withValues
         color: Colors.black.withValues(alpha: 0.9),
         alignment: Alignment.center,
         padding: const EdgeInsets.all(24),
@@ -349,7 +369,6 @@ class ScannerOverlayPainter extends CustomPainter {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [
-            // Исправлено: замена устаревшего withOpacity на withValues
             primaryColor.withValues(alpha: 0),
             primaryColor.withValues(alpha: 0.5),
             primaryColor,

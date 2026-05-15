@@ -25,7 +25,7 @@ class PositionCellDto with _$PositionCellDto {
   factory PositionCellDto.fromJson(Map<String, dynamic> json) => _$PositionCellDtoFromJson(json);
 
   String get fullName {
-    String name = "$zoneCode-$flsNumber";
+    String name = "$zoneCode-$firstLevelStorageType-$flsNumber";
     if (secondLevelStorage != null && secondLevelStorage!.isNotEmpty) {
       name += "-$secondLevelStorage";
     }
