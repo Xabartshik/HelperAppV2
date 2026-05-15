@@ -171,6 +171,17 @@ void _handleResponseErrors(Response response) {
     return response.map((json) => OrderDto.fromJson(json)).toList();
   }
 
+  Future<bool> confirmPaymentAsync(int orderId) async {
+  try {
+    // Делаем POST-запрос. Если бэкенд возвращает 200/204, считаем успешным.
+    await postAsync(ApiEndpoints.confirmPayment(orderId));
+    return true;
+  } catch (e) {
+    Logger.w('Ошибка при подтверждении оплаты заказа $orderId: $e');
+    return false;
+  }
+}
+
   Future<String> _resolveBaseUrl() async {
     if (_cachedBaseUrl != null) {
       _dio.options.baseUrl = _cachedBaseUrl!; // Обязательно обновляем baseUrl у Dio

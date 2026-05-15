@@ -351,7 +351,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-Widget _buildStep3Logistics(CreateOrderViewModel vm) {
+  Widget _buildStep3Logistics(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -408,7 +408,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
 
         const SizedBox(height: 24),
 
-        // Выбор времени: только для Самовывоза и Курьера[cite: 7, 8]
+        // Выбор времени: только для Самовывоза и Курьера
         if (vm.selectedDeliveryType == DeliveryType.pickup) ...[
           const Text('Дата и время самовывоза', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
@@ -424,7 +424,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
               _buildSlotPicker(vm),
            ]
         ] else if (vm.selectedDeliveryType == DeliveryType.express) ...[
-           // Инфо-баннер для "Выдачи в зал" вместо выбора даты[cite: 7]
+           // Инфо-баннер для "Выдачи в зал" вместо выбора даты
            Container(
              padding: const EdgeInsets.all(16),
              decoration: BoxDecoration(
@@ -449,7 +449,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
 
         const SizedBox(height: 32),
 
-        // Блок оплаты[cite: 7]
+        // Блок оплаты с новыми радиокнопками
         _buildPaymentSummary(vm),
       ],
     );
@@ -530,6 +530,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: _bgGray900, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -539,19 +540,23 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
             ],
           ),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12.0), child: Divider(color: Colors.white12, height: 1)),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                  Icon(Icons.credit_card, color: _textGray, size: 20),
-                  SizedBox(width: 8),
-                  Text('Оплатить сейчас', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                ],
-              ),
-              Switch(value: vm.prepayNow, activeColor: _accent, onChanged: (val) => vm.togglePrepay(val)),
-            ],
-          )
+          
+          const Text('Способ оплаты', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Column(
+            children: PaymentType.values.map((type) {
+              return RadioListTile<PaymentType>(
+                title: Text(type.label, style: const TextStyle(color: Colors.white)),
+                value: type,
+                groupValue: vm.selectedPaymentType,
+                activeColor: _accent,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) {
+                  if (val != null) vm.setPaymentType(val);
+                },
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
@@ -577,6 +582,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
       }
     }
   }
+
   Widget _buildStep4Summary(CreateOrderViewModel vm) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -620,7 +626,7 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
                 _buildSummaryRow('Адрес доставки', vm.destinationAddress),
               ],
               const SizedBox(height: 12),
-              _buildSummaryRow('Статус оплаты', vm.prepayNow ? 'Оплачено (Карта)' : 'При получении'),
+              _buildSummaryRow('Статус оплаты', vm.selectedPaymentType.label),
             ],
           ),
         ),
@@ -720,18 +726,29 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
                       if (!isLast) {
                         vm.nextStep();
                       } else {
-                        await vm.checkCapacityAndSubmit();
+                        final orderId = await vm.checkCapacityAndSubmit();
                         if (vm.postamatCapacityOk == false) return; 
                         
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            backgroundColor: Colors.green, 
-                            content: Text('Заказ успешно создан!'),
-                            behavior: SnackBarBehavior.floating,
-                          )
-                        );
-                        Navigator.of(context).pop();
+                        if (orderId != null) {
+                          if (vm.selectedPaymentType == PaymentType.prepaid) {
+                            _showPaymentDialog(context, ref, orderId);
+                          } else {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.green, 
+                                content: Text('Заказ успешно оформлен!'),
+                                behavior: SnackBarBehavior.floating,
+                              )
+                            );
+                            Navigator.of(context).pop();
+                          }
+                        } else if (vm.errorMessage != null) {
+                           if (!mounted) return;
+                           ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(vm.errorMessage!), backgroundColor: Colors.red)
+                           );
+                        }
                       }
                     },
               child: isLast
@@ -765,6 +782,83 @@ Widget _buildStep3Logistics(CreateOrderViewModel vm) {
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: _accent),
       ),
+    );
+  }
+
+  void _showPaymentDialog(BuildContext context, WidgetRef ref, int orderId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, 
+      builder: (ctx) {
+        bool isProcessing = false;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: _bgGray950,
+              title: const Text('Оплата заказа', style: TextStyle(color: Colors.white)),
+              content: isProcessing
+                  ? const SizedBox(height: 100, child: Center(child: CircularProgressIndicator(color: _accent)))
+                  : const Text('Вы перенаправлены на платежный шлюз. Нажмите "Оплатить" для симуляции успешной транзакции. У вас есть 15 минут до отмены.',
+                      style: TextStyle(color: Colors.white70)),
+              actions: isProcessing
+                  ? []
+                  : [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.of(this.context).pop(); 
+                        },
+                        child: const Text('Отмена', style: TextStyle(color: Colors.redAccent)),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: _accent),
+                        onPressed: () async {
+                          setState(() => isProcessing = true);
+                          
+                          await Future.delayed(const Duration(seconds: 2));
+                          
+                          try {
+                            // Вызываем эндпоинт ConfirmPayment
+                            final dynamic response = await ref.read(apiClientProvider).postAsync('/api/Orders/$orderId/ConfirmPayment', data: {}); 
+                            // ВАЖНО: Адаптируйте вызов выше, если у вас уже есть готовый метод confirmPaymentAsync в ApiClient
+                            // Например: final success = await ref.read(apiClientProvider).confirmPaymentAsync(orderId);
+                            
+                            // Симулируем успешный ответ для заглушки:
+                            final success = true; 
+
+                            if (success) {
+                              if (ctx.mounted) Navigator.of(ctx).pop();
+                              if (this.context.mounted) {
+                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                  const SnackBar(content: Text('Оплата успешна! Заказ передан в сборку.'), backgroundColor: Colors.green)
+                                );
+                                Navigator.of(this.context).pop(); 
+                              }
+                            } else {
+                              setState(() => isProcessing = false);
+                              if (ctx.mounted) {
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(content: Text('Ошибка проведения оплаты'), backgroundColor: Colors.red)
+                                );
+                              }
+                            }
+                          } catch (e) {
+                             setState(() => isProcessing = false);
+                             if (ctx.mounted) {
+                               ScaffoldMessenger.of(ctx).showSnackBar(
+                                 SnackBar(content: Text('Ошибка сети: $e'), backgroundColor: Colors.red)
+                               );
+                             }
+                          }
+                        },
+                        child: const Text('Оплатить', style: TextStyle(color: Colors.white)),
+                      )
+                    ],
+            );
+          }
+        );
+      }
     );
   }
 }

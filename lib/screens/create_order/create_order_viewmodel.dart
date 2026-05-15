@@ -45,6 +45,21 @@ enum DeliveryType {
   }
 }
 
+enum PaymentType {
+  prepaid('Предоплата онлайн'),
+  postpaid('При получении (Постоплата)');
+
+  const PaymentType(this.label);
+  final String label;
+
+  String toServerString() {
+    switch (this) {
+      case PaymentType.prepaid: return 'Prepaid';
+      case PaymentType.postpaid: return 'Postpaid';
+    }
+  }
+}
+
 class Branch {
   final int branchId;
   final String branchName;
@@ -130,11 +145,12 @@ class CreateOrderViewModel extends ChangeNotifier {
   Map<int, int> cart = {};
 
   DeliveryType selectedDeliveryType = DeliveryType.pickup;
+  PaymentType selectedPaymentType = PaymentType.prepaid;
+  
   List<Postamat> postamats = [];
   Postamat? selectedPostamat;
   DateTime? deliveryDate;
   String destinationAddress = '';
-  bool prepayNow = false; 
   DeliverySlot? selectedSlot;
   List<DeliverySlot> availableSlots = [];
   AppConfigDto? appConfig;
@@ -291,7 +307,6 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   /// Возвращает первую доступную дату для календаря с учетом лимита из конфига
-/// Возвращает первую доступную дату для календаря с учетом лимита из конфига
   DateTime get firstAvailableDeliveryDate {
     final now = DateTime.now();
     // Берем лимит времени из конфига (по умолчанию 1.0 час, если конфиг не загружен)
@@ -311,7 +326,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
   
   // Вычисляет доступные слоты для выбранного дня
-void _calculateAvailableSlots() {
+  void _calculateAvailableSlots() {
     if (deliveryDate == null) {
       availableSlots = [];
       selectedSlot = null;
@@ -351,8 +366,6 @@ void _calculateAvailableSlots() {
     }
   }
 
-
-
   DateTime get minPickupTime {
       final prepHours = appConfig?.pickupWindowLimitHours ?? 1.0;
       final prepMinutes = (prepHours * 60).toInt();
@@ -371,7 +384,6 @@ void _calculateAvailableSlots() {
 
       return minTime;
     }
-
 
   void setDeliveryDate(DateTime date) {
     if (selectedDeliveryType == DeliveryType.courier) {
@@ -420,20 +432,20 @@ void _calculateAvailableSlots() {
       notifyListeners();
   }
   
-  void togglePrepay(bool value) {
-      prepayNow = value;
-      notifyListeners();
+  void setPaymentType(PaymentType type) {
+    selectedPaymentType = type;
+    notifyListeners();
   }
 
-  Future<void> checkCapacityAndSubmit() async {
+  Future<int?> checkCapacityAndSubmit() async {
     if (selectedDeliveryType == DeliveryType.postamat) {
       await _checkPostamatCapacity();
       if (postamatCapacityOk != true) {
-        return; 
+        return null; 
       }
     }
     
-    await _createOrder();
+    return await submitOrder();
   }
 
   Future<void> _checkPostamatCapacity() async {
@@ -480,7 +492,7 @@ void _calculateAvailableSlots() {
     }
   }
 
-bool get canSubmitOrder {
+  bool get canSubmitOrder {
     if (cart.isEmpty || selectedBranch == null) return false;
     
     if (selectedDeliveryType == DeliveryType.postamat) {
@@ -497,10 +509,10 @@ bool get canSubmitOrder {
     return true; 
   }
 
-  Future<bool> _createOrder() async {
-    if (!canSubmitOrder) return false;
+  Future<int?> submitOrder() async {
+    if (!canSubmitOrder) return null;
 
-    return _withLoading<bool>(() async {
+    return _withLoading<int?>(() async {
       final positions = cart.entries.map((entry) {
         final item = availableItems.firstWhere((i) => i.itemId == entry.key);
         return {
@@ -510,11 +522,11 @@ bool get canSubmitOrder {
         };
       }).toList();
 
-// Определение правильной даты для отправки на сервер
+      // Определение правильной даты для отправки на сервер
       String? dateToSubmit;
       if (deliveryDate != null) {
         if (selectedDeliveryType == DeliveryType.courier && selectedSlot != null) {
-          // Собираем точное локальное время начала слота и переводим в UTC[cite: 8]
+          // Собираем точное локальное время начала слота и переводим в UTC
           final localStart = DateTime(
             deliveryDate!.year, 
             deliveryDate!.month, 
@@ -523,7 +535,7 @@ bool get canSubmitOrder {
           );
           dateToSubmit = localStart.toUtc().toIso8601String();
         } else {
-          // Самовывоз: Конвертируем локальное выбранное время в UTC[cite: 8]
+          // Самовывоз: Конвертируем локальное выбранное время в UTC
           dateToSubmit = deliveryDate!.toUtc().toIso8601String();
         }
       }
@@ -533,7 +545,7 @@ bool get canSubmitOrder {
         'branchId': selectedBranch!.branchId,
         'deliveryDate': dateToSubmit, 
         'deliveryType': selectedDeliveryType.toServerString(),
-        'paymentType': prepayNow ? 'Prepaid' : 'Postpaid',
+        'paymentType': selectedPaymentType.toServerString(),
         
         'destinationAddress': (selectedDeliveryType == DeliveryType.courier || selectedDeliveryType == DeliveryType.express) 
             ? destinationAddress 
@@ -547,9 +559,18 @@ bool get canSubmitOrder {
       
       Logger.i('Отправка заказа на сервер: $payload');
       
-      await _apiClient.postAsync(ApiEndpoints.createOrder, data: payload);
-      return true;
-    }, fallback: false);
+      final response = await _apiClient.postAsync(ApiEndpoints.createOrder, data: payload);
+      
+      if (response != null && response is int) {
+        return response;
+      } else if (response != null && response is Map<String, dynamic> && response['id'] != null) {
+        return response['id'] as int;
+      } else if (response != null && response is Map<String, dynamic> && response['orderId'] != null) {
+        return response['orderId'] as int;
+      }
+      
+      return null;
+    }, fallback: null);
   }
 
   String branchSearchQuery = '';
