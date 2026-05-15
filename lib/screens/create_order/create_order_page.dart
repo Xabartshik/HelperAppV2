@@ -449,7 +449,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
         const SizedBox(height: 32),
 
-        // Блок оплаты с новыми радиокнопками
+        // Блок оплаты
         _buildPaymentSummary(vm),
       ],
     );
@@ -541,6 +541,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
           ),
           const Padding(padding: EdgeInsets.symmetric(vertical: 12.0), child: Divider(color: Colors.white12, height: 1)),
           
+          /* ВРЕМЕННО СКРЫВАЕМ ВЫБОР ОПЛАТЫ
           const Text('Способ оплаты', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Column(
@@ -557,6 +558,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
               );
             }).toList(),
           ),
+          */
         ],
       ),
     );
@@ -626,7 +628,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                 _buildSummaryRow('Адрес доставки', vm.destinationAddress),
               ],
               const SizedBox(height: 12),
-              _buildSummaryRow('Статус оплаты', vm.selectedPaymentType.label),
+              // Статус оплаты жестко зафиксирован для отображения
+              _buildSummaryRow('Статус оплаты', 'Предоплата онлайн'),
             ],
           ),
         ),
@@ -730,19 +733,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                         if (vm.postamatCapacityOk == false) return; 
                         
                         if (orderId != null) {
-                          if (vm.selectedPaymentType == PaymentType.prepaid) {
-                            _showPaymentDialog(context, ref, orderId);
-                          } else {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                backgroundColor: Colors.green, 
-                                content: Text('Заказ успешно оформлен!'),
-                                behavior: SnackBarBehavior.floating,
-                              )
-                            );
-                            Navigator.of(context).pop();
-                          }
+                          // Постоплата отключена, поэтому всегда вызываем мок-шлюз оплаты (предоплата)
+                          _showPaymentDialog(context, ref, orderId);
                         } else if (vm.errorMessage != null) {
                            if (!mounted) return;
                            ScaffoldMessenger.of(context).showSnackBar(
@@ -821,8 +813,6 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                           try {
                             // Вызываем эндпоинт ConfirmPayment
                             final dynamic response = await ref.read(apiClientProvider).postAsync('/api/Orders/$orderId/ConfirmPayment', data: {}); 
-                            // ВАЖНО: Адаптируйте вызов выше, если у вас уже есть готовый метод confirmPaymentAsync в ApiClient
-                            // Например: final success = await ref.read(apiClientProvider).confirmPaymentAsync(orderId);
                             
                             // Симулируем успешный ответ для заглушки:
                             final success = true; 
