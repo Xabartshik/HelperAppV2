@@ -25,6 +25,7 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
 
     return Column(
       children: [
+        _buildHeader(context, state, vm),
         // 1. ВЫБОР КУРЬЕРА И ИНФО О ТРАНСПОРТЕ
         Container(
           padding: const EdgeInsets.all(16),
@@ -33,7 +34,7 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               DropdownButtonFormField<int>(
-                value: state.selectedCourierId,
+                initialValue: state.selectedCourierId,
                 decoration: InputDecoration(
                   labelText: 'Назначить курьера',
                   labelStyle: const TextStyle(color: Colors.white54),
@@ -62,9 +63,9 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _primaryColor.withOpacity(0.1),
+                    color: _primaryColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _primaryColor.withOpacity(0.3)),
+                    border: Border.all(color: _primaryColor.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -90,10 +91,9 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
         ),
 
         // 2. СПИСОК ЗАКАЗОВ
-// 2. СПИСОК ЗАКАЗОВ
         Expanded(
           child: state.availableOrders.isEmpty
-              ? const Center(child: Text('Нет доступных заказов', style: TextStyle(color: Colors.white54)))
+              ? _EmptyOrdersState(onRefresh: vm.loadData)
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: state.availableOrders.length,
@@ -233,6 +233,89 @@ class CourierRouteBuilderScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, CourierRouteBuilderState state, CourierRouteBuilderViewModel vm) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            "Формирование маршрута",
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          if (state.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: _primaryColor,
+                  strokeWidth: 2,
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _primaryColor),
+              onPressed: () => vm.loadData(),
+              tooltip: 'Обновить',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyOrdersState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _EmptyOrdersState({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inbox_outlined, size: 64, color: Color(0xFF7C3AED)),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Нет заказов',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Все заказы уже в пути или пока не готовы к отгрузке.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRefresh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Обновить', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

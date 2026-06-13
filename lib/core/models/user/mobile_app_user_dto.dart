@@ -19,11 +19,12 @@ enum MobileUserRole {
 class MobileAppUserDto with _$MobileAppUserDto {
   const factory MobileAppUserDto({
     required int id,
+    required String login,
     int? employeeId,
     int? customerId,
     int? branchId,
-    required String firstName,
-    required String lastName,
+    String? firstName,
+    String? lastName,
     
     // Используем Enum с указанием фолбэк-значения
     @JsonKey(unknownEnumValue: MobileUserRole.unknown)
@@ -40,5 +41,5 @@ class MobileAppUserDto with _$MobileAppUserDto {
 }
 
 extension MobileAppUserDtoExtension on MobileAppUserDto {
-  String get fullName => '$firstName $lastName';
+  String get fullName => '${firstName ?? ''} ${lastName ?? ''}'.trim();
 }

@@ -15,14 +15,16 @@ class BranchOrdersTab extends ConsumerWidget {
     final state = ref.watch(branchOrdersViewModelProvider);
     final vm = ref.read(branchOrdersViewModelProvider.notifier);
 
-    if (state.isLoading) return const Center(child: CircularProgressIndicator(color: _primaryColor));
+    if (state.isLoading && state.allOrders.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: _primaryColor));
+    }
 
     return Column(
       children: [
         _buildControlPanel(context, state, vm),
         Expanded(
           child: state.filteredOrders.isEmpty
-              ? const Center(child: Text("Заказы не найдены", style: TextStyle(color: Colors.white54)))
+              ? _EmptyOrdersState(onRefresh: vm.loadData)
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: state.filteredOrders.length,
@@ -64,7 +66,7 @@ class BranchOrdersTab extends ConsumerWidget {
                     Text(
                       state.dateRange == null 
                         ? "Период: Все" 
-                        : DateFormat('dd.MM').format(state.dateRange!.start) + " - " + DateFormat('dd.MM').format(state.dateRange!.end),
+                        : "${DateFormat('dd.MM').format(state.dateRange!.start)} - ${DateFormat('dd.MM').format(state.dateRange!.end)}",
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                   ],
@@ -72,7 +74,23 @@ class BranchOrdersTab extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          if (state.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: _primaryColor, strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _primaryColor),
+              onPressed: () => vm.loadData(),
+              tooltip: 'Обновить',
+            ),
+          const SizedBox(width: 8),
           // Сортировка
           PopupMenuButton<OrderSortType>(
             icon: const Icon(Icons.sort, color: _primaryColor),
@@ -85,6 +103,56 @@ class BranchOrdersTab extends ConsumerWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyOrdersState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _EmptyOrdersState({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inbox_outlined, size: 64, color: Color(0xFF7C3AED)),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Нет заказов',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'В выбранном периоде заказы отсутствуют.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRefresh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Обновить', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
       ),
     );
   }

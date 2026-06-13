@@ -14,7 +14,9 @@ class ActiveTasksTab extends ConsumerWidget {
     final state = ref.watch(activeTasksProvider);
     final vm = ref.read(activeTasksProvider.notifier);
 
-    if (state.isLoading) return const Center(child: CircularProgressIndicator(color: _primaryColor));
+    if (state.isLoading && state.tasks.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: _primaryColor));
+    }
 
     // Если начальник нажал на задачу — показываем её назначения
     if (state.selectedTask != null) {
@@ -24,16 +26,122 @@ class ActiveTasksTab extends ConsumerWidget {
       );
     }
 
-    // Иначе показываем общий список задач
-    return RefreshIndicator(
-      onRefresh: vm.loadTasks,
-      color: _primaryColor,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: state.tasks.length,
-        itemBuilder: (context, index) => _TaskMainCard(
-          task: state.tasks[index],
-          onTap: () => vm.selectTask(state.tasks[index]),
+    // Иначе показываем общий список задач с заголовком и кнопкой обновления
+    return Column(
+      children: [
+        _buildHeader(context, state, vm),
+        Expanded(
+          child: state.tasks.isEmpty
+              ? _EmptyTasksState(onRefresh: vm.loadTasks)
+              : RefreshIndicator(
+                  onRefresh: vm.loadTasks,
+                  color: _primaryColor,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: state.tasks.length,
+                    itemBuilder: (context, index) => _TaskMainCard(
+                      task: state.tasks[index],
+                      onTap: () => vm.selectTask(state.tasks[index]),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, ActiveTasksState state, ActiveTasksViewModel vm) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            "Активные задачи",
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          if (state.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: _primaryColor,
+                  strokeWidth: 2,
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _primaryColor),
+              onPressed: () => vm.loadTasks(),
+              tooltip: 'Обновить задачи',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyTasksState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  
+  const _EmptyTasksState({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.assignment_turned_in_outlined,
+                size: 64,
+                color: Color(0xFF7C3AED),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Нет активных задач',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'В данный момент все задачи выполнены или отсутствуют на вашей точке.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRefresh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Проверить снова', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
       ),
     );

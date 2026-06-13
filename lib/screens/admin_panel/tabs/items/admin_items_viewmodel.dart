@@ -6,14 +6,26 @@ class AdminItemsState {
   final bool isLoading;
   final List<ItemDto> items;
   final String searchQuery;
+  final Set<int> selectedItemIds;
 
-  AdminItemsState({this.isLoading = false, this.items = const [], this.searchQuery = ''});
+  AdminItemsState({
+    this.isLoading = false,
+    this.items = const [],
+    this.searchQuery = '',
+    this.selectedItemIds = const {},
+  });
 
-  AdminItemsState copyWith({bool? isLoading, List<ItemDto>? items, String? searchQuery}) {
+  AdminItemsState copyWith({
+    bool? isLoading,
+    List<ItemDto>? items,
+    String? searchQuery,
+    Set<int>? selectedItemIds,
+  }) {
     return AdminItemsState(
       isLoading: isLoading ?? this.isLoading,
       items: items ?? this.items,
       searchQuery: searchQuery ?? this.searchQuery,
+      selectedItemIds: selectedItemIds ?? this.selectedItemIds,
     );
   }
 
@@ -44,6 +56,36 @@ class AdminItemsViewModel extends AutoDisposeNotifier<AdminItemsState> {
 
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
+  }
+
+  // Выбор или снятие выбора с товара
+  void toggleItemSelection(int itemId) {
+    final current = Set<int>.from(state.selectedItemIds);
+    if (current.contains(itemId)) {
+      current.remove(itemId);
+    } else {
+      current.add(itemId);
+    }
+    state = state.copyWith(selectedItemIds: current);
+  }
+
+  // Выбор всех отфильтрованных товаров или снятие выбора
+  void selectAllItems() {
+    final filtered = state.filteredItems;
+    final current = Set<int>.from(state.selectedItemIds);
+    final allFilteredIds = filtered.map((e) => e.itemId).toSet();
+
+    if (allFilteredIds.every((id) => current.contains(id))) {
+      current.removeAll(allFilteredIds);
+    } else {
+      current.addAll(allFilteredIds);
+    }
+    state = state.copyWith(selectedItemIds: current);
+  }
+
+  // Очистка выбора
+  void clearSelection() {
+    state = state.copyWith(selectedItemIds: {});
   }
 
   Future<bool> createItem(Map<String, dynamic> data) async {

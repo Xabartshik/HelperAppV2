@@ -10,7 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 class OrderDetailsScreen extends ConsumerStatefulWidget {
   final int orderId;
   
-  const OrderDetailsScreen({Key? key, required this.orderId}) : super(key: key);
+  const OrderDetailsScreen({super.key, required this.orderId});
 
   @override
   ConsumerState<OrderDetailsScreen> createState() => _OrderDetailsScreenState();

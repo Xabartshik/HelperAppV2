@@ -15,6 +15,7 @@ _$EmployeeDtoImpl _$$EmployeeDtoImplFromJson(Map<String, dynamic> json) =>
       role:
           $enumDecodeNullable(_$WorkerRoleEnumMap, json['role']) ??
           WorkerRole.storekeeper,
+      isBlocked: json['isBlocked'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$$EmployeeDtoImplToJson(_$EmployeeDtoImpl instance) =>
@@ -24,6 +25,7 @@ Map<String, dynamic> _$$EmployeeDtoImplToJson(_$EmployeeDtoImpl instance) =>
       'name': instance.name,
       'middleName': instance.middleName,
       'role': _$WorkerRoleEnumMap[instance.role]!,
+      'isBlocked': instance.isBlocked,
     };
 
 const _$WorkerRoleEnumMap = {

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
+import 'package:helper_app/core/models/item/item_dto.dart';
 import 'package:helper_app/core/utils/logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
@@ -187,6 +188,89 @@ class PdfExportService {
     } catch (e) {
       Logger.e("Ошибка при сохранении PDF", e);
       rethrow;
+    }
+  }
+
+  // Экспорт штрих-кодов выбранных товаров в PDF
+  static Future<void> exportItemBarcodes(List<ItemDto> items) async {
+    final pdf = pw.Document();
+    final fontRegular = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
+
+    final labelStyle = pw.TextStyle(font: fontBold, fontSize: 10);
+    final codeStyle = pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey700);
+
+    for (var i = 0; i < items.length; i += 12) {
+      final chunk = items.skip(i).take(12).toList();
+      
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          theme: pw.ThemeData.withFont(
+            base: fontRegular,
+            bold: fontBold,
+          ),
+          build: (pw.Context context) {
+            return pw.GridView(
+              crossAxisCount: 3,
+              childAspectRatio: 1.2,
+              children: chunk.map((item) {
+                return pw.Container(
+                  margin: const pw.EdgeInsets.all(8),
+                  padding: const pw.EdgeInsets.all(8),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                  ),
+                  child: pw.Column(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.Text(
+                        item.name,
+                        style: labelStyle,
+                        maxLines: 2,
+                        textAlign: pw.TextAlign.center,
+                        overflow: pw.TextOverflow.clip,
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Expanded(
+                        child: pw.BarcodeWidget(
+                          barcode: pw.Barcode.code128(),
+                          data: item.barcode.isNotEmpty ? item.barcode : '000000000000',
+                          drawText: false,
+                        ),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        item.barcode.isNotEmpty ? item.barcode : '000000000000',
+                        style: codeStyle,
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      );
+    }
+
+    try {
+      final bytes = await pdf.save();
+      final Directory? directory = Platform.isAndroid 
+          ? await getExternalStorageDirectory() 
+          : await getApplicationDocumentsDirectory();
+      
+      if (directory == null) throw Exception("Не удалось получить доступ к хранилищу");
+
+      final fileName = "Barcodes_${DateTime.now().millisecondsSinceEpoch}.pdf";
+      final filePath = p.join(directory.path, fileName);
+      final file = File(filePath);
+
+      await file.writeAsBytes(bytes);
+      await OpenFilex.open(filePath);
+    } catch (e) {
+      Logger.e("Ошибка экспорта штрих-кодов: $e");
     }
   }
 }

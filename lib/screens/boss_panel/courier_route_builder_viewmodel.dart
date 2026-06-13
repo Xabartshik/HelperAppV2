@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/services/auth_service.dart';
 import '../../core/network/api_client.dart';
@@ -49,6 +50,15 @@ class CourierRouteBuilderViewModel extends AutoDisposeNotifier<CourierRouteBuild
   @override
   CourierRouteBuilderState build() {
     Future.microtask(() => loadData());
+    
+    final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      loadData(isSilent: true);
+    });
+
+    ref.onDispose(() {
+      timer.cancel();
+    });
+
     return const CourierRouteBuilderState();
   }
 
@@ -70,8 +80,12 @@ class CourierRouteBuilderViewModel extends AutoDisposeNotifier<CourierRouteBuild
     return total;
   }
 
-Future<void> loadData() async {
-  state = state.copyWith(isLoading: true, errorMessage: '');
+  Future<void> loadData({bool isSilent = false}) async {
+    if (!isSilent) {
+      state = state.copyWith(isLoading: true, errorMessage: '');
+    } else {
+      state = state.copyWith(errorMessage: '');
+    }
   try {
     final client = ref.read(apiClientProvider);
     

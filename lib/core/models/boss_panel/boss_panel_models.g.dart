@@ -72,6 +72,7 @@ _$EmployeeWorkloadDtoImpl _$$EmployeeWorkloadDtoImplFromJson(
           ?.map((e) => ActiveTaskBriefDto.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  isBlocked: json['isBlocked'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$EmployeeWorkloadDtoImplToJson(
@@ -83,6 +84,7 @@ Map<String, dynamic> _$$EmployeeWorkloadDtoImplToJson(
   'activeTasksCount': instance.activeTasksCount,
   'totalComplexity': instance.totalComplexity,
   'activeTasks': instance.activeTasks,
+  'isBlocked': instance.isBlocked,
 };
 
 _$ActiveTaskBriefDtoImpl _$$ActiveTaskBriefDtoImplFromJson(
@@ -114,6 +116,7 @@ _$AvailableEmployeeDtoImpl _$$AvailableEmployeeDtoImplFromJson(
   maxWeightKg: (json['maxWeightKg'] as num?)?.toDouble(),
   vehicleName: json['vehicleName'] as String?,
   isOnRoute: json['isOnRoute'] as bool? ?? false,
+  isBlocked: json['isBlocked'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
@@ -127,6 +130,7 @@ Map<String, dynamic> _$$AvailableEmployeeDtoImplToJson(
   'maxWeightKg': instance.maxWeightKg,
   'vehicleName': instance.vehicleName,
   'isOnRoute': instance.isOnRoute,
+  'isBlocked': instance.isBlocked,
 };
 
 _$CreateInventoryByZoneDtoImpl _$$CreateInventoryByZoneDtoImplFromJson(

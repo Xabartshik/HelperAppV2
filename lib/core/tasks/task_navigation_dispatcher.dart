@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:helper_app/core/models/tasks/task_card_vm.dart';
 import 'package:helper_app/core/tasks/task_registry.dart';
 // Добавляем импорт DTO для доступа к полям задачи
-import 'package:helper_app/core/models/tasks/mobile_base_task_dto.dart';
 // Импорт экрана деталей выдачи заказа
-import 'package:helper_app/screens/order_handover/active_handover_screen.dart';
 
 class TaskNavigationDispatcher {
   const TaskNavigationDispatcher();

@@ -381,8 +381,8 @@ void _setupSignalR() async {
   }
 
   Widget _buildHeader(BuildContext context, CurrentUser? user, bool isBoss, MainViewModel vm) {
-    final initials = (user?.fullName?.isNotEmpty == true) 
-        ? user!.fullName![0].toUpperCase() 
+    final initials = (user?.fullName.isNotEmpty == true) 
+        ? user!.fullName[0].toUpperCase() 
         : '?';
 
     return Container(

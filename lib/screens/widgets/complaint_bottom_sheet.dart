@@ -5,7 +5,7 @@ import 'package:helper_app/core/models/order/complaint_dto.dart';
 class ComplaintBottomSheet extends StatefulWidget {
   final OrderDto order;
 
-  const ComplaintBottomSheet({Key? key, required this.order}) : super(key: key);
+  const ComplaintBottomSheet({super.key, required this.order});
 
   @override
   State<ComplaintBottomSheet> createState() => _ComplaintBottomSheetState();

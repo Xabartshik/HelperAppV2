@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/tasks/mobile_base_task_dto.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
@@ -41,11 +42,24 @@ class GlobalPoolTabViewModel extends AutoDisposeNotifier<GlobalPoolState> {
   @override
   GlobalPoolState build() {
     Future.microtask(() => loadDataAsync());
+    
+    final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      loadDataAsync(isSilent: true);
+    });
+
+    ref.onDispose(() {
+      timer.cancel();
+    });
+
     return const GlobalPoolState();
   }
 
-  Future<void> loadDataAsync() async {
-    state = state.copyWith(isLoading: true, errorMessage: '');
+  Future<void> loadDataAsync({bool isSilent = false}) async {
+    if (!isSilent) {
+      state = state.copyWith(isLoading: true, errorMessage: '');
+    } else {
+      state = state.copyWith(errorMessage: '');
+    }
     try {
       final client = ref.read(apiClientProvider);
       final currentUser = ref.read(currentUserProvider);

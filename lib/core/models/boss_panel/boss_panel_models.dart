@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 
 part 'boss_panel_models.freezed.dart';
 part 'boss_panel_models.g.dart';
@@ -44,6 +43,7 @@ class EmployeeWorkloadDto with _$EmployeeWorkloadDto {
     @Default(0) int activeTasksCount,
     @Default(0.0) double totalComplexity,
     @Default([]) List<ActiveTaskBriefDto> activeTasks,
+    @Default(false) bool isBlocked,
   }) = _EmployeeWorkloadDto;
 
   const EmployeeWorkloadDto._();
@@ -75,6 +75,7 @@ class AvailableEmployeeDto with _$AvailableEmployeeDto {
     double? maxWeightKg,
     String? vehicleName,
     @Default(false) bool isOnRoute,
+    @Default(false) bool isBlocked,
   }) = _AvailableEmployeeDto;
 
   factory AvailableEmployeeDto.fromJson(Map<String, dynamic> json) => _$AvailableEmployeeDtoFromJson(json);

@@ -162,7 +162,7 @@ class _ReportCard extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.2), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.2), shape: BoxShape.circle),
           child: Icon(icon, color: color),
         ),
         title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

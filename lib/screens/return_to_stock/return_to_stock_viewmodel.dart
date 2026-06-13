@@ -141,7 +141,7 @@ Future<(bool, String)> processScanCell(int lineId, String cellCode) async {
       
       await loadTask();
       // Проверяем, все ли позиции теперь размещены для автозакрытия
-      final allDone = state.details?.itemsToScan.every((i) => i.scannedQuantity > 0 && i.targetCellCode != null) ?? false;
+      final allDone = state.details?.itemsToScan.every((i) => i.scannedQuantity > 0) ?? false;
       
       return (true, allDone ? 'FINISH:Размещено в ячейке $cellCode' : 'Размещено в ячейке $cellCode');
     } catch (e) {

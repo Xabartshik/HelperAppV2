@@ -20,7 +20,7 @@ class CustomerHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = ref.watch(customerHomeViewModelProvider.notifier);
     final state = ref.watch(customerHomeViewModelProvider);
-    // 1. Получаем текущего пользователя для передачи ID в виджет заказов[cite: 1]
+    // 1. Получаем текущего пользователя для передачи ID в виджет заказов
     final currentUser = ref.read(currentUserProvider);
 
     return Scaffold(
@@ -89,7 +89,7 @@ class CustomerHomePage extends ConsumerWidget {
 
               const SizedBox(height: 32),
 
-              // 2. Обновленная нижняя секция с логикой загрузки и списком заказов[cite: 1]
+              // 2. Обновленная нижняя секция с логикой загрузки и списком заказов
               const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -103,11 +103,11 @@ class CustomerHomePage extends ConsumerWidget {
               const SizedBox(height: 16),
 
               if (state.isLoading)
-                const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))) //[cite: 1]
+                const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))) //
               else if (currentUser != null)
-                RecentOrdersWidget(customerId: currentUser.customerId!) // Используем реальный виджет вместо заглушки[cite: 1]
+                RecentOrdersWidget(customerId: currentUser.customerId!) // Используем реальный виджет вместо заглушки
               else
-                _buildOrderPlaceholder(), //[cite: 1]
+                _buildOrderPlaceholder(), //
             ],
           ),
         ),

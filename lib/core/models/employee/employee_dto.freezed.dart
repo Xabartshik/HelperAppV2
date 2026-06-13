@@ -26,6 +26,7 @@ mixin _$EmployeeDto {
   String get name => throw _privateConstructorUsedError;
   String? get middleName => throw _privateConstructorUsedError;
   WorkerRole get role => throw _privateConstructorUsedError;
+  bool get isBlocked => throw _privateConstructorUsedError;
 
   /// Serializes this EmployeeDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -50,6 +51,7 @@ abstract class $EmployeeDtoCopyWith<$Res> {
     String name,
     String? middleName,
     WorkerRole role,
+    bool isBlocked,
   });
 }
 
@@ -73,6 +75,7 @@ class _$EmployeeDtoCopyWithImpl<$Res, $Val extends EmployeeDto>
     Object? name = null,
     Object? middleName = freezed,
     Object? role = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _value.copyWith(
@@ -96,6 +99,10 @@ class _$EmployeeDtoCopyWithImpl<$Res, $Val extends EmployeeDto>
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
                       as WorkerRole,
+            isBlocked: null == isBlocked
+                ? _value.isBlocked
+                : isBlocked // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -117,6 +124,7 @@ abstract class _$$EmployeeDtoImplCopyWith<$Res>
     String name,
     String? middleName,
     WorkerRole role,
+    bool isBlocked,
   });
 }
 
@@ -139,6 +147,7 @@ class __$$EmployeeDtoImplCopyWithImpl<$Res>
     Object? name = null,
     Object? middleName = freezed,
     Object? role = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _$EmployeeDtoImpl(
@@ -162,6 +171,10 @@ class __$$EmployeeDtoImplCopyWithImpl<$Res>
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
                   as WorkerRole,
+        isBlocked: null == isBlocked
+            ? _value.isBlocked
+            : isBlocked // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -176,6 +189,7 @@ class _$EmployeeDtoImpl implements _EmployeeDto {
     required this.name,
     this.middleName,
     this.role = WorkerRole.storekeeper,
+    this.isBlocked = false,
   });
 
   factory _$EmployeeDtoImpl.fromJson(Map<String, dynamic> json) =>
@@ -193,10 +207,13 @@ class _$EmployeeDtoImpl implements _EmployeeDto {
   @override
   @JsonKey()
   final WorkerRole role;
+  @override
+  @JsonKey()
+  final bool isBlocked;
 
   @override
   String toString() {
-    return 'EmployeeDto(employeesId: $employeesId, surname: $surname, name: $name, middleName: $middleName, role: $role)';
+    return 'EmployeeDto(employeesId: $employeesId, surname: $surname, name: $name, middleName: $middleName, role: $role, isBlocked: $isBlocked)';
   }
 
   @override
@@ -210,13 +227,22 @@ class _$EmployeeDtoImpl implements _EmployeeDto {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.middleName, middleName) ||
                 other.middleName == middleName) &&
-            (identical(other.role, role) || other.role == role));
+            (identical(other.role, role) || other.role == role) &&
+            (identical(other.isBlocked, isBlocked) ||
+                other.isBlocked == isBlocked));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, employeesId, surname, name, middleName, role);
+  int get hashCode => Object.hash(
+    runtimeType,
+    employeesId,
+    surname,
+    name,
+    middleName,
+    role,
+    isBlocked,
+  );
 
   /// Create a copy of EmployeeDto
   /// with the given fields replaced by the non-null parameter values.
@@ -239,6 +265,7 @@ abstract class _EmployeeDto implements EmployeeDto {
     required final String name,
     final String? middleName,
     final WorkerRole role,
+    final bool isBlocked,
   }) = _$EmployeeDtoImpl;
 
   factory _EmployeeDto.fromJson(Map<String, dynamic> json) =
@@ -254,6 +281,8 @@ abstract class _EmployeeDto implements EmployeeDto {
   String? get middleName;
   @override
   WorkerRole get role;
+  @override
+  bool get isBlocked;
 
   /// Create a copy of EmployeeDto
   /// with the given fields replaced by the non-null parameter values.

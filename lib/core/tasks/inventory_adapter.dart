@@ -74,16 +74,14 @@ InventoryLineItem? _mapToInventoryLineItem(InventoryAssignmentLineWithItemDto dt
 
   final rawPosition = dto.positionCode;
   PositionCodeInfo? position;
-  if (rawPosition != null) {
-    position = PositionCodeInfo(
-      branchId: rawPosition.branchId,
-      zoneCode: rawPosition.zoneCode,
-      firstLevelStorageType: rawPosition.firstLevelStorageType,
-      flsNumber: rawPosition.flsNumber,
-      secondLevelStorage: rawPosition.secondLevelStorage,
-      thirdLevelStorage: rawPosition.thirdLevelStorage,
-    );
-  }
+  position = PositionCodeInfo(
+    branchId: rawPosition.branchId,
+    zoneCode: rawPosition.zoneCode,
+    firstLevelStorageType: rawPosition.firstLevelStorageType,
+    flsNumber: rawPosition.flsNumber,
+    secondLevelStorage: rawPosition.secondLevelStorage,
+    thirdLevelStorage: rawPosition.thirdLevelStorage,
+  );
 
   return InventoryLineItem(
     lineId: dto.id,

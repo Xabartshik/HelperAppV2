@@ -39,7 +39,7 @@ class CourierState {
 
   // Удобный геттер для UI: если последний чек был 'In', значит смена идет
 bool get isShiftActive => const ['in', 'dispatch', 'dock']
-    .contains(currentCheck?.checkType?.toLowerCase());
+    .contains(currentCheck?.checkType.toLowerCase());
 }
 
 final courierViewModelProvider = AutoDisposeNotifierProvider<CourierViewModel, CourierState>(() {

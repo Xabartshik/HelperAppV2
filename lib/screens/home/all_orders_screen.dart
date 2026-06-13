@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 
 class AllOrdersScreen extends ConsumerStatefulWidget {
   final int customerId;
-  const AllOrdersScreen({Key? key, required this.customerId}) : super(key: key);
+  const AllOrdersScreen({super.key, required this.customerId});
 
   @override
   ConsumerState<AllOrdersScreen> createState() => _AllOrdersScreenState();

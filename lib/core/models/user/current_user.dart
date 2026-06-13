@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:helper_app/core/models/user/worker_role.dart';
 import 'mobile_app_user_dto.dart';
 
@@ -46,8 +45,8 @@ class CurrentUser {
       employeeId: dto.employeeId,
       customerId: dto.customerId,
       branchId: dto.branchId, // ДОБАВЛЕНО
-      firstName: dto.firstName, 
-      lastName: dto.lastName,
+      firstName: dto.firstName ?? '', 
+      lastName: dto.lastName ?? '',
       
       // 2. ИЗМЕНЕНО: теперь типы совпадают (MobileUserRole в MobileUserRole)
       role: dto.role, 

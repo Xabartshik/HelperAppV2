@@ -6,7 +6,6 @@ import 'package:helper_app/core/models/user/worker_role.dart';
 import 'package:helper_app/core/network/api_endpoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user/current_user.dart';
-import '../models/auth/login_request.dart';
 import '../models/auth/login_response.dart';
 import '../network/api_client.dart';
 import '../network/api_exceptions.dart';
@@ -54,8 +53,8 @@ Future<CurrentUser?> _handleAuthResponse(Map<String, dynamic>? responseData) asy
       id: response.user.id,
       employeeId: response.user.employeeId,
       customerId: response.user.customerId,
-      firstName: response.user.firstName,
-      lastName: response.user.lastName,
+      firstName: response.user.firstName ?? '',
+      lastName: response.user.lastName ?? '',
       workerRole: response.user.workerRole,
       role: response.user.role,
       branchId: response.user.branchId,

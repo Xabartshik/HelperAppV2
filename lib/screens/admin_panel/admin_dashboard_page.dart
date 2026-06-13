@@ -10,6 +10,8 @@ import 'package:helper_app/screens/admin_panel/tabs/positions/admin_positions_vi
 import '../../core/services/auth_service.dart';
 import 'tabs/branches/admin_branches_tab.dart';
 import 'tabs/branches/admin_branches_viewmodel.dart';
+import 'tabs/mobile_users/admin_mobile_users_tab.dart';
+import 'tabs/mobile_users/admin_mobile_users_viewmodel.dart';
 
 final adminTabProvider = StateProvider<int>((ref) => 0);
 
@@ -38,7 +40,8 @@ final destinations = [
   const NavigationRailDestination(icon: Icon(Icons.inventory_2), label: Text('Товары')),
   const NavigationRailDestination(icon: Icon(Icons.people), label: Text('Персонал')),
   const NavigationRailDestination(icon: Icon(Icons.grid_view), label: Text('Позиции')), 
-  const NavigationRailDestination(icon: Icon(Icons.move_to_inbox), label: Text('Размещение')),// Добавлено
+  const NavigationRailDestination(icon: Icon(Icons.move_to_inbox), label: Text('Размещение')),
+  const NavigationRailDestination(icon: Icon(Icons.phone_android), label: Text('Пользователи')),
 ];
 
     return Scaffold(
@@ -49,7 +52,7 @@ final destinations = [
         elevation: 0,
         title: _buildSearchBar(currentTab),
         actions: [
-                  if (currentTab != 4)
+                  if (currentTab != 4 && currentTab != 5)
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline, color: _primaryColor),
                     tooltip: 'Добавить',
@@ -157,6 +160,8 @@ final destinations = [
           ref.read(adminEmployeesProvider.notifier).setSearchQuery(value);
         } else if (currentTab == 3) { // Добавлено
           ref.read(adminPositionsProvider.notifier).setSearchQuery(value);
+        } else if (currentTab == 5) {
+          ref.read(adminMobileUsersProvider.notifier).setSearchQuery(value);
         }
         },  
         style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -178,6 +183,7 @@ Widget _buildContent(int tabIndex) {
     case 2: return const AdminEmployeesTab();
     case 3: return const AdminPositionsTab();
     case 4: return const AdminPlacementTab(); // Добавлено
+    case 5: return const AdminMobileUsersTab();
     default: return const SizedBox();
   }
 }

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:helper_app/core/models/config/app_config_dto.dart';
-import 'package:helper_app/core/models/user/current_user.dart';
+import '../../core/models/branch/cart_check_dto.dart';
+import '../../core/models/branch/branch_stock_dto.dart';
+import '../../core/models/branch/branch_dto.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/utils/logger.dart';
@@ -91,6 +93,7 @@ class AvailableItem {
   final double length;
   final double width;
   final double height;
+  int branchCount; // 0 означает отсутствует в продаже
 
   AvailableItem({
     required this.itemId,
@@ -100,6 +103,7 @@ class AvailableItem {
     this.length = 100, 
     this.width = 100,
     this.height = 100,
+    this.branchCount = 0,
   });
 
   factory AvailableItem.fromJson(Map<String, dynamic> json) {
@@ -159,6 +163,21 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool? postamatCapacityOk;
   String? postamatCapacityError;
 
+  List<BranchDto> availableBranches = [];
+  List<BranchAvailabilityDto> partiallyAvailableBranches = [];
+  bool isCartValidForSingleBranch = true;
+  String? cartConflictMessage;
+  List<AvailableItem> globalItems = [];
+
+  /// Список частей разделенной корзины, ожидающих оформления.
+  List<Map<int, int>> pendingSplitCarts = [];
+  
+  /// Общее число частей, на которые был разделен исходный заказ.
+  int totalSplitsCount = 0;
+  
+  /// Индекс текущей оформляемой части заказа.
+  int currentSplitIndex = 0;
+
   Future<void> _fetchConfig() async {
     try {
       appConfig = await _apiClient.getAppConfigAsync();
@@ -180,6 +199,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   Future<void> initialize() async {
     await _fetchConfig();
     await _fetchBranches();
+    await _fetchGlobalItems();
   }
 
   void nextStep() {
@@ -198,8 +218,8 @@ class CreateOrderViewModel extends ChangeNotifier {
 
   bool canProceedToNextStep() {
     switch (currentStep) {
-      case 0: return selectedBranch != null;
-      case 1: return cart.isNotEmpty;
+      case 0: return cart.isNotEmpty;
+      case 1: return selectedBranch != null && availableBranches.any((ab) => ab.branchId == selectedBranch!.branchId);
       case 2: 
         if (selectedDeliveryType == DeliveryType.postamat) {
           return selectedPostamat != null;
@@ -228,23 +248,59 @@ class CreateOrderViewModel extends ChangeNotifier {
   void selectBranch(Branch branch) {
     if (selectedBranch?.branchId == branch.branchId) return;
     selectedBranch = branch;
-    cart.clear(); 
-    _fetchItems();
+    notifyListeners();
   }
 
-  Future<void> _fetchItems([String query = '']) async {
-    if (selectedBranch == null) return;
+  Future<void> _fetchGlobalItems([String query = '']) async {
     await _withLoading(() async {
-      final endpoint = ApiEndpoints.getAvailableItems(selectedBranch!.branchId, query: query);
-      final response = await _apiClient.getAsync(endpoint);
+      final response = await _apiClient.getAsync('v1/Item');
+      
+      Map<int, Map<String, int>> branchCounts = {};
+      try {
+        final countsResponse = await _apiClient.getAsync('ItemPosition/branch-counts');
+        if (countsResponse is Map) {
+          branchCounts = countsResponse.map((key, value) {
+            final valMap = value as Map;
+            return MapEntry(
+              int.parse(key.toString()),
+              {
+                'branchCount': valMap['branchCount'] as int? ?? 0,
+                'totalAvailableQuantity': valMap['totalAvailableQuantity'] as int? ?? 0,
+              },
+            );
+          });
+        }
+      } catch (e) {
+        Logger.e('Failed to fetch item branch counts', e);
+      }
+
       if (response is List) {
-        availableItems = response.map((json) => AvailableItem.fromJson(json)).toList();
+        globalItems = response.map((json) {
+          final id = json['itemId'] as int? ?? 0;
+          final name = json['name'] as String? ?? '';
+          final price = (json['price'] as num?)?.toDouble() ?? 0.0;
+          final stockInfo = branchCounts[id];
+          return AvailableItem(
+            itemId: id,
+            name: name,
+            price: price,
+            availableQuantity: stockInfo?['totalAvailableQuantity'] ?? 0,
+            branchCount: stockInfo?['branchCount'] ?? 0,
+          );
+        }).toList();
+
+        if (query.isNotEmpty) {
+          final q = query.toLowerCase();
+          availableItems = globalItems.where((item) => item.name.toLowerCase().contains(q)).toList();
+        } else {
+          availableItems = List.from(globalItems);
+        }
       }
     });
   }
 
   Future<void> searchItems(String query) async {
-    await _fetchItems(query);
+    await _fetchGlobalItems(query);
   }
 
   Future<void> _fetchPostamats() async {
@@ -257,37 +313,235 @@ class CreateOrderViewModel extends ChangeNotifier {
     });
   }
 
-  void updateCartQuantity(int itemId, int delta, int maxQuantity) {
+  Future<void> checkCartAvailability() async {
+    if (cart.isEmpty) {
+      availableBranches = branches.map((b) => BranchDto(
+        branchId: b.branchId,
+        branchName: b.branchName,
+        branchType: b.branchType ?? '',
+        address: b.address ?? '',
+      )).toList();
+      partiallyAvailableBranches = [];
+      isCartValidForSingleBranch = true;
+      cartConflictMessage = null;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      final itemsDto = cart.entries.map((e) => CartItemDto(itemId: e.key, requiredQuantity: e.value)).toList();
+      final request = CartCheckRequestDto(items: itemsDto);
+      final response = await _apiClient.postAsync('ItemPosition/check-cart-branches', data: request.toJson());
+      
+      final availability = BranchAvailabilityResponseDto.fromJson(response as Map<String, dynamic>);
+      availableBranches = availability.availableBranches;
+      partiallyAvailableBranches = availability.partiallyAvailableBranches;
+      isCartValidForSingleBranch = availableBranches.isNotEmpty;
+
+      if (!isCartValidForSingleBranch) {
+        cartConflictMessage = 'Товары из вашей корзины отсутствуют в одном магазине в нужном количестве. Пожалуйста, разделите заказ или удалите отсутствующие товары.';
+      } else {
+        cartConflictMessage = null;
+      }
+      notifyListeners();
+    } catch (e) {
+      Logger.e('Ошибка проверки доступности корзины', e);
+    }
+  }
+
+  Future<bool> wouldAddingItemCauseConflict(int itemId) async {
+    if (cart.isEmpty) return false;
+    
+    final tempCart = Map<int, int>.from(cart);
+    tempCart[itemId] = (tempCart[itemId] ?? 0) + 1;
+    
+    try {
+      final itemsDto = tempCart.entries.map((e) => CartItemDto(itemId: e.key, requiredQuantity: e.value)).toList();
+      final request = CartCheckRequestDto(items: itemsDto);
+      final response = await _apiClient.postAsync('ItemPosition/check-cart-branches', data: request.toJson());
+      final availability = BranchAvailabilityResponseDto.fromJson(response as Map<String, dynamic>);
+      return availability.availableBranches.isEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<List<Map<int, int>>> splitCartAutomatically() async {
+    final itemIds = cart.keys.toList();
+    final itemBranches = <int, List<int>>{};
+
+    for (final b in branches) {
+      final branchId = b.branchId;
+      final isFull = availableBranches.any((ab) => ab.branchId == branchId);
+      if (isFull) {
+        return [Map<int, int>.from(cart)];
+      }
+
+      final partInfo = partiallyAvailableBranches.firstWhere(
+        (pb) => pb.branch.branchId == branchId,
+        orElse: () => BranchAvailabilityDto(
+          branch: BranchDto(branchId: branchId),
+          missingItems: [],
+        ),
+      );
+
+      for (final itemId in itemIds) {
+        final requiredQty = cart[itemId]!;
+        final missing = partInfo.missingItems.firstWhere(
+          (m) => m.itemId == itemId,
+          orElse: () => MissingItemDto(itemId: itemId, requiredQuantity: requiredQty, availableQuantity: requiredQty),
+        );
+
+        if (missing.availableQuantity >= requiredQty) {
+          itemBranches.putIfAbsent(itemId, () => []).add(branchId);
+        }
+      }
+    }
+
+    final remainingItems = Set<int>.from(cart.keys);
+    final splits = <Map<int, int>>[];
+
+    while (remainingItems.isNotEmpty) {
+      int bestBranchId = -1;
+      int maxFulfilledCount = -1;
+      final bestBranchItems = <int>[];
+
+      for (final b in branches) {
+        int fulfilledCount = 0;
+        final fulfilledItems = <int>[];
+        for (final itemId in remainingItems) {
+          final branchesWithItem = itemBranches[itemId] ?? [];
+          if (branchesWithItem.contains(b.branchId)) {
+            fulfilledCount++;
+            fulfilledItems.add(itemId);
+          }
+        }
+
+        if (fulfilledCount > maxFulfilledCount) {
+          maxFulfilledCount = fulfilledCount;
+          bestBranchId = b.branchId;
+          bestBranchItems.clear();
+          bestBranchItems.addAll(fulfilledItems);
+        }
+      }
+
+      if (bestBranchId == -1 || bestBranchItems.isEmpty) {
+        final fallbackCart = <int, int>{};
+        for (final itemId in remainingItems) {
+          fallbackCart[itemId] = cart[itemId]!;
+        }
+        splits.add(fallbackCart);
+        break;
+      }
+
+      final splitCart = <int, int>{};
+      for (final itemId in bestBranchItems) {
+        splitCart[itemId] = cart[itemId]!;
+        remainingItems.remove(itemId);
+      }
+      splits.add(splitCart);
+    }
+
+    return splits;
+  }
+
+  /// Инициализирует процесс поочередного оформления разделенных заказов.
+  void startIndividualSplitCheckout(List<Map<int, int>> splits) {
+    if (splits.isEmpty) return;
+    pendingSplitCarts = List.from(splits);
+    totalSplitsCount = splits.length;
+    currentSplitIndex = 1;
+
+    // Берем первую часть
+    cart = pendingSplitCarts.removeAt(0);
+
+    // Сбрасываем шаг и все выбранные логистические параметры
+    currentStep = 1;
+    selectedBranch = null;
+    selectedPostamat = null;
+    deliveryDate = null;
+    selectedSlot = null;
+    destinationAddress = '';
+
+    checkCartAvailability();
+    notifyListeners();
+  }
+
+  /// Переключает процесс на оформление следующей части разделенного заказа.
+  /// Возвращает истину, если следующая часть существует и была успешно загружена.
+  bool moveToNextSplit() {
+    if (pendingSplitCarts.isNotEmpty) {
+      cart = pendingSplitCarts.removeAt(0);
+      currentSplitIndex++;
+
+      // Сбрасываем выбранные шаги и параметры для следующей части
+      currentStep = 1;
+      selectedBranch = null;
+      selectedPostamat = null;
+      deliveryDate = null;
+      selectedSlot = null;
+      destinationAddress = '';
+
+      checkCartAvailability();
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  bool updateCartQuantity(int itemId, int delta, int maxQuantity) {
     int current = cart[itemId] ?? 0;
     int newVal = current + delta;
     
-    if (newVal < 0) return;
-    if (newVal > maxQuantity) newVal = maxQuantity;
-
+    if (newVal < 0) return false;
+    if (newVal > maxQuantity) return false;
+    
     if (newVal == 0) {
       cart.remove(itemId);
     } else {
       cart[itemId] = newVal;
     }
+    checkCartAvailability();
     notifyListeners();
+    return true;
   }
 
-  void setManualQuantity(int itemId, int value, int maxQuantity) {
-    if (value < 0) return;
-    int finalValue = value > maxQuantity ? maxQuantity : value;
+  bool setManualQuantity(int itemId, int value, int maxQuantity) {
+    if (value < 0) return false;
+    
+    bool restricted = false;
+    if (value > maxQuantity) {
+      value = maxQuantity;
+      restricted = true;
+    }
 
-    if (finalValue == 0) {
+    if (value == 0) {
       cart.remove(itemId);
     } else {
-      cart[itemId] = finalValue;
+      cart[itemId] = value;
     }
+    checkCartAvailability();
     notifyListeners();
+    return !restricted;
+  }
+
+  /// Получает информацию о распределении остатков конкретного товара по филиалам.
+  Future<List<BranchStockDto>> fetchItemStockDistribution(int itemId) async {
+    try {
+      final response = await _apiClient.getAsync(ApiEndpoints.itemStockDistribution(itemId));
+      if (response is List) {
+        return response.map((json) => BranchStockDto.fromJson(json as Map<String, dynamic>)).toList();
+      }
+    } catch (e) {
+      Logger.e('Failed to fetch item stock distribution', e);
+    }
+    return [];
   }
 
   double get cartTotalPrice {
     double total = 0;
     for (var entry in cart.entries) {
-      final item = availableItems.firstWhere((i) => i.itemId == entry.key, orElse: () => availableItems.first);
+      final item = globalItems.firstWhere((i) => i.itemId == entry.key, orElse: () => availableItems.first);
       total += item.price * entry.value;
     }
     return total;

@@ -13,7 +13,7 @@ import '../../core/models/boss_panel/boss_panel_models.dart';
 class BossPanelPage extends ConsumerWidget {
   const BossPanelPage({super.key});
 
-  // Константы дизайна[cite: 1]
+  // Константы дизайна
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
   static const Color _bgGray900 = Color(0xFF2C2C2E);
@@ -24,7 +24,7 @@ class BossPanelPage extends ConsumerWidget {
     final state = ref.watch(bossPanelViewModelProvider);
     final vm = ref.read(bossPanelViewModelProvider.notifier);
 
-    // Список разделов для Drawer[cite: 1]
+    // Список разделов для Drawer
 // Список разделов для Drawer
 final List<Map<String, dynamic>> destinations = [
   {'title': 'Активные задачи', 'icon': Icons.assignment_outlined},
@@ -54,7 +54,7 @@ final List<Map<String, dynamic>> destinations = [
     );
   }
 
-  /// Боковое меню[cite: 1]
+  /// Боковое меню
 /// Боковое меню
   Widget _buildNavigationDrawer(
     BuildContext context, 
@@ -154,7 +154,7 @@ Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
   }
 }
 
-/// Компонент карточки задачи[cite: 1]
+/// Компонент карточки задачи
 class _TaskCard extends StatelessWidget {
   final BossPanelTaskCardDto task;
   const _TaskCard({required this.task});
@@ -204,7 +204,7 @@ class _TaskCard extends StatelessWidget {
   }
 }
 
-/// Компонент карточки сотрудника[cite: 1]
+/// Компонент карточки сотрудника
 class _EmployeeCard extends StatelessWidget {
   final EmployeeWorkloadDto emp;
   const _EmployeeCard({required this.emp});

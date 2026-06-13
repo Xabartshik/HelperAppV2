@@ -1,7 +1,7 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
-import '../../core/services/auth_service.dart';
 
 class ActiveTasksState {
   final bool isLoading;
@@ -36,11 +36,23 @@ class ActiveTasksViewModel extends AutoDisposeNotifier<ActiveTasksState> {
   @override
   ActiveTasksState build() {
     Future.microtask(() => loadTasks());
+
+    // Таймер для автоматического обновления данных раз в тридцать секунд
+    final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      loadTasks(isSilent: true);
+    });
+
+    ref.onDispose(() {
+      timer.cancel();
+    });
+
     return ActiveTasksState();
   }
 
-  Future<void> loadTasks() async {
-    state = state.copyWith(isLoading: true);
+  Future<void> loadTasks({bool isSilent = false}) async {
+    if (!isSilent) {
+      state = state.copyWith(isLoading: true);
+    }
     try {
       final client = ref.read(apiClientProvider);
       final allTasks = await client.getBossPanelActiveTasksAsync();

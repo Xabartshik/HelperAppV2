@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/utils/logger.dart';
 import '../home/main_viewmodel.dart';
 import '../tasks/base_task_screen.dart';
 import 'order_assembly_viewmodel.dart';

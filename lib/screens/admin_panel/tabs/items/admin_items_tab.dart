@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
-import '../../../../core/models/item/item_dto.dart';
+import '../../../../core/services/pdf_export_service.dart';
 import 'admin_items_viewmodel.dart';
 
 class AdminItemsTab extends ConsumerWidget {
@@ -22,43 +22,92 @@ class AdminItemsTab extends ConsumerWidget {
       return const Center(child: Text("Товары не найдены", style: TextStyle(color: Colors.white54)));
     }
 
-    // ВОТ ЗДЕСЬ ИЗМЕНЕНИЕ: Возвращаем ListView напрямую, без Scaffold!
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: state.filteredItems.length,
-      itemBuilder: (context, index) {
-        final item = state.filteredItems[index];
-        return Card(
-          color: const Color(0xFF1C1C1E),
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            onTap: () {
-              // 1. Записываем товар в провайдер редактирования
-              ref.read(editingItemProvider.notifier).state = item;
-              // 2. Теперь контекст без помех найдет главный Scaffold (AdminDashboardPage) и откроет форму!
-              Scaffold.of(context).openEndDrawer();
-            },
-            leading: const CircleAvatar(
-              backgroundColor: Color(0xFF7C3AED),
-              child: Icon(Icons.inventory_2, color: Colors.white, size: 18),
-            ),
-            title: Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Показываем штрих-код, если он есть
-                if (item.barcode != null && item.barcode!.isNotEmpty)
-                  Text('Штрих-код: ${item.barcode}', 
-                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace')),
-                const SizedBox(height: 2),
-                Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
-                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              ],
-            ),
-            trailing: Text('${item.price} ₽', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+    // Панель выбора товаров и печати штрих-кодов
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              TextButton.icon(
+                onPressed: () => ref.read(adminItemsProvider.notifier).selectAllItems(),
+                icon: Icon(
+                  state.filteredItems.isNotEmpty && state.filteredItems.every((i) => state.selectedItemIds.contains(i.itemId))
+                      ? Icons.check_box
+                      : Icons.check_box_outline_blank,
+                  color: const Color(0xFF7C3AED),
+                ),
+                label: const Text('Выбрать все', style: TextStyle(color: Colors.white70)),
+              ),
+              if (state.selectedItemIds.isNotEmpty)
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final selectedItems = state.items.where((i) => state.selectedItemIds.contains(i.itemId)).toList();
+                    await PdfExportService.exportItemBarcodes(selectedItems);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF7C3AED),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  icon: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 16),
+                  label: Text('Печать (${state.selectedItemIds.length})', style: const TextStyle(color: Colors.white)),
+                ),
+            ],
           ),
-        );
-      },
+        ),
+        const Divider(color: Colors.white10, height: 1),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: state.filteredItems.length,
+            itemBuilder: (context, index) {
+              final item = state.filteredItems[index];
+              final isSelected = state.selectedItemIds.contains(item.itemId);
+              return Card(
+                color: const Color(0xFF1C1C1E),
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  onTap: () {
+                    ref.read(editingItemProvider.notifier).state = item;
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Checkbox(
+                        value: isSelected,
+                        activeColor: const Color(0xFF7C3AED),
+                        checkColor: Colors.white,
+                        onChanged: (_) {
+                          ref.read(adminItemsProvider.notifier).toggleItemSelection(item.itemId);
+                        },
+                      ),
+                      const CircleAvatar(
+                        backgroundColor: Color(0xFF7C3AED),
+                        child: Icon(Icons.inventory_2, color: Colors.white, size: 18),
+                      ),
+                    ],
+                  ),
+                  title: Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (item.barcode.isNotEmpty)
+                        Text('Штрих-код: ${item.barcode}', 
+                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace')),
+                      const SizedBox(height: 2),
+                      Text('Вес: ${item.weight}г • ${item.length}x${item.width}x${item.height}мм', 
+                        style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    ],
+                  ),
+                  trailing: Text('${item.price} ₽', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -162,7 +211,7 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
                         Expanded(
                           child: FormBuilderTextField(
                             name: 'barcode',
-                            initialValue: isEdit ? editingItem?.barcode : null,
+                            initialValue: isEdit ? editingItem.barcode : null,
                             style: const TextStyle(color: Colors.white),
                             keyboardType: TextInputType.number,
                             inputFormatters: [
@@ -194,7 +243,7 @@ class _ItemFormPanelState extends ConsumerState<ItemFormPanel> {
                           child: Builder(
                             builder: (context) {
                               final currentValue = _formKey.currentState?.fields['barcode']?.value?.toString() ?? 
-                                                   (isEdit ? editingItem?.barcode ?? '' : '');
+                                                   (isEdit ? editingItem.barcode ?? '' : '');
                               
                               if (currentValue.isNotEmpty) {
                                 return GestureDetector(

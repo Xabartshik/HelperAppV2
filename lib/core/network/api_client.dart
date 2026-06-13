@@ -11,6 +11,7 @@ import 'package:helper_app/core/models/employee/employee_dto.dart';
 import 'package:helper_app/core/models/inventory/position_cell_dto.dart';
 import 'package:helper_app/core/models/item/item_dto.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
+import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import '../utils/logger.dart';
 import 'api_exceptions.dart';
 import 'api_endpoints.dart';
@@ -302,6 +303,24 @@ void _handleResponseErrors(Response response) {
   }
 }
 
+  // Отправка PATCH запроса
+  Future<dynamic> patchAsync(String endpoint, {dynamic data}) async {
+    try {
+      _hasNetwork = true;
+      await _resolveBaseUrl();
+      final response = await _dio.patch(endpoint, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      if (e.error is UnauthorizedException || 
+          e.error is NotFoundException || 
+          e.error is ConflictException || 
+          e.error is ApiException) {
+        throw e.error!; 
+      }
+      throw NoNetworkException('Нет подключения к сети', e);
+    }
+  }
+
 Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     try {
       final response = await postAsync('Employee', data: data);
@@ -559,6 +578,51 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
       return true;
     } catch (e) {
       Logger.e('Ошибка создания филиала', e);
+      return false;
+    }
+  }
+
+  Future<bool> blockEmployeeAsync(int employeeId) async {
+    try {
+      await postAsync('Employee/$employeeId/block', data: {});
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка блокировки сотрудника', e);
+      return false;
+    }
+  }
+
+  Future<bool> unblockEmployeeAsync(int employeeId) async {
+    try {
+      await postAsync('Employee/$employeeId/unblock', data: {});
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка разблокировки сотрудника', e);
+      return false;
+    }
+  }
+
+  // Получение всех пользователей мобильного приложения
+  Future<List<MobileAppUserDto>> getMobileAppUsersAsync() async {
+    try {
+      final response = await getAsync('v1/MobileAppUser');
+      if (response != null && response is List) {
+        return response.map((e) => MobileAppUserDto.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      Logger.w('Ошибка загрузки пользователей мобильного приложения: $e');
+      return [];
+    }
+  }
+
+  // Обновление активности пользователя
+  Future<bool> updateMobileUserActiveAsync(int userId, bool isActive) async {
+    try {
+      await patchAsync('v1/MobileAppUser/$userId/active', data: {'isActive': isActive});
+      return true;
+    } catch (e) {
+      Logger.e('Ошибка обновления активности пользователя мобильного приложения', e);
       return false;
     }
   }

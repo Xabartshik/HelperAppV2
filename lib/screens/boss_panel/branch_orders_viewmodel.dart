@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
@@ -46,12 +47,24 @@ class BranchOrdersViewModel extends AutoDisposeNotifier<BranchOrdersState> {
   @override
   BranchOrdersState build() {
     Future.microtask(() => loadData());
+    
+    // Таймер для автоматического обновления данных раз в тридцать секунд
+    final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      loadData(isSilent: true);
+    });
+
+    ref.onDispose(() {
+      timer.cancel();
+    });
+
     return BranchOrdersState();
   }
 
-Future<void> loadData() async {
+  Future<void> loadData({bool isSilent = false}) async {
     // Устанавливаем состояние загрузки
-    state = state.copyWith(isLoading: true);
+    if (!isSilent) {
+      state = state.copyWith(isLoading: true);
+    }
     
     // Получаем текущего пользователя для определения филиала
     final user = ref.read(currentUserProvider);

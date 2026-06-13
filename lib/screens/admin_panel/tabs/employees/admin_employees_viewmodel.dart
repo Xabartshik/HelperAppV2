@@ -126,4 +126,19 @@ class AdminEmployeesViewModel extends AutoDisposeNotifier<AdminEmployeesState> {
       _ => (1, 1),         // Storekeeper, Worker
     };
   }
+
+  // Блокировка или разблокировка сотрудника
+  Future<void> toggleBlockStatus(EmployeeDto emp) async {
+    final client = ref.read(apiClientProvider);
+    final newState = !emp.isBlocked;
+    bool success = false;
+    if (newState) {
+      success = await client.blockEmployeeAsync(emp.employeesId);
+    } else {
+      success = await client.unblockEmployeeAsync(emp.employeesId);
+    }
+    if (success) {
+      await loadEmployees();
+    }
+  }
 }

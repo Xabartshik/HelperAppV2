@@ -15,7 +15,7 @@ class EmployeeWorkloadTab extends ConsumerWidget {
     final state = ref.watch(employeeWorkloadProvider);
     final vm = ref.read(employeeWorkloadProvider.notifier);
 
-    if (state.isLoading) {
+    if (state.isLoading && state.employees.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: _primaryColor));
     }
 
@@ -44,14 +44,36 @@ class EmployeeWorkloadTab extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text("Сотрудники", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          PopupMenuButton<WorkloadSortType>(
-            icon: const Icon(Icons.sort, color: _primaryColor),
-            color: _cardBg,
-            onSelected: vm.changeSort,
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: WorkloadSortType.complexity, child: Text("По нагрузке", style: TextStyle(color: Colors.white))),
-              const PopupMenuItem(value: WorkloadSortType.tasks, child: Text("По числу задач", style: TextStyle(color: Colors.white))),
-              const PopupMenuItem(value: WorkloadSortType.name, child: Text("По алфавиту", style: TextStyle(color: Colors.white))),
+          Row(
+            children: [
+              if (state.isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: _primaryColor,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: _primaryColor),
+                  onPressed: () => vm.loadData(),
+                  tooltip: 'Обновить данные',
+                ),
+              PopupMenuButton<WorkloadSortType>(
+                icon: const Icon(Icons.sort, color: _primaryColor),
+                color: _cardBg,
+                onSelected: vm.changeSort,
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: WorkloadSortType.complexity, child: Text("По нагрузке", style: TextStyle(color: Colors.white))),
+                  const PopupMenuItem(value: WorkloadSortType.tasks, child: Text("По числу задач", style: TextStyle(color: Colors.white))),
+                  const PopupMenuItem(value: WorkloadSortType.name, child: Text("По алфавиту", style: TextStyle(color: Colors.white))),
+                ],
+              ),
             ],
           ),
         ],
@@ -129,7 +151,7 @@ class EmployeeWorkloadTab extends ConsumerWidget {
   }
 }
 
-class _EmployeeCard extends StatelessWidget {
+class _EmployeeCard extends ConsumerWidget {
   final EmployeeWorkloadDto emp;
   const _EmployeeCard({required this.emp});
 
@@ -137,9 +159,13 @@ class _EmployeeCard extends StatelessWidget {
   static const Color _cardBg = Color(0xFF2C2C2E);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusColor = emp.isBlocked 
+        ? Colors.redAccent 
+        : (emp.isAtWork ? Colors.greenAccent : Colors.grey);
+
     return Opacity(
-      opacity: emp.isAtWork ? 1.0 : 0.4,
+      opacity: emp.isBlocked ? 0.5 : (emp.isAtWork ? 1.0 : 0.4),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -147,7 +173,7 @@ class _EmployeeCard extends StatelessWidget {
           color: _cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: emp.isAtWork ? Colors.white10 : Colors.transparent,
+            color: emp.isAtWork && !emp.isBlocked ? Colors.white10 : Colors.transparent,
           ),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))
@@ -163,9 +189,9 @@ class _EmployeeCard extends StatelessWidget {
                   height: 12,
                   margin: const EdgeInsets.only(top: 4),
                   decoration: BoxDecoration(
-                    color: emp.isAtWork ? Colors.greenAccent : Colors.grey,
+                    color: statusColor,
                     shape: BoxShape.circle,
-                    boxShadow: emp.isAtWork 
+                    boxShadow: emp.isAtWork && !emp.isBlocked
                         ? [BoxShadow(color: Colors.greenAccent.withValues(alpha: 0.5), blurRadius: 8)]
                         : null,
                   ),
@@ -175,22 +201,48 @@ class _EmployeeCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        emp.fullName,
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              emp.fullName,
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          if (emp.isBlocked)
+                            Container(
+                              margin: const EdgeInsets.only(left: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                              ),
+                              child: const Text(
+                                'Блокирован',
+                                style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        emp.isAtWork ? 'На смене' : 'Отдыхает / Вне смены',
+                        emp.isBlocked
+                            ? 'Заблокирован'
+                            : (emp.isAtWork ? 'На смене' : 'Отдыхает / Вне смены'),
                         style: TextStyle(
-                          color: emp.isAtWork ? Colors.white70 : Colors.white38,
+                          color: emp.isBlocked 
+                              ? Colors.redAccent 
+                              : (emp.isAtWork ? Colors.white70 : Colors.white38),
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (emp.isAtWork)
+
+                if (emp.isAtWork && !emp.isBlocked) ...[
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -201,6 +253,7 @@ class _EmployeeCard extends StatelessWidget {
                       const Text('задач', style: TextStyle(color: Colors.white54, fontSize: 12)),
                     ],
                   ),
+                ],
               ],
             ),
             
@@ -232,6 +285,28 @@ class _EmployeeCard extends StatelessWidget {
                   child: _buildEnhancedTaskItem(task),
                 );
               }),
+            ] else if (emp.isAtWork && emp.activeTasks.isEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white10, height: 1),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.greenAccent.withValues(alpha: 0.15)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Нет активных задач (свободен)',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
             ]
           ],
         ),
@@ -498,4 +573,4 @@ void showAssigneeDetailsSheet(
       );
     },
   );
-}
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:helper_app/core/models/user/worker_role.dart';
+import 'package:helper_app/core/models/employee/employee_dto.dart';
 import '../../../../core/services/pdf_export_service.dart';
 import 'admin_employees_viewmodel.dart';
 
@@ -52,15 +53,75 @@ class AdminEmployeesTab extends ConsumerWidget {
               child: Icon(Icons.person, color: Colors.white, size: 18),
             ),
             title: Text("${emp.surname} ${emp.name}", 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            subtitle: Text(translateWorkerRole(emp.role as WorkerRole?), 
-              style: const TextStyle(color: Colors.white54, fontSize: 12)),
-            trailing: const Icon(Icons.edit, color: Colors.white24, size: 18),
+              style: TextStyle(
+                color: Colors.white, 
+                fontWeight: FontWeight.bold,
+                decoration: emp.isBlocked ? TextDecoration.lineThrough : null,
+              )),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(translateWorkerRole(emp.role as WorkerRole?), 
+                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                if (emp.isBlocked)
+                  const Text("Заблокирован", style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    emp.isBlocked ? Icons.lock : Icons.lock_open,
+                    color: emp.isBlocked ? Colors.redAccent : Colors.greenAccent,
+                  ),
+                  onPressed: () => _showBlockToggleDialog(context, ref, emp),
+                  tooltip: emp.isBlocked ? 'Разблокировать сотрудника' : 'Заблокировать сотрудника',
+                ),
+                const Icon(Icons.edit, color: Colors.white24, size: 18),
+              ],
+            ),
           ),
         );
       },
     );
   }
+}
+
+// Подтверждающий диалог для блокировки сотрудника
+void _showBlockToggleDialog(BuildContext context, WidgetRef ref, EmployeeDto emp) {
+  final titleText = emp.isBlocked ? 'Разблокировка сотрудника' : 'Блокировка сотрудника';
+  final promptText = emp.isBlocked
+      ? 'Вы действительно хотите разблокировать сотрудника ${emp.surname} ${emp.name}?'
+      : 'Вы действительно хотите заблокировать сотрудника ${emp.surname} ${emp.name}?\nБудет также заблокирован связанный аккаунт пользователя мобильного приложения!';
+      
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1C1C1E),
+      title: Text(titleText, style: const TextStyle(color: Colors.white)),
+      content: Text(promptText, style: const TextStyle(color: Colors.white70)),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Отмена', style: TextStyle(color: Colors.white38)),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            await ref.read(adminEmployeesProvider.notifier).toggleBlockStatus(emp);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: emp.isBlocked ? Colors.greenAccent : Colors.redAccent,
+          ),
+          child: Text(
+            emp.isBlocked ? 'Разблокировать' : 'Заблокировать',
+            style: const TextStyle(color: Colors.black),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class EmployeeFormPanel extends ConsumerStatefulWidget {

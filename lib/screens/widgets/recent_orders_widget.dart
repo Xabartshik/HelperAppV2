@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 class RecentOrdersWidget extends ConsumerStatefulWidget {
   final int customerId;
   
-  const RecentOrdersWidget({Key? key, required this.customerId}) : super(key: key);
+  const RecentOrdersWidget({super.key, required this.customerId});
 
   @override
   ConsumerState<RecentOrdersWidget> createState() => _RecentOrdersWidgetState();

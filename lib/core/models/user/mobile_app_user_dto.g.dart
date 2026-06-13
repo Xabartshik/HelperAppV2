@@ -10,11 +10,12 @@ _$MobileAppUserDtoImpl _$$MobileAppUserDtoImplFromJson(
   Map<String, dynamic> json,
 ) => _$MobileAppUserDtoImpl(
   id: (json['id'] as num).toInt(),
+  login: json['login'] as String,
   employeeId: (json['employeeId'] as num?)?.toInt(),
   customerId: (json['customerId'] as num?)?.toInt(),
   branchId: (json['branchId'] as num?)?.toInt(),
-  firstName: json['firstName'] as String,
-  lastName: json['lastName'] as String,
+  firstName: json['firstName'] as String?,
+  lastName: json['lastName'] as String?,
   role: $enumDecode(
     _$MobileUserRoleEnumMap,
     json['role'],
@@ -36,6 +37,7 @@ Map<String, dynamic> _$$MobileAppUserDtoImplToJson(
   _$MobileAppUserDtoImpl instance,
 ) => <String, dynamic>{
   'id': instance.id,
+  'login': instance.login,
   'employeeId': instance.employeeId,
   'customerId': instance.customerId,
   'branchId': instance.branchId,

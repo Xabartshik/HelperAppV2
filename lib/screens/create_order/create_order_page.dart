@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/services/auth_service.dart';
+import '../../core/models/branch/cart_check_dto.dart';
+import '../../core/models/branch/branch_dto.dart';
+import '../../core/models/branch/branch_stock_dto.dart';
 
 import '../../core/network/api_client.dart';
 import 'create_order_viewmodel.dart';
@@ -55,6 +57,17 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
       ),
       body: Column(
         children: [
+          if (vm.totalSplitsCount > 0)
+            Container(
+              color: Colors.orangeAccent.withOpacity(0.15),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              width: double.infinity,
+              child: Text(
+                'Оформление разделенного заказа: часть ${vm.currentSplitIndex} из ${vm.totalSplitsCount}',
+                style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            ),
           _buildStepIndicators(vm.currentStep),
           Expanded(
             child: vm.isLoading && vm.currentStep == 0
@@ -68,7 +81,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   }
 
   Widget _buildStepIndicators(int currentStep) {
-    final titles = ['Локация', 'Витрина', 'Логистика', 'Проверка'];
+    final titles = ['Витрина', 'Локация', 'Логистика', 'Проверка'];
     return Container(
       color: _bgGray950,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -103,8 +116,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
 
   Widget _buildCurrentStepView(CreateOrderViewModel vm) {
     switch (vm.currentStep) {
-      case 0: return _buildStep1Location(vm);
-      case 1: return _buildStep2Catalog(vm);
+      case 0: return _buildStep2Catalog(vm);
+      case 1: return _buildStep1Location(vm);
       case 2: return _buildStep3Logistics(vm);
       case 3: return _buildStep4Summary(vm);
       default: return const SizedBox();
@@ -164,6 +177,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             },
           ),
         ),
+        if (vm.availableBranches.isEmpty && !vm.isLoading)
+          _buildCartConflictBanner(vm),
         Expanded(
           child: vm.filteredBranches.isEmpty && !vm.isLoading
               ? _buildEmptyState(Icons.location_city, 'Филиалы по данному запросу не найдены.')
@@ -172,37 +187,79 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                   itemCount: vm.filteredBranches.length,
                   itemBuilder: (context, index) {
                     final b = vm.filteredBranches[index];
+                    
+                    final isAvailable = vm.availableBranches.any((ab) => ab.branchId == b.branchId);
                     final isSelected = vm.selectedBranch?.branchId == b.branchId;
                     
+                    final partInfo = vm.partiallyAvailableBranches.firstWhere(
+                      (pb) => pb.branch.branchId == b.branchId,
+                      orElse: () => BranchAvailabilityDto(
+                        branch: BranchDto(branchId: b.branchId),
+                        missingItems: [],
+                      ),
+                    );
+
                     return GestureDetector(
-                      onTap: () => vm.selectBranch(b),
+                      onTap: isAvailable ? () => vm.selectBranch(b) : null,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isSelected ? _accent.withOpacity(0.1) : _bgGray900,
+                          color: isSelected 
+                            ? _accent.withOpacity(0.1) 
+                            : (isAvailable ? _bgGray900 : _bgGray900.withOpacity(0.4)),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isSelected ? _accent : Colors.transparent),
+                          border: Border.all(
+                            color: isSelected 
+                              ? _accent 
+                              : (isAvailable ? Colors.transparent : Colors.white10)
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.business, color: isSelected ? _accent : _textGray),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(b.branchName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-                                  if (b.address != null && b.address!.isNotEmpty) 
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4.0),
-                                      child: Text(b.address!, style: const TextStyle(color: _textGray, fontSize: 12)),
-                                    ),
-                                ],
+                        child: Opacity(
+                          opacity: isAvailable ? 1.0 : 0.5,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.business, 
+                                color: isSelected 
+                                  ? _accent 
+                                  : (isAvailable ? _textGray : Colors.grey)
                               ),
-                            ),
-                            if (isSelected) const Icon(Icons.check_circle, color: _accent),
-                          ],
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      b.branchName, 
+                                      style: const TextStyle(
+                                        color: Colors.white, 
+                                        fontSize: 16, 
+                                        fontWeight: FontWeight.w500
+                                      )
+                                    ),
+                                    if (b.address != null && b.address!.isNotEmpty) 
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4.0),
+                                        child: Text(
+                                          b.address!, 
+                                          style: const TextStyle(color: _textGray, fontSize: 12)
+                                        ),
+                                      ),
+                                    if (!isAvailable && partInfo.missingItems.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          'Не хватает ${partInfo.missingItems.length} товаров из корзины',
+                                          style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected) const Icon(Icons.check_circle, color: _accent),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -210,6 +267,234 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCartConflictBanner(CreateOrderViewModel vm) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.redAccent),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Конфликт корзины',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Товары из вашей корзины находятся в разных магазинах. Ни одна точка не может выдать весь заказ целиком.',
+            style: TextStyle(color: _textGray, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _accent,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            icon: const Icon(Icons.splitscreen, color: Colors.white, size: 18),
+            label: const Text('Разделить заказ автоматически', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            onPressed: () async {
+              final splits = await vm.splitCartAutomatically();
+              if (mounted) {
+                _showSplitOrdersDialog(context, vm, splits);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSplitOrdersDialog(BuildContext context, CreateOrderViewModel vm, List<Map<int, int>> splits) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: _bgGray950,
+          title: const Text('Разделение заказа', style: TextStyle(color: Colors.white)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: splits.length,
+              itemBuilder: (context, splitIndex) {
+                final split = splits[splitIndex];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _bgGray900,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Заказ ${splitIndex + 1}',
+                        style: const TextStyle(color: _accent, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      ...split.entries.map((e) {
+                        final item = vm.globalItems.firstWhere((i) => i.itemId == e.key);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(
+                            '- ${item.name} (${e.value} шт)',
+                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена', style: TextStyle(color: _textGray)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              onPressed: () {
+                Navigator.pop(context); // Закрываем диалог разделения заказов
+                vm.startIndividualSplitCheckout(splits);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Корзина разделена на ${splits.length} частей. Начните оформление части 1.'),
+                    backgroundColor: Colors.orangeAccent,
+                    behavior: SnackBarBehavior.floating,
+                  )
+                );
+              },
+              child: const Text('Оформить по частям', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Отображает распределение остатков товара по филиалам.
+  void _showBranchStockDistributionBottomSheet(BuildContext context, CreateOrderViewModel vm, AvailableItem item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _bgGray950,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return FutureBuilder<List<BranchStockDto>>(
+          future: vm.fetchItemStockDistribution(item.itemId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator(color: _accent)),
+              );
+            }
+            if (snapshot.hasError) {
+              return SizedBox(
+                height: 200,
+                child: Center(
+                  child: Text('Ошибка загрузки данных: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)),
+                ),
+              );
+            }
+            final list = snapshot.data ?? [];
+            if (list.isEmpty) {
+              return const SizedBox(
+                height: 200,
+                child: Center(
+                  child: Text('Товар отсутствует на складах филиалов', style: TextStyle(color: _textGray)),
+                ),
+              );
+            }
+
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Наличие в филиалах',
+                    style: TextStyle(color: _textGray, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: list.length,
+                      separatorBuilder: (context, index) => const Divider(color: Colors.white12),
+                      itemBuilder: (context, index) {
+                        final stock = list[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      stock.branchName,
+                                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      stock.address,
+                                      style: const TextStyle(color: _textGray, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: _accent.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${stock.availableQuantity} шт.',
+                                  style: const TextStyle(color: _accent, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -247,7 +532,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
           child: vm.isLoading
               ? const Center(child: CircularProgressIndicator(color: _accent))
               : vm.availableItems.isEmpty
-                  ? _buildEmptyState(Icons.inventory_2_outlined, 'В выбранном филиале нет товаров в наличии.')
+                  ? _buildEmptyState(Icons.inventory_2_outlined, 'Товары не найдены.')
                   : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: vm.availableItems.length,
@@ -259,6 +544,59 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                     ),
         ),
       ],
+    );
+  }
+
+  Future<bool?> _showConflictConfirmationDialog(BuildContext context) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: _bgGray950,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Внимание: другой магазин',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Этот товар находится в другом филиале. Добавление его в корзину сделает невозможным получение всего заказа в одном месте.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _textGray, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Отмена', style: TextStyle(color: _textGray)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: _accent),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Добавить', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -291,22 +629,53 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.inventory, color: _textGray, size: 14),
-                  const SizedBox(width: 4),
-                  Text('В наличии: ${item.availableQuantity} шт', style: const TextStyle(color: _textGray, fontSize: 13)),
-                ],
+              InkWell(
+                onTap: item.branchCount == 0 ? null : () => _showBranchStockDistributionBottomSheet(context, vm, item),
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.inventory, color: _textGray, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.branchCount == 0 
+                          ? 'Отсутствует в продаже' 
+                          : 'В наличии в ${item.branchCount} филиалах (${item.availableQuantity} шт.)', 
+                        style: TextStyle(
+                          color: item.branchCount == 0 ? Colors.redAccent : _textGray, 
+                          fontSize: 13,
+                          decoration: item.branchCount == 0 ? null : TextDecoration.underline,
+                        )
+                      ),
+                    ],
+                  ),
+                ),
               ),
               qty == 0
                   ? ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _accent,
+                        backgroundColor: item.branchCount == 0 ? _bgGray950 : _accent,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         minimumSize: const Size(100, 36),
                       ),
-                      onPressed: () => vm.updateCartQuantity(item.itemId, 1, item.availableQuantity),
-                      child: const Text('Добавить', style: TextStyle(color: Colors.white, fontSize: 13)),
+                      onPressed: item.branchCount == 0 ? null : () async {
+                        final causesConflict = await vm.wouldAddingItemCauseConflict(item.itemId);
+                        if (causesConflict && context.mounted) {
+                          final confirm = await _showConflictConfirmationDialog(context);
+                          if (confirm != true) return;
+                        }
+                        final success = vm.updateCartQuantity(item.itemId, 1, item.availableQuantity);
+                        if (!success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Недостаточно товара на складе (доступно: ${item.availableQuantity})'),
+                              backgroundColor: Colors.redAccent,
+                            )
+                          );
+                        }
+                      },
+                      child: Text('Добавить', style: TextStyle(color: item.branchCount == 0 ? _textGray : Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                     )
                   : Container(
                       decoration: BoxDecoration(
@@ -320,7 +689,17 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                             icon: const Icon(Icons.remove, color: Colors.white, size: 18),
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(8),
-                            onPressed: () => vm.updateCartQuantity(item.itemId, -1, item.availableQuantity),
+                            onPressed: () {
+                              final success = vm.updateCartQuantity(item.itemId, -1, item.availableQuantity);
+                              if (!success && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Недостаточно товара на складе (доступно: ${item.availableQuantity})'),
+                                    backgroundColor: Colors.redAccent,
+                                  )
+                                );
+                              }
+                            },
                           ),
                           SizedBox(
                             width: 36,
@@ -331,7 +710,15 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                               decoration: const InputDecoration(isDense: true, border: InputBorder.none, contentPadding: EdgeInsets.zero),
                               onSubmitted: (val) {
-                                vm.setManualQuantity(item.itemId, int.tryParse(val) ?? 0, item.availableQuantity);
+                                final success = vm.setManualQuantity(item.itemId, int.tryParse(val) ?? 0, item.availableQuantity);
+                                if (!success && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Недостаточно товара на складе. Установлено максимальное доступное количество: ${item.availableQuantity}'),
+                                      backgroundColor: Colors.orangeAccent,
+                                    )
+                                  );
+                                }
                               },
                             ),
                           ),
@@ -339,7 +726,22 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                             icon: const Icon(Icons.add, color: Colors.white, size: 18),
                             constraints: const BoxConstraints(),
                             padding: const EdgeInsets.all(8),
-                            onPressed: () => vm.updateCartQuantity(item.itemId, 1, item.availableQuantity),
+                            onPressed: () async {
+                              final causesConflict = await vm.wouldAddingItemCauseConflict(item.itemId);
+                              if (causesConflict && context.mounted) {
+                                final confirm = await _showConflictConfirmationDialog(context);
+                                if (confirm != true) return;
+                              }
+                              final success = vm.updateCartQuantity(item.itemId, 1, item.availableQuantity);
+                              if (!success && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Недостаточно товара на складе (доступно: ${item.availableQuantity})'),
+                                    backgroundColor: Colors.redAccent,
+                                  )
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),
@@ -734,7 +1136,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                         
                         if (orderId != null) {
                           // Постоплата отключена, поэтому всегда вызываем мок-шлюз оплаты (предоплата)
-                          _showPaymentDialog(context, ref, orderId);
+                          _showPaymentDialog(context, ref, orderId, vm);
                         } else if (vm.errorMessage != null) {
                            if (!mounted) return;
                            ScaffoldMessenger.of(context).showSnackBar(
@@ -777,7 +1179,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     );
   }
 
-  void _showPaymentDialog(BuildContext context, WidgetRef ref, int orderId) {
+  void _showPaymentDialog(BuildContext context, WidgetRef ref, int orderId, CreateOrderViewModel vm) {
     showDialog(
       context: context,
       barrierDismissible: false, 
@@ -818,14 +1220,25 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                                 // Оплата прошла, бэкенд перевел статус в Created и запустил задачи
                                 if (ctx.mounted) Navigator.of(ctx).pop(); // Закрываем диалог оплаты
                                 if (this.context.mounted) {
-                                    ScaffoldMessenger.of(this.context).showSnackBar(
-                                        const SnackBar(
-                                            content: Text('Оплата успешна! Заказ передан в сборку.'), 
-                                            backgroundColor: Colors.green,
-                                            behavior: SnackBarBehavior.floating,
-                                        )
-                                    );
-                                    Navigator.of(this.context).pop(); // Уходим с экрана создания заказа
+                                    final hasNext = vm.moveToNextSplit();
+                                    if (hasNext) {
+                                        ScaffoldMessenger.of(this.context).showSnackBar(
+                                            SnackBar(
+                                                content: Text('Часть ${vm.currentSplitIndex - 1} успешно оплачена! Переходим к оформлению части ${vm.currentSplitIndex} из ${vm.totalSplitsCount}.'), 
+                                                backgroundColor: Colors.green,
+                                                behavior: SnackBarBehavior.floating,
+                                            )
+                                        );
+                                    } else {
+                                        ScaffoldMessenger.of(this.context).showSnackBar(
+                                            const SnackBar(
+                                                content: Text('Оплата успешна! Заказ передан в сборку.'), 
+                                                backgroundColor: Colors.green,
+                                                behavior: SnackBarBehavior.floating,
+                                            )
+                                        );
+                                        Navigator.of(this.context).pop(); // Уходим с экрана создания заказа
+                                    }
                                 }
                             } else {
                                 // Ошибка (например, 404 если метод не найден или 400 если заказ нельзя оплатить)

@@ -19,44 +19,119 @@ class GlobalPoolTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator(color: _primaryColor));
     }
 
-    if (state.poolTasks.isEmpty) {
-      return Center(
+    return Column(
+      children: [
+        _buildHeader(context, state, vm),
+        Expanded(
+          child: state.poolTasks.isEmpty
+              ? _EmptyPoolState(onRefresh: vm.loadDataAsync)
+              : RefreshIndicator(
+                  onRefresh: () => vm.loadDataAsync(),
+                  color: _primaryColor,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: state.poolTasks.length,
+                    itemBuilder: (context, index) {
+                      final task = state.poolTasks[index];
+                      return _PoolTaskCard(
+                        task: task,
+                        employees: state.availableEmployees,
+                        onAssign: (employeeId) async {
+                          final success = await vm.assignTaskToEmployee(task.taskId, employeeId);
+                          if (success && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Задача успешно назначена!'), backgroundColor: Colors.green),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, GlobalPoolState state, GlobalPoolTabViewModel vm) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            "Пул задач",
+            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          if (state.isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: _primaryColor,
+                  strokeWidth: 2,
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: _primaryColor),
+              onPressed: () => vm.loadDataAsync(),
+              tooltip: 'Обновить',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyPoolState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _EmptyPoolState({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.inbox, size: 64, color: Colors.white24),
-            const SizedBox(height: 16),
-            const Text('Пул задач пуст', style: TextStyle(color: Colors.white54, fontSize: 16)),
-            TextButton(
-              onPressed: () => vm.loadDataAsync(),
-              child: const Text('Обновить', style: TextStyle(color: _primaryColor)),
-            )
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.all_inbox_outlined, size: 64, color: Color(0xFF7C3AED)),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Пул задач пуст',
+              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'В данный момент нет доступных задач в общем пуле.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRefresh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C3AED),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Обновить', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => vm.loadDataAsync(),
-      color: _primaryColor,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: state.poolTasks.length,
-        itemBuilder: (context, index) {
-          final task = state.poolTasks[index];
-          return _PoolTaskCard(
-            task: task,
-            employees: state.availableEmployees,
-            onAssign: (employeeId) async {
-              final success = await vm.assignTaskToEmployee(task.taskId, employeeId);
-              if (success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Задача успешно назначена!'), backgroundColor: Colors.green),
-                );
-              }
-            },
-          );
-        },
       ),
     );
   }
@@ -161,7 +236,7 @@ class _PoolTaskCard extends StatelessWidget {
                   final emp = employees[index];
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF7C3AED).withOpacity(0.2),
+                      backgroundColor: const Color(0xFF7C3AED).withValues(alpha: 0.2),
                       child: Text(emp.fullName[0], style: const TextStyle(color: Color(0xFF7C3AED))),
                     ),
                     title: Text(emp.fullName, style: const TextStyle(color: Colors.white)),

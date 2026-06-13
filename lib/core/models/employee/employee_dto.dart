@@ -11,6 +11,7 @@ class EmployeeDto with _$EmployeeDto {
     required String name,
     String? middleName,
     @Default(WorkerRole.storekeeper) WorkerRole role,
+    @Default(false) bool isBlocked,
   }) = _EmployeeDto;
 
   factory EmployeeDto.fromJson(Map<String, dynamic> json) => _$EmployeeDtoFromJson(json);

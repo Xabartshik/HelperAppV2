@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
@@ -41,11 +42,23 @@ class EmployeeWorkloadViewModel extends AutoDisposeNotifier<WorkloadState> {
   @override
   WorkloadState build() {
     Future.microtask(() => loadData());
+
+    // Таймер для автоматического обновления данных раз в тридцать секунд
+    final timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      loadData(isSilent: true);
+    });
+
+    ref.onDispose(() {
+      timer.cancel();
+    });
+
     return WorkloadState();
   }
 
-Future<void> loadData() async {
-    state = state.copyWith(isLoading: true);
+  Future<void> loadData({bool isSilent = false}) async {
+    if (!isSilent) {
+      state = state.copyWith(isLoading: true);
+    }
     final user = ref.read(currentUserProvider);
     if (user?.branchId == null) return;
 
@@ -65,7 +78,7 @@ Future<void> loadData() async {
       final mergedList = allEmployees.map((emp) {
         if (emp.isAtWork) {
           // Ищем нагрузку активного сотрудника
-          return activeWorkloads.firstWhere(
+          final workload = activeWorkloads.firstWhere(
             (w) => w.employeeId == emp.employeeId,
             orElse: () => EmployeeWorkloadDto(
               employeeId: emp.employeeId,
@@ -73,8 +86,10 @@ Future<void> loadData() async {
               isAtWork: true,
               activeTasksCount: 0,
               activeTasks: [],
+              isBlocked: emp.isBlocked,
             ),
           );
+          return workload.copyWith(isBlocked: emp.isBlocked);
         } else {
           // Если не на смене, создаем "пустую" карточку нагрузки
           return EmployeeWorkloadDto(
@@ -83,6 +98,7 @@ Future<void> loadData() async {
             isAtWork: false,
             activeTasksCount: 0,
             activeTasks: [],
+            isBlocked: emp.isBlocked,
           );
         }
       }).toList();
@@ -91,6 +107,20 @@ Future<void> loadData() async {
       _sort();
     } catch (e) {
       state = state.copyWith(isLoading: false);
+    }
+  }
+
+  Future<void> toggleBlockStatus(EmployeeWorkloadDto emp) async {
+    final client = ref.read(apiClientProvider);
+    final newState = !emp.isBlocked;
+    bool success = false;
+    if (newState) {
+      success = await client.blockEmployeeAsync(emp.employeeId);
+    } else {
+      success = await client.unblockEmployeeAsync(emp.employeeId);
+    }
+    if (success) {
+      loadData(isSilent: true);
     }
   }
 

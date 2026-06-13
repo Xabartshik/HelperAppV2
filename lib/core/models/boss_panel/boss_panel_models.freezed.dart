@@ -619,6 +619,7 @@ mixin _$EmployeeWorkloadDto {
   double get totalComplexity => throw _privateConstructorUsedError;
   List<ActiveTaskBriefDto> get activeTasks =>
       throw _privateConstructorUsedError;
+  bool get isBlocked => throw _privateConstructorUsedError;
 
   /// Serializes this EmployeeWorkloadDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -644,6 +645,7 @@ abstract class $EmployeeWorkloadDtoCopyWith<$Res> {
     int activeTasksCount,
     double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
+    bool isBlocked,
   });
 }
 
@@ -668,6 +670,7 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
     Object? activeTasksCount = null,
     Object? totalComplexity = null,
     Object? activeTasks = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _value.copyWith(
@@ -695,6 +698,10 @@ class _$EmployeeWorkloadDtoCopyWithImpl<$Res, $Val extends EmployeeWorkloadDto>
                 ? _value.activeTasks
                 : activeTasks // ignore: cast_nullable_to_non_nullable
                       as List<ActiveTaskBriefDto>,
+            isBlocked: null == isBlocked
+                ? _value.isBlocked
+                : isBlocked // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -717,6 +724,7 @@ abstract class _$$EmployeeWorkloadDtoImplCopyWith<$Res>
     int activeTasksCount,
     double totalComplexity,
     List<ActiveTaskBriefDto> activeTasks,
+    bool isBlocked,
   });
 }
 
@@ -740,6 +748,7 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
     Object? activeTasksCount = null,
     Object? totalComplexity = null,
     Object? activeTasks = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _$EmployeeWorkloadDtoImpl(
@@ -767,6 +776,10 @@ class __$$EmployeeWorkloadDtoImplCopyWithImpl<$Res>
             ? _value._activeTasks
             : activeTasks // ignore: cast_nullable_to_non_nullable
                   as List<ActiveTaskBriefDto>,
+        isBlocked: null == isBlocked
+            ? _value.isBlocked
+            : isBlocked // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -782,6 +795,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     this.activeTasksCount = 0,
     this.totalComplexity = 0.0,
     final List<ActiveTaskBriefDto> activeTasks = const [],
+    this.isBlocked = false,
   }) : _activeTasks = activeTasks,
        super._();
 
@@ -812,8 +826,12 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
   }
 
   @override
+  @JsonKey()
+  final bool isBlocked;
+
+  @override
   String toString() {
-    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, totalComplexity: $totalComplexity, activeTasks: $activeTasks)';
+    return 'EmployeeWorkloadDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, totalComplexity: $totalComplexity, activeTasks: $activeTasks, isBlocked: $isBlocked)';
   }
 
   @override
@@ -834,7 +852,9 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
             const DeepCollectionEquality().equals(
               other._activeTasks,
               _activeTasks,
-            ));
+            ) &&
+            (identical(other.isBlocked, isBlocked) ||
+                other.isBlocked == isBlocked));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -847,6 +867,7 @@ class _$EmployeeWorkloadDtoImpl extends _EmployeeWorkloadDto {
     activeTasksCount,
     totalComplexity,
     const DeepCollectionEquality().hash(_activeTasks),
+    isBlocked,
   );
 
   /// Create a copy of EmployeeWorkloadDto
@@ -874,6 +895,7 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
     final int activeTasksCount,
     final double totalComplexity,
     final List<ActiveTaskBriefDto> activeTasks,
+    final bool isBlocked,
   }) = _$EmployeeWorkloadDtoImpl;
   const _EmployeeWorkloadDto._() : super._();
 
@@ -892,6 +914,8 @@ abstract class _EmployeeWorkloadDto extends EmployeeWorkloadDto {
   double get totalComplexity;
   @override
   List<ActiveTaskBriefDto> get activeTasks;
+  @override
+  bool get isBlocked;
 
   /// Create a copy of EmployeeWorkloadDto
   /// with the given fields replaced by the non-null parameter values.
@@ -1135,6 +1159,7 @@ mixin _$AvailableEmployeeDto {
   double? get maxWeightKg => throw _privateConstructorUsedError;
   String? get vehicleName => throw _privateConstructorUsedError;
   bool get isOnRoute => throw _privateConstructorUsedError;
+  bool get isBlocked => throw _privateConstructorUsedError;
 
   /// Serializes this AvailableEmployeeDto to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1162,6 +1187,7 @@ abstract class $AvailableEmployeeDtoCopyWith<$Res> {
     double? maxWeightKg,
     String? vehicleName,
     bool isOnRoute,
+    bool isBlocked,
   });
 }
 
@@ -1191,6 +1217,7 @@ class _$AvailableEmployeeDtoCopyWithImpl<
     Object? maxWeightKg = freezed,
     Object? vehicleName = freezed,
     Object? isOnRoute = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _value.copyWith(
@@ -1226,6 +1253,10 @@ class _$AvailableEmployeeDtoCopyWithImpl<
                 ? _value.isOnRoute
                 : isOnRoute // ignore: cast_nullable_to_non_nullable
                       as bool,
+            isBlocked: null == isBlocked
+                ? _value.isBlocked
+                : isBlocked // ignore: cast_nullable_to_non_nullable
+                      as bool,
           )
           as $Val,
     );
@@ -1250,6 +1281,7 @@ abstract class _$$AvailableEmployeeDtoImplCopyWith<$Res>
     double? maxWeightKg,
     String? vehicleName,
     bool isOnRoute,
+    bool isBlocked,
   });
 }
 
@@ -1275,6 +1307,7 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
     Object? maxWeightKg = freezed,
     Object? vehicleName = freezed,
     Object? isOnRoute = null,
+    Object? isBlocked = null,
   }) {
     return _then(
       _$AvailableEmployeeDtoImpl(
@@ -1310,6 +1343,10 @@ class __$$AvailableEmployeeDtoImplCopyWithImpl<$Res>
             ? _value.isOnRoute
             : isOnRoute // ignore: cast_nullable_to_non_nullable
                   as bool,
+        isBlocked: null == isBlocked
+            ? _value.isBlocked
+            : isBlocked // ignore: cast_nullable_to_non_nullable
+                  as bool,
       ),
     );
   }
@@ -1327,6 +1364,7 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     this.maxWeightKg,
     this.vehicleName,
     this.isOnRoute = false,
+    this.isBlocked = false,
   });
 
   factory _$AvailableEmployeeDtoImpl.fromJson(Map<String, dynamic> json) =>
@@ -1353,10 +1391,13 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
   @override
   @JsonKey()
   final bool isOnRoute;
+  @override
+  @JsonKey()
+  final bool isBlocked;
 
   @override
   String toString() {
-    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended, maxWeightKg: $maxWeightKg, vehicleName: $vehicleName, isOnRoute: $isOnRoute)';
+    return 'AvailableEmployeeDto(employeeId: $employeeId, fullName: $fullName, isAtWork: $isAtWork, activeTasksCount: $activeTasksCount, isRecommended: $isRecommended, maxWeightKg: $maxWeightKg, vehicleName: $vehicleName, isOnRoute: $isOnRoute, isBlocked: $isBlocked)';
   }
 
   @override
@@ -1379,7 +1420,9 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
             (identical(other.vehicleName, vehicleName) ||
                 other.vehicleName == vehicleName) &&
             (identical(other.isOnRoute, isOnRoute) ||
-                other.isOnRoute == isOnRoute));
+                other.isOnRoute == isOnRoute) &&
+            (identical(other.isBlocked, isBlocked) ||
+                other.isBlocked == isBlocked));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1394,6 +1437,7 @@ class _$AvailableEmployeeDtoImpl implements _AvailableEmployeeDto {
     maxWeightKg,
     vehicleName,
     isOnRoute,
+    isBlocked,
   );
 
   /// Create a copy of AvailableEmployeeDto
@@ -1424,6 +1468,7 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
     final double? maxWeightKg,
     final String? vehicleName,
     final bool isOnRoute,
+    final bool isBlocked,
   }) = _$AvailableEmployeeDtoImpl;
 
   factory _AvailableEmployeeDto.fromJson(Map<String, dynamic> json) =
@@ -1445,6 +1490,8 @@ abstract class _AvailableEmployeeDto implements AvailableEmployeeDto {
   String? get vehicleName;
   @override
   bool get isOnRoute;
+  @override
+  bool get isBlocked;
 
   /// Create a copy of AvailableEmployeeDto
   /// with the given fields replaced by the non-null parameter values.

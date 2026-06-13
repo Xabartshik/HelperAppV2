@@ -22,11 +22,12 @@ MobileAppUserDto _$MobileAppUserDtoFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$MobileAppUserDto {
   int get id => throw _privateConstructorUsedError;
+  String get login => throw _privateConstructorUsedError;
   int? get employeeId => throw _privateConstructorUsedError;
   int? get customerId => throw _privateConstructorUsedError;
   int? get branchId => throw _privateConstructorUsedError;
-  String get firstName => throw _privateConstructorUsedError;
-  String get lastName =>
+  String? get firstName => throw _privateConstructorUsedError;
+  String? get lastName =>
       throw _privateConstructorUsedError; // Используем Enum с указанием фолбэк-значения
   @JsonKey(unknownEnumValue: MobileUserRole.unknown)
   MobileUserRole get role => throw _privateConstructorUsedError;
@@ -55,11 +56,12 @@ abstract class $MobileAppUserDtoCopyWith<$Res> {
   @useResult
   $Res call({
     int id,
+    String login,
     int? employeeId,
     int? customerId,
     int? branchId,
-    String firstName,
-    String lastName,
+    String? firstName,
+    String? lastName,
     @JsonKey(unknownEnumValue: MobileUserRole.unknown) MobileUserRole role,
     @JsonKey(unknownEnumValue: WorkerRole.unknown) WorkerRole? workerRole,
     bool isActive,
@@ -84,11 +86,12 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
   @override
   $Res call({
     Object? id = null,
+    Object? login = null,
     Object? employeeId = freezed,
     Object? customerId = freezed,
     Object? branchId = freezed,
-    Object? firstName = null,
-    Object? lastName = null,
+    Object? firstName = freezed,
+    Object? lastName = freezed,
     Object? role = null,
     Object? workerRole = freezed,
     Object? isActive = null,
@@ -101,6 +104,10 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
                       as int,
+            login: null == login
+                ? _value.login
+                : login // ignore: cast_nullable_to_non_nullable
+                      as String,
             employeeId: freezed == employeeId
                 ? _value.employeeId
                 : employeeId // ignore: cast_nullable_to_non_nullable
@@ -113,14 +120,14 @@ class _$MobileAppUserDtoCopyWithImpl<$Res, $Val extends MobileAppUserDto>
                 ? _value.branchId
                 : branchId // ignore: cast_nullable_to_non_nullable
                       as int?,
-            firstName: null == firstName
+            firstName: freezed == firstName
                 ? _value.firstName
                 : firstName // ignore: cast_nullable_to_non_nullable
-                      as String,
-            lastName: null == lastName
+                      as String?,
+            lastName: freezed == lastName
                 ? _value.lastName
                 : lastName // ignore: cast_nullable_to_non_nullable
-                      as String,
+                      as String?,
             role: null == role
                 ? _value.role
                 : role // ignore: cast_nullable_to_non_nullable
@@ -158,11 +165,12 @@ abstract class _$$MobileAppUserDtoImplCopyWith<$Res>
   @useResult
   $Res call({
     int id,
+    String login,
     int? employeeId,
     int? customerId,
     int? branchId,
-    String firstName,
-    String lastName,
+    String? firstName,
+    String? lastName,
     @JsonKey(unknownEnumValue: MobileUserRole.unknown) MobileUserRole role,
     @JsonKey(unknownEnumValue: WorkerRole.unknown) WorkerRole? workerRole,
     bool isActive,
@@ -186,11 +194,12 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? login = null,
     Object? employeeId = freezed,
     Object? customerId = freezed,
     Object? branchId = freezed,
-    Object? firstName = null,
-    Object? lastName = null,
+    Object? firstName = freezed,
+    Object? lastName = freezed,
     Object? role = null,
     Object? workerRole = freezed,
     Object? isActive = null,
@@ -203,6 +212,10 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
                   as int,
+        login: null == login
+            ? _value.login
+            : login // ignore: cast_nullable_to_non_nullable
+                  as String,
         employeeId: freezed == employeeId
             ? _value.employeeId
             : employeeId // ignore: cast_nullable_to_non_nullable
@@ -215,14 +228,14 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
             ? _value.branchId
             : branchId // ignore: cast_nullable_to_non_nullable
                   as int?,
-        firstName: null == firstName
+        firstName: freezed == firstName
             ? _value.firstName
             : firstName // ignore: cast_nullable_to_non_nullable
-                  as String,
-        lastName: null == lastName
+                  as String?,
+        lastName: freezed == lastName
             ? _value.lastName
             : lastName // ignore: cast_nullable_to_non_nullable
-                  as String,
+                  as String?,
         role: null == role
             ? _value.role
             : role // ignore: cast_nullable_to_non_nullable
@@ -253,11 +266,12 @@ class __$$MobileAppUserDtoImplCopyWithImpl<$Res>
 class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   const _$MobileAppUserDtoImpl({
     required this.id,
+    required this.login,
     this.employeeId,
     this.customerId,
     this.branchId,
-    required this.firstName,
-    required this.lastName,
+    this.firstName,
+    this.lastName,
     @JsonKey(unknownEnumValue: MobileUserRole.unknown) required this.role,
     @JsonKey(unknownEnumValue: WorkerRole.unknown) this.workerRole,
     required this.isActive,
@@ -271,15 +285,17 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   @override
   final int id;
   @override
+  final String login;
+  @override
   final int? employeeId;
   @override
   final int? customerId;
   @override
   final int? branchId;
   @override
-  final String firstName;
+  final String? firstName;
   @override
-  final String lastName;
+  final String? lastName;
   // Используем Enum с указанием фолбэк-значения
   @override
   @JsonKey(unknownEnumValue: MobileUserRole.unknown)
@@ -296,7 +312,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
 
   @override
   String toString() {
-    return 'MobileAppUserDto(id: $id, employeeId: $employeeId, customerId: $customerId, branchId: $branchId, firstName: $firstName, lastName: $lastName, role: $role, workerRole: $workerRole, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'MobileAppUserDto(id: $id, login: $login, employeeId: $employeeId, customerId: $customerId, branchId: $branchId, firstName: $firstName, lastName: $lastName, role: $role, workerRole: $workerRole, isActive: $isActive, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -305,6 +321,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
         (other.runtimeType == runtimeType &&
             other is _$MobileAppUserDtoImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.login, login) || other.login == login) &&
             (identical(other.employeeId, employeeId) ||
                 other.employeeId == employeeId) &&
             (identical(other.customerId, customerId) ||
@@ -331,6 +348,7 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
   int get hashCode => Object.hash(
     runtimeType,
     id,
+    login,
     employeeId,
     customerId,
     branchId,
@@ -363,11 +381,12 @@ class _$MobileAppUserDtoImpl implements _MobileAppUserDto {
 abstract class _MobileAppUserDto implements MobileAppUserDto {
   const factory _MobileAppUserDto({
     required final int id,
+    required final String login,
     final int? employeeId,
     final int? customerId,
     final int? branchId,
-    required final String firstName,
-    required final String lastName,
+    final String? firstName,
+    final String? lastName,
     @JsonKey(unknownEnumValue: MobileUserRole.unknown)
     required final MobileUserRole role,
     @JsonKey(unknownEnumValue: WorkerRole.unknown) final WorkerRole? workerRole,
@@ -382,15 +401,17 @@ abstract class _MobileAppUserDto implements MobileAppUserDto {
   @override
   int get id;
   @override
+  String get login;
+  @override
   int? get employeeId;
   @override
   int? get customerId;
   @override
   int? get branchId;
   @override
-  String get firstName;
+  String? get firstName;
   @override
-  String get lastName; // Используем Enum с указанием фолбэк-значения
+  String? get lastName; // Используем Enum с указанием фолбэк-значения
   @override
   @JsonKey(unknownEnumValue: MobileUserRole.unknown)
   MobileUserRole get role;

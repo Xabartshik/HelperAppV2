@@ -74,6 +74,8 @@ static String completeCourierHandover(int taskId) => 'v1/OrderHandover/$taskId/c
   static const String getBranches = 'Branches'; // GET /api/Branch
   static String getAvailableItems(int branchId, {String query = ''}) =>
       'ItemPosition/available/$branchId?search=${Uri.encodeQueryComponent(query)}';
+  static const String checkCartBranches = 'ItemPosition/check-cart-branches';
+  static String itemStockDistribution(int itemId) => 'ItemPosition/item-stock-distribution/$itemId';
   static const String getPostamats = 'Postamat'; // GET /api/Postamat
   static const String checkPostamatCapacity = 'Postamat/check-capacity'; // POST /api/Postamat/check-capacity
   static const String createOrder = 'Orders'; // POST /api/Orders
