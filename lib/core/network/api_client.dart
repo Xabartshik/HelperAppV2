@@ -221,6 +221,7 @@ void _handleResponseErrors(Response response) {
         Logger.e('Ошибка при определении типа устройства Android, fallback на 10.0.2.2', e);
         _cachedBaseUrl = 'http://10.0.2.2:5000/api/';
       }
+      ///
     } else if (Platform.isIOS) {
       Logger.i('iOS платформа, используем localhost');
       _cachedBaseUrl = 'http://localhost:5000/api/';
