@@ -116,7 +116,7 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
                 );
               }).toList();
             },
-            backgroundColor: const Color(0xFF1C1C1E),
+            color: const Color(0xFF1C1C1E),
           ),
         ],
       ),
