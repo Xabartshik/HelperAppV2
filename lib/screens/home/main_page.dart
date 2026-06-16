@@ -23,7 +23,7 @@ class MainPage extends ConsumerStatefulWidget {
   ConsumerState<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends ConsumerState<MainPage> {
+class _MainPageState extends ConsumerState<MainPage> with WidgetsBindingObserver {
   static const Color _bgOffBlack = Color(0xFF141414);
   static const Color _bgGray950 = Color(0xFF1C1C1E);
   static const Color _bgGray900 = Color(0xFF2C2C2E);
@@ -36,11 +36,30 @@ class _MainPageState extends ConsumerState<MainPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     LocalNotificationService.init();
     _setupSignalR();
   }
 
-void _setupSignalR() async {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reconnectSignalRIfNeeded();
+    }
+  }
+
+  /// Проверяет и восстанавливает соединение при выходе из фонового режима
+  void _reconnectSignalRIfNeeded() async {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser != null && currentUser.employeeId != null) {
+      final String rawBaseUrl = await ref.read(apiClientProvider).getBaseUrlAsync();
+      final String serverUrl = rawBaseUrl.replaceAll(RegExp(r'/api/?$'), '');
+      
+      await _signalRService.ensureConnected(currentUser.employeeId!, serverUrl);
+    }
+  }
+
+  void _setupSignalR() async {
     _signalRService.onNotificationReceived = (title, message, type) {
       
       // НОВАЯ ЛОГИКА: ОБРАБОТКА ОТМЕНЫ ЗАДАЧИ
@@ -124,6 +143,7 @@ void _setupSignalR() async {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_connectedEmployeeId != null) {
       _signalRService.stopConnection(_connectedEmployeeId!);
     }

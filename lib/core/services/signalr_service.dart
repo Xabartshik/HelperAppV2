@@ -8,8 +8,11 @@ class SignalRService {
   /// и обновления списка задач.
   Function(String title, String message, String type)? onNotificationReceived;
 
+  bool _isConnectionIntended = false;
+
   /// Инициализация подключения к SignalR хабу
-Future<void> initConnection(int workerId, String serverUrl) async {
+  Future<void> initConnection(int workerId, String serverUrl) async {
+    _isConnectionIntended = true;
     final url = '$serverUrl/hubs/task-notifications';
 
     _hubConnection = HubConnectionBuilder()
@@ -19,10 +22,10 @@ Future<void> initConnection(int workerId, String serverUrl) async {
 
     _hubConnection?.on('ReceiveNotification', _handleNotification);
 
-    // 1. Логируем успешное (пере)подключение
+    // Логируем успешное переподключение
     _hubConnection?.onreconnected(({connectionId}) async {
       Logger.i('SignalR: Переподключились! Новый ID: $connectionId');
-      // КРИТИЧЕСКИ ВАЖНО: Заново добавляем себя в группу после обрыва сети!
+      // Заново добавляем себя в группу после обрыва сети
       try {
         await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
         Logger.i('SignalR: Работник $workerId заново зарегистрирован в группе.');
@@ -31,48 +34,67 @@ Future<void> initConnection(int workerId, String serverUrl) async {
       }
     });
 
-    try {
-      await _hubConnection?.start();
-      Logger.i('SignalR Успешно подключен к $url');
-      
-      // Первичная регистрация
-      await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
-      Logger.i('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
-      
-    } catch (e) {
-      Logger.i('Ошибка подключения SignalR: $e');
+    int retryCount = 0;
+    while (_isConnectionIntended && _hubConnection?.state != HubConnectionState.Connected) {
+      try {
+        await _hubConnection?.start();
+        Logger.i('SignalR Успешно подключен к $url');
+        
+        // Первичная регистрация
+        await _hubConnection?.invoke('RegisterWorker', args: [workerId]);
+        Logger.i('Работник $workerId зарегистрирован для получения PUSH-уведомлений.');
+      } catch (e) {
+        retryCount++;
+        Logger.i('Ошибка подключения SignalR (попытка $retryCount): $e. Повторная попытка через 5 секунд...');
+        if (_isConnectionIntended) {
+          await Future.delayed(const Duration(seconds: 5));
+        }
+      }
+    }
+  }
+
+  /// Проверяет и восстанавливает соединение при необходимости
+  Future<void> ensureConnected(int workerId, String serverUrl) async {
+    if (!_isConnectionIntended) return;
+    if (_hubConnection == null || _hubConnection?.state == HubConnectionState.Disconnected) {
+      Logger.i('SignalR: Обнаружено отсутствие подключения. Попытка переподключения...');
+      await initConnection(workerId, serverUrl);
     }
   }
 
   /// Внутренний обработчик входящих сообщений от сервера
   void _handleNotification(List<dynamic>? parameters) {
-    Logger.i('🚨 СЫРЫЕ ДАННЫЕ ИЗ SIGNALR: $parameters');
+    Logger.i('СЫРЫЕ ДАННЫЕ ИЗ SIGNALR: $parameters');
     if (parameters != null && parameters.isNotEmpty) {
-      // SignalR передает C# объекты как Map<String, dynamic> в первом аргументе
-      final data = parameters[0] as Map<String, dynamic>;
-      
-      // Извлекаем данные с фолбэками по умолчанию
-      // Важно: ключи зависят от настроек сериализации на C# (обычно camelCase)
-      final title = data['title']?.toString() ?? data['Title']?.toString() ?? 'Уведомление';
-      final message = data['message']?.toString() ?? data['Message']?.toString() ?? '';
-      final type = data['type']?.toString() ?? data['Type']?.toString() ?? 'info';
+      try {
+        // Безопасное преобразование параметров в карту
+        final data = Map<String, dynamic>.from(parameters[0] as Map);
+        
+        // Извлекаем данные с фолбэками по умолчанию
+        final title = data['title']?.toString() ?? data['Title']?.toString() ?? 'Уведомление';
+        final message = data['message']?.toString() ?? data['Message']?.toString() ?? '';
+        final type = data['type']?.toString() ?? data['Type']?.toString() ?? 'info';
 
-      Logger.i('SignalR: Получено PUSH-уведомление: $title - $message (Тип: $type)');
+        Logger.i('SignalR: Получено PUSH-уведомление: $title - $message (Тип: $type)');
 
-      // Передаем данные в UI (в MainPage), если страница сейчас активна и слушает
-      if (onNotificationReceived != null) {
-        onNotificationReceived!(title, message, type);
+        // Передаем данные в UI
+        if (onNotificationReceived != null) {
+          onNotificationReceived!(title, message, type);
+        }
+      } catch (e, stack) {
+        Logger.e('Ошибка при обработке полученного уведомления SignalR', e, stack);
       }
     }
   }
 
-  /// Корректное отключение (вызывать при логауте или закрытии приложения)
+  /// Корректное отключение при выходе из профиля
   Future<void> stopConnection(int workerId) async {
+    _isConnectionIntended = false;
     if (_hubConnection?.state == HubConnectionState.Connected) {
       try {
-        // Сначала удаляем из группы на сервере
+        // Удаляем из группы на сервере
         await _hubConnection?.invoke('UnregisterWorker', args: [workerId]);
-        // Затем закрываем само соединение
+        // Закрываем само соединение
         await _hubConnection?.stop();
         Logger.i('SignalR отключен, работник $workerId удален из хаба.');
       } catch (e) {
