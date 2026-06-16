@@ -81,7 +81,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   }
 
   Widget _buildStepIndicators(int currentStep) {
-    final titles = ['Витрина', 'Локация', 'Логистика', 'Проверка'];
+    final titles = ['Витрина', 'Логистика', 'Локация', 'Проверка'];
     return Container(
       color: _bgGray950,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -117,8 +117,8 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   Widget _buildCurrentStepView(CreateOrderViewModel vm) {
     switch (vm.currentStep) {
       case 0: return _buildStep2Catalog(vm);
-      case 1: return _buildStep1Location(vm);
-      case 2: return _buildStep3Logistics(vm);
+      case 1: return _buildStep3Logistics(vm);
+      case 2: return _buildStep1Location(vm);
       case 3: return _buildStep4Summary(vm);
       default: return const SizedBox();
     }
@@ -145,8 +145,39 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
   }
 
   Widget _buildStep1Location(CreateOrderViewModel vm) {
+    String titleText = 'Выбор филиала';
+    String subtitleText = 'Пожалуйста, выберите филиал из списка ниже';
+    if (vm.selectedDeliveryType == DeliveryType.courier) {
+      titleText = 'Склад отгрузки';
+      subtitleText = 'Выберите филиал, который соберет и доставит ваш заказ';
+    } else if (vm.selectedDeliveryType == DeliveryType.pickup) {
+      titleText = 'Пункт выдачи';
+      subtitleText = 'Выберите магазин, в котором вы заберете заказ';
+    } else if (vm.selectedDeliveryType == DeliveryType.express) {
+      titleText = 'Магазин выдачи';
+      subtitleText = 'Выберите магазин для моментальной выдачи в зале';
+    }
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titleText,
+                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitleText,
+                style: const TextStyle(color: _textGray, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: TextField(
@@ -792,7 +823,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             decoration: _inputDecoration('Укажите город, улицу, дом, кв.'),
             onChanged: (val) => vm.setDestinationAddress(val),
           )
-        ] else ...[
+        ] else if (vm.selectedBranch != null) ...[
            const Text('Адрес выдачи (Филиал)', style: TextStyle(color: _textGray, fontSize: 13, fontWeight: FontWeight.w500)),
            const SizedBox(height: 8),
            Container(
@@ -802,7 +833,7 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
                children: [
                  const Icon(Icons.location_on, color: _accent, size: 20),
                  const SizedBox(width: 12),
-                 Expanded(child: Text(vm.selectedBranch?.address ?? 'Адрес не указан', style: const TextStyle(color: Colors.white, fontSize: 15))),
+                 Expanded(child: Text(vm.selectedBranch!.address ?? 'Адрес не указан', style: const TextStyle(color: Colors.white, fontSize: 15))),
                ],
              ),
            ),

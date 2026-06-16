@@ -221,8 +221,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   bool canProceedToNextStep() {
     switch (currentStep) {
       case 0: return cart.isNotEmpty;
-      case 1: return selectedBranch != null && availableBranches.any((ab) => ab.branchId == selectedBranch!.branchId);
-      case 2: 
+      case 1: 
         if (selectedDeliveryType == DeliveryType.postamat) {
           return selectedPostamat != null;
         }
@@ -233,6 +232,7 @@ class CreateOrderViewModel extends ChangeNotifier {
           return deliveryDate != null; 
         }
         return true; 
+      case 2: return selectedBranch != null && availableBranches.any((ab) => ab.branchId == selectedBranch!.branchId);
       case 3: return canSubmitOrder;
       default: return false;
     }
@@ -250,6 +250,11 @@ class CreateOrderViewModel extends ChangeNotifier {
   void selectBranch(Branch branch) {
     if (selectedBranch?.branchId == branch.branchId) return;
     selectedBranch = branch;
+    
+    // Копируем адрес филиала, если выбран самовывоз или выдача в торговый зал
+    if (selectedDeliveryType == DeliveryType.pickup || selectedDeliveryType == DeliveryType.express) {
+      destinationAddress = branch.address ?? '';
+    }
     notifyListeners();
   }
 
