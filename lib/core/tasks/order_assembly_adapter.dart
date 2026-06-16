@@ -18,15 +18,23 @@ class OrderAssemblyTaskAdapter implements TaskTypeAdapter {
     try {
       final cellPlacementsJson = dto.taskDetails['cellPlacements'] as List<dynamic>? ?? [];
 
+      // Парсим детальную информацию о ячейках и товарах для руководителя
       final cellPlacements = cellPlacementsJson
           .map((c) => CellPlacementInfo(
-                targetPositionId: c['targetPositionId'],
+                targetPositionId: c['targetPositionId'] ?? c['TargetPositionId'] ?? 0,
+                cellCode: c['cellCode'] ?? c['CellCode'],
+                cellDisplayName: c['cellDisplayName'] ?? c['CellDisplayName'],
                 items: (c['items'] as List<dynamic>)
                       .map((i) => PlacementLineInfo(
-                            lineId: i['lineId'],
-                            itemPositionId: i['itemPositionId'],
-                            quantity: i['quantity'],
-                            status: _parseLineStatus(i['status']), // Используем безопасный парсер
+                            lineId: i['lineId'] ?? i['LineId'] ?? 0,
+                            itemPositionId: i['itemPositionId'] ?? i['ItemPositionId'] ?? 0,
+                            quantity: i['quantity'] ?? i['Quantity'] ?? 0,
+                            status: _parseLineStatus(i['status'] ?? i['Status']),
+                            itemId: i['itemId'] ?? i['ItemId'],
+                            itemName: i['itemName'] ?? i['ItemName'],
+                            barcode: i['barcode'] ?? i['Barcode'],
+                            sourceCellCode: i['sourceCellCode'] ?? i['SourceCellCode'],
+                            pickedQuantity: i['pickedQuantity'] ?? i['PickedQuantity'] ?? 0,
                           ))
                       .toList(),
               ))

@@ -4,6 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/models/boss_panel/boss_panel_models.dart';
+
+final orderTasksProvider = FutureProvider.family<List<BossPanelTaskCardDto>, int>((ref, orderId) async {
+  final client = ref.read(apiClientProvider);
+  return await client.getBossPanelOrderTasksAsync(orderId);
+});
 
 enum OrderSortType { date, type, status }
 

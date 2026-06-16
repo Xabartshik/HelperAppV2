@@ -515,6 +515,29 @@ Future<int> createEmployeeAsync(Map<String, dynamic> data) async {
     return (response as List).map((x) => BossPanelTaskCardDto.fromJson(x)).toList();
   }
 
+  Future<List<BossPanelTaskCardDto>> getBossPanelAllTasksAsync({DateTime? from, DateTime? to, int? employeeId}) async {
+    String query = '';
+    if (from != null) query += 'from=${from.toIso8601String()}&';
+    if (to != null) query += 'to=${to.toIso8601String()}&';
+    if (employeeId != null) query += 'employeeId=$employeeId&';
+    if (query.isNotEmpty) {
+      query = '?${query.substring(0, query.length - 1)}';
+    }
+    
+    final response = await getAsync('${ApiEndpoints.bossPanelAllTasks}$query');
+    return (response as List).map((x) => BossPanelTaskCardDto.fromJson(x)).toList();
+  }
+
+  Future<List<BossPanelTaskCardDto>> getBossPanelOrderTasksAsync(int orderId) async {
+    final response = await getAsync(ApiEndpoints.bossPanelOrderTasks(orderId));
+    return (response as List).map((x) => BossPanelTaskCardDto.fromJson(x)).toList();
+  }
+
+  Future<dynamic> getWorkerTaskDetailsAsync(int workerId, int taskId) async {
+    final response = await getAsync(ApiEndpoints.getTaskDetails(workerId, taskId));
+    return response;
+  }
+
   Future<List<EmployeeWorkloadDto>> getBossPanelEmployeeWorkloadAsync() async {
     final response = await getAsync(ApiEndpoints.bossPanelEmployeeWorkload);
     return (response as List).map((x) => EmployeeWorkloadDto.fromJson(x)).toList();

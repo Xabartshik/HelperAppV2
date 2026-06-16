@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/order/order_dto.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/models/boss_panel/boss_panel_models.dart';
 import 'branch_orders_viewmodel.dart';
 
 class BranchOrdersTab extends ConsumerWidget {
@@ -158,7 +160,7 @@ class _EmptyOrdersState extends StatelessWidget {
   }
 }
 
-class _OrderExpansionCard extends StatelessWidget {
+class _OrderExpansionCard extends ConsumerWidget {
   final OrderDto order;
   const _OrderExpansionCard({required this.order});
 
@@ -186,8 +188,9 @@ class _OrderExpansionCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dateFormat = DateFormat('dd.MM.yyyy HH:mm');
+    final tasksAsyncValue = ref.watch(orderTasksProvider(order.orderId));
     
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -208,6 +211,21 @@ class _OrderExpansionCard extends StatelessWidget {
           if (order.destinationAddress != null)
             _buildInfoRow(Icons.location_on, "Адрес", order.destinationAddress!),
           
+          const Divider(color: Colors.white10, height: 24),
+          const Text("Связанные задачи", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 8),
+
+          tasksAsyncValue.when(
+            data: (tasks) {
+              if (tasks.isEmpty) {
+                return const Text("Нет задач", style: TextStyle(color: Colors.white54, fontSize: 13));
+              }
+              return _buildGroupedTasks(context, tasks);
+            },
+            loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
+            error: (e, st) => Text("Ошибка: $e", style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+          ),
+
           const Divider(color: Colors.white10, height: 24),
           const Text("Состав заказа", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
           const SizedBox(height: 8),
@@ -236,6 +254,55 @@ class _OrderExpansionCard extends StatelessWidget {
     );
   }
 
+  Widget _buildTaskSummary(BuildContext context, BossPanelTaskCardDto task) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(task.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+              Text('${task.overallProgressPercentage}%', style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (task.assignees.isEmpty)
+             const Text("Нет исполнителей", style: TextStyle(color: Colors.white54, fontSize: 12))
+          else
+            ...task.assignees.map((a) => InkWell(
+              onTap: () {
+                context.pushNamed(
+                  'boss_panel_assignment_details',
+                  extra: {'workerId': a.employeeId, 'taskId': task.id},
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.person, size: 14, color: Colors.white54),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text(a.fullName, style: const TextStyle(color: Colors.blueAccent, fontSize: 12, decoration: TextDecoration.underline))),
+                    Text(a.status, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+              ),
+            )),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -247,6 +314,60 @@ class _OrderExpansionCard extends StatelessWidget {
           Expanded(child: Text(value, style: const TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis)),
         ],
       ),
+    );
+  }
+
+  // Возвращает русское наименование этапа задачи по ее типу
+  String _getStageName(String taskType) {
+    switch (taskType) {
+      case 'OrderAssembly': return 'Сборка';
+      case 'OrderHandover': return 'Выдача';
+      case 'ReturnToStock': return 'Возврат';
+      case 'Inventory': return 'Инвентаризация';
+      case 'Receipt': return 'Приемка';
+      case 'Movement': return 'Перемещение';
+      case 'Shipping': return 'Отгрузка';
+      case 'Packing': return 'Упаковка';
+      case 'Audit': return 'Аудит';
+      case 'Labeling': return 'Маркировка';
+      case 'Loading': return 'Погрузка';
+      default: return taskType;
+    }
+  }
+
+  // Группирует и отображает задачи по этапам
+  Widget _buildGroupedTasks(BuildContext context, List<BossPanelTaskCardDto> tasks) {
+    final Map<String, List<BossPanelTaskCardDto>> grouped = {};
+    for (final task in tasks) {
+      grouped.putIfAbsent(task.taskType, () => []).add(task);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        final stageName = _getStageName(entry.key);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6.0, left: 4.0),
+                child: Text(
+                  stageName,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              ...entry.value.map((task) => _buildTaskSummary(context, task)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

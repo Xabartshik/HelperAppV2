@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:helper_app/screens/boss_panel/active_tasks_tab.dart';
+import 'package:helper_app/screens/boss_panel/all_tasks/all_tasks_tab.dart';
 import 'package:helper_app/screens/boss_panel/branch_orders_tab.dart';
 import 'package:helper_app/screens/boss_panel/courier_route_builder_screen.dart';
 import 'package:helper_app/screens/boss_panel/employee_workload_tab.dart';
@@ -28,11 +29,12 @@ class BossPanelPage extends ConsumerWidget {
 // Список разделов для Drawer
 final List<Map<String, dynamic>> destinations = [
   {'title': 'Активные задачи', 'icon': Icons.assignment_outlined},
+  {'title': 'Все задачи', 'icon': Icons.task_alt},
   {'title': 'Загруженность', 'icon': Icons.analytics_outlined},
   {'title': 'Все заказы', 'icon': Icons.list_alt_rounded},
   {'title': 'Маршруты курьеров', 'icon': Icons.local_shipping_outlined},
   {'title': 'Пул задач', 'icon': Icons.assignment_returned_outlined},
-  {'title': 'Аналитика и Отчеты', 'icon': Icons.picture_as_pdf_outlined},
+  {'title': 'Статистика', 'icon': Icons.picture_as_pdf_outlined},
 ];
 
     return Scaffold(
@@ -124,11 +126,12 @@ final List<Map<String, dynamic>> destinations = [
 Widget _buildBody(BossPanelState state, BossPanelViewModel vm) {
   switch (state.currentTabIndex) {
     case 0: return const ActiveTasksTab();
-    case 1: return const EmployeeWorkloadTab();
-    case 2: return const BranchOrdersTab();
-    case 3: return const CourierRouteBuilderScreen();
-    case 4: return const GlobalPoolTab();
-    case 5: return const ReportsTab(); // <-- ПОДКЛЮЧЕНО СЮДА
+    case 1: return const AllTasksTab();
+    case 2: return const EmployeeWorkloadTab();
+    case 3: return const BranchOrdersTab();
+    case 4: return const CourierRouteBuilderScreen();
+    case 5: return const GlobalPoolTab();
+    case 6: return const ReportsTab();
     default: return const Center(child: Text('...'));
   }
 }

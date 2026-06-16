@@ -3,6 +3,7 @@ import 'package:helper_app/core/models/tasks/task_card_vm.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
 import 'package:helper_app/core/tasks/task_type_adapter.dart';
 import 'package:helper_app/core/utils/logger.dart';
+import 'package:helper_app/core/models/return_to_stock/return_to_stock_dtos.dart';
 
 class ReturnToStockAdapter implements TaskTypeAdapter {
   @override
@@ -35,6 +36,11 @@ class ReturnToStockAdapter implements TaskTypeAdapter {
         }
       }
 
+      // Парсим список товаров для возврата на полку
+      final lines = itemsList
+          .map((e) => ReturnItemDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+
       return ReturnToStockTaskItem(
         taskId: dto.taskId,
         type: TaskType.returnToStock,
@@ -53,6 +59,7 @@ class ReturnToStockAdapter implements TaskTypeAdapter {
         partnerName: partnerName,
         totalLines: totalLines,
         completedLinesCount: completedLines,
+        lines: lines,
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи возврата (ID: ${dto.taskId})', e, stack);

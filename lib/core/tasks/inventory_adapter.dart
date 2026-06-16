@@ -89,6 +89,8 @@ InventoryLineItem? _mapToInventoryLineItem(InventoryAssignmentLineWithItemDto dt
     expectedQuantity: dto.expectedQuantity,
     actualQuantity: dto.actualQuantity,
     positionCode: position,
+    itemId: dto.itemId,
+    itemName: dto.itemName,
   );
 }
 

@@ -34,6 +34,9 @@ static String completeCourierHandover(int taskId) => 'v1/OrderHandover/$taskId/c
 
   // Boss Panel
   static const String bossPanelActiveTasks = 'v1/bosspanel/tasks/active';
+  static const String bossPanelAllTasks = 'v1/bosspanel/tasks/all';
+  static String bossPanelOrderTasks(int orderId) => 'v1/bosspanel/orders/$orderId/tasks';
+  static String getTaskDetails(int workerId, int taskId) => 'v1/workertasks/$workerId/$taskId/details';
   static const String bossPanelEmployeeWorkload = 'v1/bosspanel/employees/workload';
   static const String bossPanelAvailableEmployees = 'v1/bosspanel/employees/available';
   static const String bossPanelAllEmployees = 'v1/bosspanel/employees/all';

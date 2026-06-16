@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'active_tasks_viewmodel.dart';
 import 'employee_workload_tab.dart'; // Для переиспользования showAssigneeDetailsSheet
+import 'package:go_router/go_router.dart';
 import '../../core/models/boss_panel/boss_panel_models.dart';
 
 class ActiveTasksTab extends ConsumerWidget {
@@ -280,7 +281,15 @@ class _TaskAssignmentsView extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => showAssigneeDetailsSheet(context, task, assignee),
+                  onTap: () {
+                    context.pushNamed(
+                      'boss_panel_assignment_details', 
+                      extra: {
+                        'workerId': assignee.employeeId, 
+                        'taskId': task.id,
+                      }
+                    );
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(

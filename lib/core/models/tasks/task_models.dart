@@ -1,4 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:helper_app/core/models/order_handover/order_handover_dtos.dart';
+import 'package:helper_app/core/models/return_to_stock/return_to_stock_dtos.dart';
+
 
 enum TaskType {
   inventory,
@@ -140,6 +143,8 @@ class InventoryLineItem {
   final int expectedQuantity;
   int? actualQuantity;
   final PositionCodeInfo? positionCode;
+  final int? itemId;
+  final String? itemName;
 
   InventoryLineItem({
     required this.lineId,
@@ -147,6 +152,8 @@ class InventoryLineItem {
     required this.expectedQuantity,
     this.actualQuantity,
     this.positionCode,
+    this.itemId,
+    this.itemName,
   });
 }
 
@@ -156,12 +163,22 @@ class PlacementLineInfo {
   final int itemPositionId;
   final int quantity;
   final String status;
+  final int? itemId;
+  final String? itemName;
+  final String? barcode;
+  final String? sourceCellCode;
+  final int? pickedQuantity;
 
   PlacementLineInfo({
     required this.lineId,
     required this.itemPositionId,
     required this.quantity,
     required this.status,
+    this.itemId,
+    this.itemName,
+    this.barcode,
+    this.sourceCellCode,
+    this.pickedQuantity,
   });
 }
 
@@ -169,10 +186,14 @@ class PlacementLineInfo {
 class CellPlacementInfo {
   final int targetPositionId;
   final List<PlacementLineInfo> items;
+  final String? cellCode;
+  final String? cellDisplayName;
 
   CellPlacementInfo({
     required this.targetPositionId,
     required this.items,
+    this.cellCode,
+    this.cellDisplayName,
   });
 }
 
@@ -261,6 +282,7 @@ class OrderHandoverTaskItem extends TaskItemBase {
   final String handoverType;
   final int totalLines;
   final int completedLinesCount;
+  final List<HandoverItemDto> lines;
 
   OrderHandoverTaskItem({
     required super.taskId,
@@ -281,6 +303,7 @@ class OrderHandoverTaskItem extends TaskItemBase {
     required this.handoverType,
     required this.totalLines,
     this.completedLinesCount = 0,
+    this.lines = const [],
     super.details,
   });
 }
@@ -291,6 +314,7 @@ class ReturnToStockTaskItem extends TaskItemBase {
   final String? partnerName;
   final int totalLines;
   final int completedLinesCount;
+  final List<ReturnItemDto> lines;
 
   ReturnToStockTaskItem({
     required super.taskId,
@@ -311,6 +335,7 @@ class ReturnToStockTaskItem extends TaskItemBase {
     this.partnerName,
     required this.totalLines,
     this.completedLinesCount = 0,
+    this.lines = const [],
     super.details,
   });
 }

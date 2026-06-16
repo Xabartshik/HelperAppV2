@@ -3,6 +3,8 @@ import 'package:helper_app/core/models/tasks/task_card_vm.dart';
 import 'package:helper_app/core/models/tasks/task_models.dart';
 import 'package:helper_app/core/tasks/task_type_adapter.dart';
 import 'package:helper_app/core/utils/logger.dart';
+import 'package:helper_app/core/models/order_handover/order_handover_dtos.dart';
+
 
 class OrderHandoverTaskAdapter implements TaskTypeAdapter {
   @override
@@ -28,6 +30,12 @@ class OrderHandoverTaskAdapter implements TaskTypeAdapter {
       final totalLines = (tDetails['totalLines'] ?? tDetails['TotalLines'] ?? 0) as int;
       final completedLines = (tDetails['completedLines'] ?? tDetails['CompletedLines'] ?? 0) as int;
 
+      // Парсим список товаров для выдачи
+      final itemsToScanJson = tDetails['itemsToScan'] as List<dynamic>? ?? tDetails['ItemsToScan'] as List<dynamic>? ?? [];
+      final lines = itemsToScanJson
+          .map((e) => HandoverItemDto.fromJson(e as Map<String, dynamic>))
+          .toList();
+
       return OrderHandoverTaskItem(
         taskId: dto.taskId,
         type: TaskType.orderHandover, // Убедись, что добавил его в enum в task_models.dart
@@ -46,6 +54,7 @@ class OrderHandoverTaskAdapter implements TaskTypeAdapter {
         handoverType: handoverType,
         totalLines: totalLines,
         completedLinesCount: completedLines,
+        lines: lines,
       );
     } catch (e, stack) {
       Logger.e('Ошибка маппинга задачи выдачи из DTO агрегатора', e, stack);

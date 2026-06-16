@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/models/user/mobile_app_user_dto.dart';
 import 'package:helper_app/screens/admin_panel/admin_dashboard_page.dart';
 import 'package:helper_app/screens/boss_panel/active_tasks_page.dart';
+import 'package:helper_app/screens/boss_panel/assignment_details/assignment_details_screen.dart';
 import 'package:helper_app/screens/courier/courier_home_page.dart';
 import 'package:helper_app/screens/home/all_orders_screen.dart';
 import 'package:helper_app/screens/home/customer_home_page.dart';
@@ -165,6 +166,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/boss-panel',
         name: 'boss_panel',
         builder: (context, state) => const BossPanelPage(),
+      ),
+      GoRoute(
+        path: '/boss-panel/assignment-details',
+        name: 'boss_panel_assignment_details',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return AssignmentDetailsScreen(
+            workerId: args['workerId'] as int? ?? 0,
+            taskId: args['taskId'] as int? ?? 0,
+          );
+        },
       ),
       GoRoute(
         path: '/inventory-details',

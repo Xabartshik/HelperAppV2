@@ -85,13 +85,13 @@ class ReportsTab extends ConsumerWidget {
             // Карточки отчетов
             _ReportCard(
               title: 'Дашборд заказов',
-              subtitle: 'Сводная аналитика, ТОП-товары и выручка',
+              subtitle: 'Статистика, ТОП-товары и выручка',
               icon: Icons.dashboard_outlined,
               color: Colors.blue,
               onTap: () => vm.downloadReport(ApiEndpoints.exportDashboardPdf, 'Dashboard', 'pdf'),
             ),
             _ReportCard(
-              title: 'Глубокая аналитика персонала',
+              title: 'Статистика персонала',
               subtitle: 'Детальные графики загруженности и таймингов',
               icon: Icons.people_alt_outlined,
               color: Colors.orange,
