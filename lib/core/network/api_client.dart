@@ -213,7 +213,7 @@ void _handleResponseErrors(Response response) {
           _cachedBaseUrl = 'http://10.0.2.2:5000/api/';
         } else {
           // Для физического Android устройства
-          const physicalDeviceAddress = "https://3z2znmzz-5000.euw.devtunnels.ms/api/";
+          const physicalDeviceAddress = "https://7sjgf4dz-5000.euw.devtunnels.ms/api/";
           Logger.i('Обнаружено физическое Android устройство, используем $physicalDeviceAddress');
           _cachedBaseUrl = physicalDeviceAddress;
         }
