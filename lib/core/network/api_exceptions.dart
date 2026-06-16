@@ -26,7 +26,10 @@ class NotFoundException extends ApiException {
 
 class ConflictException implements Exception {
   final String message;
-  ConflictException(this.message);
+  final String? code;
+  final List<int>? invalidItemIds;
+
+  ConflictException(this.message, {this.code, this.invalidItemIds});
   
   @override
   String toString() => message;

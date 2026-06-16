@@ -120,7 +120,19 @@ void _handleResponseErrors(Response response) {
     }
 
     if (response.statusCode == 409) {
-      throw ConflictException(serverMessage);
+      String? conflictCode;
+      List<int>? invalidItemIds;
+      if (response.data is Map) {
+        final codeVal = response.data['code'] ?? response.data['Code'];
+        if (codeVal != null) {
+          conflictCode = codeVal.toString();
+        }
+        final invalidIdsVal = response.data['invalidItemIds'] ?? response.data['InvalidItemIds'];
+        if (invalidIdsVal is List) {
+          invalidItemIds = invalidIdsVal.map((e) => int.parse(e.toString())).toList();
+        }
+      }
+      throw ConflictException(serverMessage, code: conflictCode, invalidItemIds: invalidItemIds);
     }
     
     if (response.statusCode != null && response.statusCode! >= 400) {

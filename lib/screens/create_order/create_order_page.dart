@@ -991,6 +991,30 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (vm.outOfStockItemIds.isNotEmpty)
+           Container(
+             padding: const EdgeInsets.all(16),
+             margin: const EdgeInsets.only(bottom: 24),
+             decoration: BoxDecoration(
+               color: Colors.redAccent.withOpacity(0.1), 
+               borderRadius: BorderRadius.circular(12), 
+               border: Border.all(color: Colors.redAccent.withOpacity(0.5))
+             ),
+             child: Row(
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+                 const SizedBox(width: 12),
+                 const Expanded(
+                   child: Text(
+                     'Оформление заказа невозможно: некоторые товары закончились на складе. Пожалуйста, вернитесь на шаг назад и отредактируйте корзину.', 
+                     style: TextStyle(color: Colors.redAccent, height: 1.4)
+                   )
+                 ),
+               ],
+             ),
+           ),
+
         if (vm.postamatCapacityError != null)
            Container(
              padding: const EdgeInsets.all(16),
@@ -1053,19 +1077,64 @@ class _CreateOrderPageState extends ConsumerState<CreateOrderPage> {
             children: [
               ...vm.cart.entries.map((e) {
                 final item = vm.availableItems.firstWhere((i) => i.itemId == e.key);
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
+                final isOutOfStock = vm.outOfStockItemIds.contains(item.itemId);
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12.0),
+                  padding: isOutOfStock ? const EdgeInsets.all(8.0) : EdgeInsets.zero,
+                  decoration: isOutOfStock 
+                    ? BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                      )
+                    : null,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: _bgGray950, borderRadius: BorderRadius.circular(6)),
-                        child: Text('${e.value} шт', style: const TextStyle(color: _textGray, fontSize: 12, fontWeight: FontWeight.bold)),
+                        decoration: BoxDecoration(
+                          color: isOutOfStock ? Colors.redAccent.withOpacity(0.2) : _bgGray950, 
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${e.value} шт', 
+                          style: TextStyle(
+                            color: isOutOfStock ? Colors.redAccent : _textGray, 
+                            fontSize: 12, 
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(item.name, style: const TextStyle(color: Colors.white, fontSize: 14))),
-                      Text('${(item.price * e.value).toStringAsFixed(0)} ₽', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name, 
+                              style: TextStyle(
+                                color: isOutOfStock ? Colors.redAccent : Colors.white, 
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (isOutOfStock) ...[
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Товар закончился на складе', 
+                                style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${(item.price * e.value).toStringAsFixed(0)} ₽', 
+                        style: TextStyle(
+                          color: isOutOfStock ? Colors.redAccent : Colors.white, 
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 );

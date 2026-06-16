@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:helper_app/core/services/order_service.dart';
+import 'package:helper_app/core/models/order/order_dto.dart';
 import 'package:intl/intl.dart';
 
 class RecentOrdersWidget extends ConsumerStatefulWidget {
@@ -64,7 +65,15 @@ class _RecentOrdersWidgetState extends ConsumerState<RecentOrdersWidget> {
           return _buildEmptyState();
         }
 
-        final recentOrders = orders.take(3).toList();
+        // Сортировка списка заказов перед выбором последних
+        final sortedOrders = List<OrderDto>.from(orders)
+          ..sort((a, b) {
+            final dateCompare = (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+                .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0));
+            if (dateCompare != 0) return dateCompare;
+            return b.orderId.compareTo(a.orderId);
+          });
+        final recentOrders = sortedOrders.take(3).toList();
 
         return Column(
           children: recentOrders.map((order) {

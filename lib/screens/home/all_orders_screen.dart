@@ -1,8 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:helper_app/core/services/order_service.dart';
+import 'package:helper_app/core/models/order/order_dto.dart';
 import 'package:intl/intl.dart';
+
+enum OrderSortOption {
+  newest('Сначала новые'),
+  oldest('Сначала старые'),
+  highestPrice('Сначала дорогие'),
+  lowestPrice('Сначала дешевые');
+
+  const OrderSortOption(this.label);
+  final String label;
+}
 
 class AllOrdersScreen extends ConsumerStatefulWidget {
   final int customerId;
@@ -13,7 +25,9 @@ class AllOrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
-  
+  OrderSortOption _currentSort = OrderSortOption.newest;
+  Timer? _refreshTimer;
+
   @override
   void initState() {
     super.initState();
@@ -21,6 +35,19 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(customerOrdersProvider(widget.customerId));
     });
+
+    // Запуск таймера автоматического обновления каждые 30 секунд
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        ref.invalidate(customerOrdersProvider(widget.customerId));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   String _translateStatus(String status) {
@@ -64,6 +91,33 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
               ref.invalidate(customerOrdersProvider(widget.customerId));
             },
           ),
+          PopupMenuButton<OrderSortOption>(
+            icon: const Icon(Icons.sort, color: Colors.white),
+            tooltip: 'Сортировка',
+            onSelected: (OrderSortOption option) {
+              setState(() {
+                _currentSort = option;
+              });
+            },
+            itemBuilder: (BuildContext context) {
+              return OrderSortOption.values.map((option) {
+                return PopupMenuItem<OrderSortOption>(
+                  value: option,
+                  child: Row(
+                    children: [
+                      if (_currentSort == option)
+                        const Icon(Icons.check, color: Color(0xFF7C3AED), size: 18)
+                      else
+                        const SizedBox(width: 18),
+                      const SizedBox(width: 8),
+                      Text(option.label, style: const TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+            backgroundColor: const Color(0xFF1C1C1E),
+          ),
         ],
       ),
       body: ordersAsync.when(
@@ -96,6 +150,32 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
             return _buildEmptyState();
           }
 
+          final sortedOrders = List<OrderDto>.from(orders);
+          switch (_currentSort) {
+            case OrderSortOption.newest:
+              sortedOrders.sort((a, b) {
+                final dateCompare = (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+                    .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0));
+                if (dateCompare != 0) return dateCompare;
+                return b.orderId.compareTo(a.orderId);
+              });
+              break;
+            case OrderSortOption.oldest:
+              sortedOrders.sort((a, b) {
+                final dateCompare = (a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+                    .compareTo(b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0));
+                if (dateCompare != 0) return dateCompare;
+                return a.orderId.compareTo(b.orderId);
+              });
+              break;
+            case OrderSortOption.highestPrice:
+              sortedOrders.sort((a, b) => b.totalPrice.compareTo(a.totalPrice));
+              break;
+            case OrderSortOption.lowestPrice:
+              sortedOrders.sort((a, b) => a.totalPrice.compareTo(b.totalPrice));
+              break;
+          }
+
           return RefreshIndicator(
             color: const Color(0xFF7C3AED),
             backgroundColor: const Color(0xFF1C1C1E),
@@ -105,9 +185,9 @@ class _AllOrdersScreenState extends ConsumerState<AllOrdersScreen> {
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: orders.length,
+              itemCount: sortedOrders.length,
               itemBuilder: (context, index) {
-                final order = orders[index];
+                final order = sortedOrders[index];
                 final localTime = order.deliveryDate?.toLocal();
                 final formattedTime = localTime != null ? DateFormat('dd.MM.yyyy HH:mm').format(localTime) : '';
 

@@ -1,4 +1,5 @@
 // lib/screens/home/order_details_screen.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:helper_app/core/services/order_service.dart';
@@ -17,6 +18,7 @@ class OrderDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
+  Timer? _refreshTimer;
   
   @override
   void initState() {
@@ -26,6 +28,19 @@ class _OrderDetailsScreenState extends ConsumerState<OrderDetailsScreen> {
         ref.invalidate(orderDetailsProvider(widget.orderId));
       }
     });
+
+    // Запуск автоматического обновления каждые 30 секунд
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (mounted) {
+        ref.invalidate(orderDetailsProvider(widget.orderId));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 
   String _translateStatus(String status) {

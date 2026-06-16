@@ -7,6 +7,7 @@ import '../../core/models/branch/branch_stock_dto.dart';
 import '../../core/models/branch/branch_dto.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/network/api_exceptions.dart';
 import '../../core/utils/logger.dart';
 
 class DeliverySlot {
@@ -141,6 +142,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   int currentStep = 0;
   bool isLoading = false;
   String? errorMessage;
+  List<int> outOfStockItemIds = [];
 
   List<Branch> branches = [];
   Branch? selectedBranch;
@@ -490,6 +492,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   bool updateCartQuantity(int itemId, int delta, int maxQuantity) {
+    outOfStockItemIds.remove(itemId);
     int current = cart[itemId] ?? 0;
     int newVal = current + delta;
     
@@ -507,6 +510,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   bool setManualQuantity(int itemId, int value, int maxQuantity) {
+    outOfStockItemIds.remove(itemId);
     if (value < 0) return false;
     
     bool restricted = false;
@@ -747,7 +751,7 @@ class CreateOrderViewModel extends ChangeNotifier {
   }
 
   bool get canSubmitOrder {
-    if (cart.isEmpty || selectedBranch == null) return false;
+    if (cart.isEmpty || selectedBranch == null || outOfStockItemIds.isNotEmpty) return false;
     
     if (selectedDeliveryType == DeliveryType.postamat) {
       return selectedPostamat != null && !isCheckingPostamatCapacity;
@@ -852,7 +856,43 @@ class CreateOrderViewModel extends ChangeNotifier {
       return result;
     } catch (e) {
       Logger.e('CreateOrderViewModel Error', e);
-      errorMessage = e.toString();
+      if (e is ConflictException && e.code == 'OUT_OF_STOCK') {
+        outOfStockItemIds = e.invalidItemIds ?? [];
+        errorMessage = 'Некоторые товары закончились на складе. Пожалуйста, проверьте состав корзины.';
+        
+        for (var itemId in outOfStockItemIds) {
+          final idx = availableItems.indexWhere((item) => item.itemId == itemId);
+          if (idx != -1) {
+            final old = availableItems[idx];
+            availableItems[idx] = AvailableItem(
+              itemId: old.itemId,
+              name: old.name,
+              price: old.price,
+              availableQuantity: 0,
+              length: old.length,
+              width: old.width,
+              height: old.height,
+              branchCount: 0,
+            );
+          }
+          final gIdx = globalItems.indexWhere((item) => item.itemId == itemId);
+          if (gIdx != -1) {
+            final old = globalItems[gIdx];
+            globalItems[gIdx] = AvailableItem(
+              itemId: old.itemId,
+              name: old.name,
+              price: old.price,
+              availableQuantity: 0,
+              length: old.length,
+              width: old.width,
+              height: old.height,
+              branchCount: 0,
+            );
+          }
+        }
+      } else {
+        errorMessage = e.toString();
+      }
       return fallback as T;
     } finally {
       isLoading = false;
